@@ -19,7 +19,9 @@ jobs:
         sudo apt-get install -y cmake build-essential lua5.3 liblua5.3-dev libpam-dev pkg-config
 
     - name: Configure CMake
-      run: cd src && cmake -B build
+      run: |
+        cd src
+        cmake -B build -DLUA_INCLUDE_DIR=/usr/include/lua5.3 -DLUA_LIBRARY=/usr/lib/x86_64-linux-gnu/liblua5.3.so
 
     - name: Build project
       run: cd src && cmake --build build
