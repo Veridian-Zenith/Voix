@@ -1,33 +1,3 @@
-# Build artifacts
-/src/build/
-/build/
-*.o
-*.so
-*.a
-*.out
-*.bin
-voix
-voix-pam
-voix.md
-
-# IDE and editor files
-/.vscode/
-.idea/
-*.swp
-*~
-.DS_Store
-
-# Dependencies
-# If you use a package manacontinue please, it needs to compile into a single voix binaryger that creates a local directory for dependencies, add it here.
-# e.g., node_modules/
-
-# Logs and temporary files
-*.log
-*.tmp
-/tmp/
-/.cache/
-
-# Configuration files that might contain sensitive information
-# config.local
-
+.cache/
+build/
 AUR/
