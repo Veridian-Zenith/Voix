@@ -16,6 +16,7 @@
 #include <fstream>
 #include <fcntl.h>
 #include <cstdlib>
+#include <vector>
 
 namespace Voix {
 
@@ -25,7 +26,7 @@ Utils::~Utils() = default;
 
 int Utils::executeCommand(const std::string& command,
                          const std::vector<std::string>& args,
-                         const std::optional<std::string>& user) const {
+                         const std::string& user) const {
 
     pid_t pid = fork();
 
@@ -36,11 +37,15 @@ int Utils::executeCommand(const std::string& command,
         // Child process
 
         // If user is specified, try to switch user
-        if (user.has_value()) {
-            struct passwd* pw = getpwnam(user->c_str());
+        if (!user.empty() && user != "root") {
+            struct passwd* pw = getpwnam(user.c_str());
             if (pw) {
-                (void)setuid(pw->pw_uid);  // Explicitly ignore return value
-                (void)setgid(pw->pw_gid);  // Explicitly ignore return value
+                if (setgid(pw->pw_gid) != 0) {
+                    _exit(1);
+                }
+                if (setuid(pw->pw_uid) != 0) {
+                    _exit(1);
+                }
             }
         }
 
@@ -52,6 +57,9 @@ int Utils::executeCommand(const std::string& command,
             argv.push_back(arg.c_str());
         }
         argv.push_back(nullptr);
+
+        // Set safe PATH
+        setenv("PATH", "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin", 1);
 
         // Execute command
         execvp(command.c_str(), const_cast<char* const*>(argv.data()));
@@ -116,11 +124,6 @@ void Utils::log(const std::string& level, const std::string& message) const {
     std::string timestamp = getTimestamp();
     std::string log_entry = "[" + timestamp + "] [" + level + "] " + message;
 
-    // Try to write to syslog first, then to file
-    #ifdef __linux__
-    // Note: In a real implementation, you'd use syslog() here
-    #endif
-
     // Fallback to file logging
     std::ofstream log_file("/var/log/voix.log", std::ios::app);
     if (log_file.is_open()) {
@@ -131,11 +134,11 @@ void Utils::log(const std::string& level, const std::string& message) const {
 
 std::string Utils::buildCommandString(const std::string& command,
                                      const std::vector<std::string>& args,
-                                     const std::optional<std::string>& user) const {
+                                     const std::string& user) const {
     std::stringstream ss;
 
-    if (user.has_value()) {
-        ss << "su - " << user.value() << " -c ";
+    if (!user.empty() && user != "root") {
+        ss << "su - " << user << " -c ";
     }
 
     ss << command;
@@ -147,4 +150,25 @@ std::string Utils::buildCommandString(const std::string& command,
     return ss.str();
 }
 
-} // namespace Utils
+bool Utils::setUserCredentials(uid_t uid, gid_t gid) const {
+    if (setgid(gid) != 0) {
+        return false;
+    }
+    if (setuid(uid) != 0) {
+        return false;
+    }
+    return true;
+}
+
+void Utils::setEnvironment(const std::vector<std::string>& env_vars) const {
+    for (const auto& env_var : env_vars) {
+        size_t pos = env_var.find('=');
+        if (pos != std::string::npos) {
+            std::string key = env_var.substr(0, pos);
+            std::string value = env_var.substr(pos + 1);
+            setenv(key.c_str(), value.c_str(), 1);
+        }
+    }
+}
+
+} // namespace Voix

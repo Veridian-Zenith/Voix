@@ -1,6 +1,6 @@
 /**
  * @file security.cpp
- * @brief Security and validation implementation
+ * @brief Enhanced security implementation
  * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
  */
 
@@ -16,7 +16,14 @@
 
 namespace Voix {
 
-Security::Security() = default;
+Security::Security()
+    : dangerous_commands_({
+        "su", "sudo", "doas", "pkexec", "bash", "sh", "zsh", "fish",
+        "dd", "mkfs", "fdisk", "parted", "rm", "rmdir", "chmod", "chown",
+        "kill", "killall", "pkill", "systemctl", "service",
+        "chroot", "unshare", "nsenter", "capsh"
+    }),
+      dangerous_chars_("|&;$`(){}[]<>?!~*\\\"'") {}
 
 Security::~Security() = default;
 
@@ -38,7 +45,7 @@ bool Security::validateUser(const std::string& username) const {
 }
 
 bool Security::validateCommand(const std::string& command,
-                              const std::vector<std::string>& args) const {
+                             const std::vector<std::string>& args) const {
 
     // Check for dangerous commands
     if (isDangerousCommand(command)) {
@@ -88,11 +95,6 @@ void Security::logEvent(const std::string& event, const std::string& user) const
                 << " [" << user << "] " << event << std::endl;
         log_file.close();
     }
-
-    // Also log to syslog if available
-    #ifdef __linux__
-    // Note: This would require syslog.h in a real implementation
-    #endif
 }
 
 std::string Security::getCurrentUser() const {
@@ -107,33 +109,21 @@ std::string Security::getCurrentUser() const {
 }
 
 bool Security::isDangerousCommand(const std::string& command) const {
-    // List of commands that should never be allowed
-    static const std::vector<std::string> dangerous_commands = {
-        "su", "sudo", "doas", "pkexec", "bash", "sh", "zsh", "fish",
-        "dd", "mkfs", "fdisk", "parted", "rm", "rmdir", "chmod", "chown",
-        "kill", "killall", "pkill", "systemctl", "service",
-        "chroot", "unshare", "nsenter", "capsh"
-    };
-
-    for (const auto& dangerous : dangerous_commands) {
+    for (const auto& dangerous : dangerous_commands_) {
         if (command == dangerous) {
             return true;
         }
     }
-
     return false;
 }
 
 bool Security::containsShellMetacharacters(const std::string& str) const {
-    const std::string dangerous_chars = "|&;$`(){}[]<>?!~*\\\"'";
-
     for (char c : str) {
-        if (dangerous_chars.find(c) != std::string::npos) {
+        if (dangerous_chars_.find(c) != std::string::npos) {
             return true;
         }
     }
-
     return false;
 }
 
-} // namespace Security
+} // namespace Voix
