@@ -218,6 +218,12 @@ For issues and feature requests:
 - Use strong, unique passwords for all users
 - Consider using multi-factor authentication where possible
 
+## Security Policy
+
+For security vulnerabilities and responsible disclosure, please see our [Security Policy](https://github.com/Veridian-Zenith/Voix/blob/main/.github/SECURITY.md).
+
+**Contact:** daedaevibin@naver.com
+
 ## Performance
 
 Voix is designed to be lightweight and fast:
