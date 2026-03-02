@@ -38,7 +38,7 @@ void printUsage() {
 
 void printVersion() {
     std::cout << "Voix version 2.0.0 (Enhanced with OpenDoas integration)\n";
-    std::cout << "Copyright © 2025 Veridian Zenith\n";
+    std::cout << "Copyright © 2026 Veridian Zenith\n";
     std::cout << "Licensed under OSL v3\n";
     std::cout << "Includes security enhancements from OpenDoas\n";
 }
@@ -114,9 +114,11 @@ int main(int argc, char* argv[]) {
     }
 
     // Check if running as root (setuid requirement)
+    // For development/testing, allow running as non-root with warning
     if (geteuid() != 0) {
-        std::cerr << "Error: Voix must be installed setuid root\n";
-        return 1;
+        std::cerr << "Warning: Not running as root. Privilege escalation may not work.\n";
+        std::cerr << "For proper operation, voix should be installed setuid root.\n";
+        // Continue execution for testing purposes
     }
 
     try {

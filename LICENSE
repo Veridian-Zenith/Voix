@@ -1,28 +1,50 @@
-# Open Software License (OSL) v. 3.0
+# Open Software License v3.0
 
-Copyright (c) 2026 [Your Name]
+Version 3.0, 8 July 2005
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software in compliance with the Open Software License version 3.0,
-subject to the conditions below.
+Copyright (C) 2026 Veridian Zenith
 
-1. Definitions
-   "License" shall mean the Open Software License, Version 3.0.
-   "Licensor" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.
-   "You" (or "Your") shall mean an individual or Legal Entity exercising permissions granted by this License.
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
 
-2. Grant of Rights
-   You are granted the right to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-   subject to the conditions in this License.
+[Full OSL v3.0 text - see https://opensource.org/license/osl-3-0-php/]
 
-3. Conditions
-   3.1 You must include a copy of this License with every copy of the Software you distribute.
-   3.2 You may not remove or alter any licensing, copyright, or attribution notices.
-   3.3 You may not use the names of the Licensor or contributors to endorse or promote products derived from the Software without specific prior written permission.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the Open Software License v3.0 as published by
+the Open Source Initiative.
 
-4. Disclaimer
-   The Software is provided "AS IS", without warranty of any kind, express or implied, including but not limited to warranties
-   of merchantability, fitness for a particular purpose, or non-infringement.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  See the
+Open Software License v3.0 for more details.
 
-[Full license text: https://opensource.org/licenses/OSL-3.0]
+You should have received a copy of the Open Software License v3.0
+along with this program.  If not, see <https://opensource.org/license/osl-3-0-php/>.
+
+## Additional Licenses
+
+This software is also licensed under the GNU Affero General Public License v3.0
+for compatibility with other open source projects.
+
+## Additional Components
+
+This software includes components derived from OpenDoas:
+
+Copyright (c) 2015 Ted Unangst
+Copyright (c) 2015 Nathan Holstein
+Copyright (c) 2016 Duncan Overbruck
+
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Additional bits copyright of their respective authors, see individual
+files for details.

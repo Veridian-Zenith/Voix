@@ -38,7 +38,7 @@ else()
     message(WARNING "Lua not found - Lua config functionality will be disabled")
 endif()
 
-# Security hardening flags
+# Security hardening flags (compatible with both GCC and Clang)
 target_compile_options(voix PRIVATE
     -Wall
     -Wextra
@@ -48,12 +48,24 @@ target_compile_options(voix PRIVATE
     -fPIE
 )
 
+# Compiler-specific optimizations
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
+    # Clang/LLVM specific flags
+    target_compile_options(voix PRIVATE
+        -fcolor-diagnostics
+    )
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    # GCC specific flags
+    target_compile_options(voix PRIVATE
+        -fdiagnostics-color=always
+    )
+endif()
+
 # Install rules
 install(TARGETS voix DESTINATION bin)
 
 # Install configuration files
 install(FILES config/voix.conf DESTINATION etc)
-install(FILES config/voix.lua DESTINATION etc/voix)
 
 # Install PAM configuration
 install(FILES pam.d/voix DESTINATION etc/pam.d)
@@ -62,7 +74,7 @@ install(FILES pam.d/voix DESTINATION etc/pam.d)
 install(FILES docs/voix.1 DESTINATION share/man/man1)
 
 # Install license files
-install(FILES LICENSE LICENSE-AGPLv3 LICENSE-VCL1.0 DESTINATION share/licenses/voix)
+install(FILES LICENSE LICENSE-VCL1.0 DESTINATION share/licenses/voix)
 
 # Setuid installation - apply setuid bit during install
 install(SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetuidInstall.cmake)
