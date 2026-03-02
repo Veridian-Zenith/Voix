@@ -44,7 +44,6 @@ target_compile_options(voix PRIVATE
     -Wextra
     -Werror
     -fstack-protector-strong
-    -D_FORTIFY_SOURCE=2
     -fPIE
 )
 
