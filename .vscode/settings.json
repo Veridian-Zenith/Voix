@@ -1,0 +1,8 @@
+{
+  "makefile.makefilePath": "/home/dae/work/Voix/build/Makefile",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/**",
+    "${workspaceFolder}/include",
+    "${workspaceFolder}/src"
+  ],
+}
