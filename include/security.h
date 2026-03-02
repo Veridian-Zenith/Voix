@@ -1,6 +1,6 @@
 /**
  * @file security.h
- * @brief Security and validation for Voix
+ * @brief Enhanced security and validation
  * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
  */
 
@@ -13,32 +13,29 @@
 
 namespace Voix {
 
-/**
- * @brief Security class for Voix validation and checks
- */
 class Security {
 public:
     Security();
     ~Security();
 
     /**
-     * @brief Validate user permissions
+     * @brief Validate user exists and is safe
      * @param username Username to validate
      * @return true if valid, false otherwise
      */
     bool validateUser(const std::string& username) const;
 
     /**
-     * @brief Validate command for security
+     * @brief Validate command and arguments
      * @param command Command to validate
      * @param args Command arguments
-     * @return true if safe, false otherwise
+     * @return true if valid, false otherwise
      */
     bool validateCommand(const std::string& command,
-                        const std::vector<std::string>& args) const;
+                         const std::vector<std::string>& args) const;
 
     /**
-     * @brief Check if path is safe
+     * @brief Check if path is safe (no traversal, no sensitive locations)
      * @param path Path to check
      * @return true if safe, false otherwise
      */
@@ -46,22 +43,37 @@ public:
 
     /**
      * @brief Log security event
-     * @param event Security event description
-     * @param user User who triggered the event
+     * @param event Event description
+     * @param user Username associated with event
      */
     void logEvent(const std::string& event, const std::string& user) const;
 
     /**
-     * @brief Get current user information
-     * @return Current username
+     * @brief Get current user name
+     * @return Current user name
      */
     std::string getCurrentUser() const;
 
-private:
+    /**
+     * @brief Check if command is dangerous
+     * @param command Command to check
+     * @return true if dangerous, false otherwise
+     */
     bool isDangerousCommand(const std::string& command) const;
+
+    /**
+     * @brief Check if string contains shell metacharacters
+     * @param str String to check
+     * @return true if contains dangerous characters, false otherwise
+     */
     bool containsShellMetacharacters(const std::string& str) const;
+
+private:
+    // Enhanced dangerous command list
+    const std::vector<std::string> dangerous_commands_;
+    const std::string dangerous_chars_;
 };
 
-} // namespace Security
+} // namespace Voix
 
 #endif // SECURITY_H

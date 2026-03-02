@@ -1,54 +1,41 @@
 cmake_minimum_required(VERSION 3.18)
-project(Voix VERSION 1.0.0 LANGUAGES CXX)
+project(Voix VERSION 2.0.0 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Use LLVM/Clang
-find_package(LLVM REQUIRED CONFIG)
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-
-# Add LLVM definitions and include directories
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
-
-# Enable thin LTO
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
-
-# Find TCMalloc
-find_library(TCMALLOC_LIBRARY tcmalloc)
-if(TCMALLOC_LIBRARY)
-    message(STATUS "Found TCMalloc: ${TCMALLOC_LIBRARY}")
-    set(USE_TCMALLOC ON)
-else()
-    message(WARNING "TCMalloc not found, falling back to system malloc")
-    set(USE_TCMALLOC OFF)
-endif()
+# Find required packages
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PAM REQUIRED pam)
+pkg_check_modules(LUA QUIET lua5.4 lua)
 
 # Source files
 set(VOIX_SOURCES
     src/main.cpp
     src/voix.cpp
-    src/config.cpp
     src/security.cpp
     src/utils.cpp
-    src/pam_auth.cpp
+    src/lua_config.cpp
+    src/config.cpp
 )
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${PAM_INCLUDE_DIRS})
+if(LUA_FOUND)
+    include_directories(${LUA_INCLUDE_DIRS})
+endif()
 
 # Create executable
 add_executable(voix ${VOIX_SOURCES})
 
 # Link libraries
-target_link_libraries(voix ${LLVM_LIBS})
-if(USE_TCMALLOC)
-    target_link_libraries(voix ${TCMALLOC_LIBRARY})
+target_link_libraries(voix PRIVATE ${PAM_LIBRARIES})
+if(LUA_FOUND)
+    target_link_libraries(voix PRIVATE ${LUA_LIBRARIES})
+else()
+    message(WARNING "Lua not found - Lua config functionality will be disabled")
 endif()
 
 # Security hardening flags
@@ -63,9 +50,19 @@ target_compile_options(voix PRIVATE
 
 # Install rules
 install(TARGETS voix DESTINATION bin)
-install(FILES config/voix.conf DESTINATION etc)
-install(FILES docs/voix.1 DESTINATION man/man1)
 
-# Testing
-enable_testing()
-add_subdirectory(tests)
+# Install configuration files
+install(FILES config/voix.conf DESTINATION etc)
+install(FILES config/voix.lua DESTINATION etc/voix)
+
+# Install PAM configuration
+install(FILES pam.d/voix DESTINATION etc/pam.d)
+
+# Install documentation
+install(FILES docs/voix.1 DESTINATION share/man/man1)
+
+# Install license files
+install(FILES LICENSE LICENSE-AGPLv3 LICENSE-VCL1.0 DESTINATION share/licenses/voix)
+
+# Setuid installation - apply setuid bit during install
+install(SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetuidInstall.cmake)

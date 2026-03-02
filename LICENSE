@@ -1,47 +1,28 @@
-Open Software License 3.0 (OSL-3.0)
+# Open Software License (OSL) v. 3.0
 
-Copyright (c) 2025 Dae Euhwa
+Copyright (c) 2026 [Your Name]
 
-This license applies to any original work or derivative work you distribute. You may use, copy, modify, and distribute this software under the following terms:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software in compliance with the Open Software License version 3.0,
+subject to the conditions below.
 
 1. Definitions
+   "License" shall mean the Open Software License, Version 3.0.
+   "Licensor" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.
+   "You" (or "Your") shall mean an individual or Legal Entity exercising permissions granted by this License.
 
-“License” shall mean this document.
+2. Grant of Rights
+   You are granted the right to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+   subject to the conditions in this License.
 
-“Licensor” shall mean the copyright owner.
+3. Conditions
+   3.1 You must include a copy of this License with every copy of the Software you distribute.
+   3.2 You may not remove or alter any licensing, copyright, or attribution notices.
+   3.3 You may not use the names of the Licensor or contributors to endorse or promote products derived from the Software without specific prior written permission.
 
-“You” (or “Licensee”) shall mean any person who modifies or distributes the work.
+4. Disclaimer
+   The Software is provided "AS IS", without warranty of any kind, express or implied, including but not limited to warranties
+   of merchantability, fitness for a particular purpose, or non-infringement.
 
-2. Grant of Copyright License
-
-Subject to the terms and conditions of this License, the Licensor hereby grants You a worldwide, royalty-free, non-exclusive, sublicensable license to:
-
-- Reproduce, prepare derivative works, publicly display, publicly perform, sublicense, and distribute the Work and such derivative works in Source or Object form.
-
-3. Grant of Patent License
-
-The Licensor hereby grants You a worldwide, royalty-free, non-exclusive, sublicensable license under any of its patent claims embodied in the Work to make, use, sell, offer for sale, import and otherwise transfer the Work.
-
-4. Redistribution
-
-You may distribute copies of the Work or derivative works only under the terms of this License. You must include a copy of this License with every copy of the Work or derivative work you distribute.
-
-5. Source Code
-
-If you distribute the Work or a derivative work, you must provide access to the complete source code.
-
-6. Attribution
-
-You must retain all copyright, patent, and license notices in the Work. You must also include a prominent notice stating that you modified the Work if you do so.
-
-7. Disclaimer of Warranty
-
-The Work is provided “AS IS” without warranty of any kind, either express or implied.
-
-8. Termination
-
-Your rights under this License terminate automatically if you violate any terms. If your rights terminate, you must cease all distribution and use of the Work.
-
----
-
-Full license text: https://opensource.org/licenses/OSL-3.0
+[Full license text: https://opensource.org/licenses/OSL-3.0]

@@ -1,117 +1,62 @@
-.TH VOIX 1 "December 2025" "1.0.0" "Voix User Manual"
+.TH VOIX 1 "March 2026" "Voix 2.0.0" "User Commands"
 .SH NAME
-voix \- simple privilege escalation tool
+voix \- privilege escalation tool replacing sudo/doas
 .SH SYNOPSIS
 .B voix
-[\fIoptions\fR] \fIcommand\fR [\fIargs...\fR]
+[\fIOPTIONS\fR]
+[\fICOMMAND\fR [\fIARGS\fR...]]
 .SH DESCRIPTION
-.B Voix
-is a lightweight, secure replacement for \fBsudo\fR and \fBdoas\fR designed for modern Linux systems.
-It provides privilege escalation with comprehensive security checks and configurable user permissions.
-.PP
-Voix executes commands with elevated privileges while maintaining strict security validation
-and audit logging. It supports user-specific command permissions and multiple target users.
+Voix is a privilege escalation tool designed to replace sudo, doas, and sudo-rs.
+It uses PAM for authentication and provides a secure, modern approach to privilege management.
 .SH OPTIONS
 .TP
 .B \-h, \-\-help
-Display help message and exit.
+Show help message and exit.
 .TP
 .B \-v, \-\-version
-Display version information and exit.
+Show version information and exit.
 .TP
-.BI \-u " user" ", " \-\-user " user"
+.B \-u \fIUSER\fR, \-\-user \fIUSER\fR
 Execute command as specified user (default: root).
 .TP
-.BI \-c " config" ", " \-\-config " config"
-Use specified configuration file instead of default.
-.SH COMMANDS
-Execute any command with elevated privileges as configured.
-.SH EXAMPLES
+.B \-g \fIGROUP\fR, \-\-group \fIGROUP\fR
+Execute command as specified group.
 .TP
-List root directory:
-.B voix ls /root
-.TP
-Restart service as admin user:
-.B voix \-u admin systemctl restart nginx
-.TP
-Update system packages:
-.B voix apt update
-.TP
-Execute with custom config:
-.B voix \-c /etc/voix\-custom.conf systemctl status
+.B \-S, \-\-shell
+Start a shell as the target user.
 .SH CONFIGURATION
-Voix reads configuration from \fI/etc/voix.conf\fR by default.
+Voix configuration is typically located in \fI/etc/voix.conf\fR.
+The configuration file uses a simple syntax for defining access rules.
+.SH AUTHENTICATION
+Voix uses PAM (Pluggable Authentication Modules) for authentication.
+The PAM configuration is typically located in \fI/etc/pam.d/voix\fR.
+.SH EXAMPLES
+Execute a command as root:
+.IP
+voix whoami
 .PP
-Configuration format:
+Execute a command as a specific user:
+.IP
+voix -u username whoami
 .PP
-.nf
-.RS
-# Global settings
-key = value
-
-# User permissions
-username:command1,command2,command3
-
-# Allowed users
-allowed_users = user1,user2,user3
-.RE
-.fi
-.PP
-Example configuration:
-.PP
-.nf
-.RS
-# Allow root all commands
-root:*
-
-# Allow admin system commands
-admin:systemctl,apt,yum,dnf,ls,cat,grep
-
-# Specify allowed users
-allowed_users = root,admin,deploy
-.RE
-.fi
-.SH SECURITY
-Voix implements comprehensive security measures:
-.IP \(bu 2
-Blocks dangerous commands (su, sudo, bash, etc.)
-.IP \(bu 2
-Validates path safety (prevents traversal attacks)
-.IP \(bu 2
-Filters shell metacharacters (prevents injection)
-.IP \(bu 2
-Validates user permissions
-.IP \(bu 2
-Provides audit logging
+Start a shell as root:
+.IP
+voix -S
 .SH FILES
-.I /etc/voix.conf
-.RS
-Default configuration file.
-.RE
-.PP
-.I /var/log/voix.log
-.RS
-Audit log file.
-.RE
-.SH EXIT STATUS
 .TP
-.B 0
-Command executed successfully.
+.B /etc/voix.conf
+Main configuration file for access rules.
 .TP
-.B 1
-General error (permission denied, invalid command, etc.).
+.B /etc/pam.d/voix
+PAM configuration for authentication.
 .TP
-.B \-1
-System error (fork failed, etc.).
+.B /var/log/voix.log
+Log file for voix commands (if configured).
+.SH SECURITY
+Voix should be owned by root and have the setuid bit set for proper functionality.
 .SH AUTHOR
-Copyright \(co 2025 Veridian Zenith. Licensed under OSL v3.
+Veridian-Zenith Team
 .SH SEE ALSO
 .BR sudo (8),
 .BR doas (1),
-.BR su (1)
-.SH NOTES
-Built with C++20, LLVM/clang thin LTO, and TCMalloc for optimal performance.
-.PP
-Configuration file permissions should be restricted to root for security.
-.PP
-Audit logs should be regularly reviewed for security compliance.
+.BR pam (8)

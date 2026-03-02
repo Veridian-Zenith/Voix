@@ -1,0 +1,16 @@
+#%PAM-1.0
+# Voix authentication module configuration
+# Uses system PAM authentication with Unix credentials
+
+# Authentication via system password
+auth     required     pam_unix.so        nullok try_first_pass yesuse_first_pass
+
+# Account management - check if account is valid
+account  required     pam_unix.so
+
+# Password changes (if supported)
+password required     pam_unix.so        sha512 shadow try_first_pass yesuse_first_pass
+
+# Session management
+session  required     pam_unix.so
+session  required     pam_lastlog.so     showfailed
