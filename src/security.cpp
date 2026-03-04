@@ -92,7 +92,7 @@ void Security::logEvent(const std::string& event, const std::string& user) const
 
         log_file << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S")
                 << "." << std::setfill('0') << std::setw(3) << ms.count()
-                << " [" << user << "] " << event << std::endl;
+                << " [" << user << "] " << event << '\n';
         log_file.close();
     }
 }

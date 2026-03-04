@@ -7,6 +7,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include "rule.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -17,15 +18,13 @@ namespace Voix {
 class Config {
 public:
     Config();
-    ~Config();
+    ~Config() = default;
 
     bool load(const std::string& config_path);
-    bool isUserAllowed(const std::string& username) const;
-    std::vector<std::string> getAllowedCommands(const std::string& username) const;
-    void set(const std::string& key, const std::string& value);
-    std::optional<std::string> get(const std::string& key) const;
+    std::vector<Rule> getRules() const;
 
 private:
+    std::vector<Rule> rules_;
     void parseConfigLine(const std::string& line);
 };
 

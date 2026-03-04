@@ -5,6 +5,7 @@
  */
 
 #include "config.h"
+#include "rule.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -14,7 +15,7 @@ namespace Voix {
 
 Config::Config() = default;
 
-Config::~Config() = default;
+
 
 bool Config::load(const std::string& config_path) {
     std::ifstream config_file(config_path);
@@ -35,28 +36,45 @@ bool Config::load(const std::string& config_path) {
     return true;
 }
 
-bool Config::isUserAllowed(const std::string& /*username*/) const {
-    // Stub implementation - always return false
-    // In real implementation, this would check config
-    return false;
+std::vector<Rule> Config::getRules() const {
+    return rules_;
 }
 
-std::vector<std::string> Config::getAllowedCommands(const std::string& /*username*/) const {
-    // Stub implementation - return empty vector
-    return {};
-}
+void Config::parseConfigLine(const std::string& line) {
+    std::stringstream ss(line);
+    std::string keyword;
+    ss >> keyword;
 
-void Config::set(const std::string& /*key*/, const std::string& /*value*/) {
-    // Stub implementation
-}
+    if (keyword != "permit" && keyword != "deny") {
+        return;
+    }
 
-std::optional<std::string> Config::get(const std::string& /*key*/) const {
-    // Stub implementation - return empty
-    return std::nullopt;
-}
+    Rule rule;
+    rule.action = (keyword == "permit") ? Rule::PERMIT : Rule::DENY;
 
-void Config::parseConfigLine(const std::string& /*line*/) {
-    // Stub implementation
+    std::string token;
+    ss >> token;
+
+    if (token == "nopass") {
+        rule.options |= Rule::NOPASS;
+        ss >> token;
+    }
+
+    rule.ident = token;
+
+    while (ss >> token) {
+        if (token == "as") {
+            ss >> rule.target;
+        } else if (token == "cmd") {
+            ss >> rule.cmd;
+            std::string arg;
+            while(ss >> arg) {
+                rule.cmdargs.push_back(arg);
+            }
+            break;
+        }
+    }
+    rules_.push_back(rule);
 }
 
 } // namespace Voix

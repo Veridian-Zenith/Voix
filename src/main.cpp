@@ -17,8 +17,6 @@
 #include "voix.h"
 #include "config.h"
 #include "security.h"
-#include "utils.h"
-#include "lua_config.h"
 
 void printUsage() {
     std::cout << "Usage: voix [options] <command> [args...]\n\n";
@@ -82,7 +80,7 @@ int main(int argc, char* argv[]) {
                 printUsage();
                 return 0;
             default:
-                std::cerr << "Error: Unknown option: " << static_cast<char>(ch) << std::endl;
+                std::cerr << "Error: Unknown option: " << static_cast<char>(ch) << '\n';
                 printUsage();
                 return 1;
         }
@@ -125,24 +123,8 @@ int main(int argc, char* argv[]) {
         // Initialize Voix with enhanced configuration
         Voix::Voix voix(config_path, nflag, Lflag);
 
-        // Check if user is allowed
-        if (!voix.isAllowed()) {
-            std::cerr << "Error: Current user is not allowed to use Voix\n";
-            syslog(LOG_AUTHPRIV | LOG_NOTICE, "Access denied for user: %s",
-                  voix.getCurrentUser().c_str());
-            return 1;
-        }
-
-        // Validate command using enhanced rules
         std::string command = command_args[0];
         std::vector<std::string> args(command_args.begin() + 1, command_args.end());
-
-        if (!voix.validateCommand(command, args)) {
-            std::cerr << "Error: Command '" << command << "' is not allowed\n";
-            syslog(LOG_AUTHPRIV | LOG_NOTICE, "Command denied: %s as %s",
-                  command.c_str(), target_user.c_str());
-            return 1;
-        }
 
         // Execute command with enhanced security
         int result = voix.execute(command, args, target_user);
@@ -153,7 +135,7 @@ int main(int argc, char* argv[]) {
 
         return result;
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "Error: " << e.what() << '\n';
         syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: %s", e.what());
         return 1;
     }
