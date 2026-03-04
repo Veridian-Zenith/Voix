@@ -8,35 +8,32 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find required packages
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PAM REQUIRED pam)
-pkg_check_modules(LUA QUIET lua5.4 lua)
 
 # Source files
 set(VOIX_SOURCES
     src/main.cpp
     src/voix.cpp
     src/security.cpp
-    src/utils.cpp
-    src/lua_config.cpp
     src/config.cpp
+    src/file_utils.cpp
+    src/command.cpp
+    src/logger.cpp
+    src/system_utils.cpp
+    src/pam_utils.cpp
+    src/authenticator.cpp
+    src/permission_checker.cpp
 )
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${PAM_INCLUDE_DIRS})
-if(LUA_FOUND)
-    include_directories(${LUA_INCLUDE_DIRS})
-endif()
 
 # Create executable
 add_executable(voix ${VOIX_SOURCES})
 
 # Link libraries
 target_link_libraries(voix PRIVATE ${PAM_LIBRARIES})
-if(LUA_FOUND)
-    target_link_libraries(voix PRIVATE ${LUA_LIBRARIES})
-else()
-    message(WARNING "Lua not found - Lua config functionality will be disabled")
-endif()
+
 
 # Security hardening flags (compatible with both GCC and Clang)
 target_compile_options(voix PRIVATE
@@ -61,19 +58,20 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 endif()
 
 # Install rules
-install(TARGETS voix DESTINATION bin)
+install(TARGETS voix DESTINATION /usr/bin)
 
 # Install configuration files
-install(FILES config/voix.conf DESTINATION etc)
+install(FILES config/voix.conf DESTINATION /etc)
 
 # Install PAM configuration
-install(FILES pam.d/voix DESTINATION etc/pam.d)
+install(FILES pam.d/voix DESTINATION /etc/pam.d)
 
 # Install documentation
-install(FILES docs/voix.1 DESTINATION share/man/man1)
+install(FILES docs/voix.1 DESTINATION /usr/share/man/man1)
 
-# Install license files
-install(FILES LICENSE LICENSE-VCL1.0 DESTINATION share/licenses/voix)
+# Install license file
+install(FILES LICENSE DESTINATION /usr/share/licenses/voix)
 
-# Setuid installation - apply setuid bit during install
+# Setuid installation - apply setuid bit and root ownership during install
 install(SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetuidInstall.cmake)
+
