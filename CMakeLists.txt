@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include(GNUInstallDirs)
-
 # ---- Options ----
 option(VOIX_SETUID_INSTALL "Install voix with setuid bit" ON)
 
@@ -62,43 +60,46 @@ target_link_options(voix PRIVATE
     -pie
 )
 
-# ---- Install Targets ----
+# ---- Install Binary ----
 install(TARGETS voix
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    RUNTIME DESTINATION /usr/bin
 )
 
-# ---- Deterministic Setuid Handling ----
+# ---- Setuid Handling ----
 if(VOIX_SETUID_INSTALL)
     install(CODE "
-        message(STATUS \"Setting setuid bit on voix binary\")
-        execute_process(
-            COMMAND chown root:root \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/voix\"
-            RESULT_VARIABLE CHOWN_RESULT
-        )
-        execute_process(
-            COMMAND chmod 4755 \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/voix\"
-            RESULT_VARIABLE CHMOD_RESULT
-        )
+        set(VOIX_BINARY \"\$ENV{DESTDIR}/usr/bin/voix\")
+        if(EXISTS \${VOIX_BINARY})
+            message(STATUS \"Setting setuid bit on \${VOIX_BINARY}...\")
+            execute_process(COMMAND chown root:root \${VOIX_BINARY} RESULT_VARIABLE CHOWN_RESULT ERROR_QUIET)
+            execute_process(COMMAND chmod 4755 \${VOIX_BINARY} RESULT_VARIABLE CHMOD_RESULT ERROR_QUIET)
 
-        if(NOT CHOWN_RESULT EQUAL 0 OR NOT CHMOD_RESULT EQUAL 0)
-            message(FATAL_ERROR \"Failed to apply setuid permissions. Install must be run as root.\")
+            if(NOT CHOWN_RESULT EQUAL 0 OR NOT CHMOD_RESULT EQUAL 0)
+                message(WARNING \"Could not fully set setuid on voix. Make sure to run install as root.\")
+            else()
+                message(STATUS \"Setuid successfully applied to voix binary.\")
+            endif()
+        else()
+            message(WARNING \"Voix binary not found at \${VOIX_BINARY}, cannot set setuid.\")
         endif()
     ")
 endif()
 
 # ---- Config Files ----
 install(FILES config/voix.conf
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
+    DESTINATION /etc
 )
 
 install(FILES pam.d/voix
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d
+    DESTINATION /etc/pam.d
 )
 
+# ---- Manpage ----
 install(FILES docs/voix.1
-    DESTINATION ${CMAKE_INSTALL_MANDIR}/man1
+    DESTINATION /usr/share/man/man1
 )
 
+# ---- License ----
 install(FILES LICENSE
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/voix
+    DESTINATION /usr/share/licenses/voix
 )
