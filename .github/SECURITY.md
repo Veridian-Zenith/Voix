@@ -2,115 +2,47 @@
 
 ## Supported Versions
 
-We take security seriously in the Voix project. Security updates are provided for the following versions:
+The following table shows which versions of Voix are currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| Latest  | :white_check_mark: |
-| < 2.0   | :x:                |
+| 2.x.x+  | :white_check_mark: |
+| < 2.0.0 | :x:                |
 
 ## Reporting a Vulnerability
 
-### How to Report
+The Voix team takes all security vulnerabilities seriously. We appreciate your efforts to responsibly disclose your findings, and we will make every effort to acknowledge your contributions.
 
-If you discover a security vulnerability in Voix, please report it responsibly by:
+We have two primary channels for reporting security vulnerabilities, depending on the sensitivity of the issue.
 
-1. **Email**: Send details to daedaevibin@naver.com
-2. **Include in your report**:
-   - Description of the vulnerability
-   - Steps to reproduce the issue
-   - Potential impact assessment
-   - Any suggested fixes or mitigations
+### For Highly Sensitive Vulnerabilities
 
-### What to Expect
+If you believe you have found a critical security vulnerability that should not be publicly disclosed, please report it to us directly via email.
 
-- **Acknowledgment**: We will acknowledge receipt of your report within 48 hours
-- **Investigation**: We will investigate and respond with our findings within 5 business days
-- **Resolution**: We will work to fix critical vulnerabilities within 30 days
-- **Disclosure**: We will coordinate with you on responsible disclosure timing
+- **Email:** [daedaevibin@naver.com](mailto:daedaevibin@naver.com)
+- **Format:** You may write a standard email or attach a Markdown file (`.md`) with your detailed report.
 
-### Responsible Disclosure
+Please include the following information in your report:
 
-We ask that you:
+- A description of the vulnerability and its potential impact.
+- Steps to reproduce the vulnerability.
+- Any proof-of-concept code.
+- The version of Voix you are using.
 
-- Give us reasonable time to investigate and fix the issue before public disclosure
-- Do not exploit the vulnerability beyond what is necessary to understand its scope
-- Keep details of the vulnerability confidential until we have had time to address it
+We will acknowledge your email within 48 hours and will work with you to resolve the issue as quickly as possible.
 
-### What We Don't Consider Security Issues
+### For Other Security Concerns
 
-The following are generally not considered security vulnerabilities:
+For security issues that are less sensitive and can be tracked publicly, please open a new issue using our **Security Vulnerability** template.
 
-- Denial of service attacks through resource exhaustion
-- Information disclosure through log files
-- Clickjacking of the command-line interface
-- Social engineering attacks
+**Important:** Please do **not** include sensitive information in the public issue tracker. If you are unsure whether an issue is sensitive, please err on the side of caution and email us directly.
 
-## Security Best Practices
+## Disclosure Policy
 
-### For Users
+When we receive a security bug report, we will assign it to a primary handler. This person will coordinate the fix and release process, involving the following steps:
 
-- Keep Voix updated to the latest version
-- Use strong, unique passwords for all accounts
-- Regularly review and audit your voix.conf configuration
-- Monitor `/var/log/voix.log` for suspicious activity
-- Use PAM modules appropriate for your security requirements
+1. **Confirm the problem and determine the affected versions.**
+2. **Audit code to find any potential similar problems.**
+3. **Prepare fixes for all supported versions.**
 
-### For Developers
-
-- Always validate and sanitize user input
-- Use secure coding practices
-- Follow the principle of least privilege
-- Test for common security vulnerabilities
-- Review security implications of new features
-
-## Security Configuration
-
-### Recommended PAM Configuration
-
-For enhanced security, consider using:
-
-```bash
-# /etc/pam.d/voix
-auth       required   pam_unix.so try_first_pass
-auth       optional   pam_faildelay.so delay=3000000
-account    required   pam_unix.so
-session    required   pam_env.so
-session    required   pam_unix.so
-```
-
-### Secure Configuration Examples
-
-```bash
-# /etc/voix.conf - Secure configuration
-# Only allow specific users/groups
-user:admin allow nopass
-group:wheel allow
-group:sudo allow
-
-# Deny all others by default
-```
-
-## Emergency Response
-
-In case of a critical security incident:
-
-1. **Immediate Action**: Disable Voix if necessary: `sudo chmod 000 /usr/bin/voix`
-2. **Investigation**: Review logs in `/var/log/voix.log`
-3. **Communication**: Contact daedaevibin@naver.com with details
-4. **Recovery**: Follow incident response procedures
-
-## Security Resources
-
-- [OWASP Security Guidelines](https://owasp.org/)
-- [CIS Security Benchmarks](https://www.cisecurity.org/)
-- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
-
-## Contact
-
-For security-related questions or concerns:
-
-- **Email**: daedaevibin@naver.com
-- **PGP Key**: Available upon request for encrypted communication
-
-Thank you for helping keep Voix secure!
+We will do our best to keep you informed about the progress of the vulnerability as it is being fixed. After a fix is publicly available, we will credit you for the discovery.
