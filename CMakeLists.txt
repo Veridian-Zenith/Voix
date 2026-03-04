@@ -1,15 +1,21 @@
 cmake_minimum_required(VERSION 3.18)
-project(Voix VERSION 2.0.0 LANGUAGES CXX)
+project(Voix VERSION 2.2.0 LANGUAGES CXX)
 
-# Set C++ standard
+# ---- Standards ----
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Find required packages
+include(GNUInstallDirs)
+
+# ---- Options ----
+option(VOIX_SETUID_INSTALL "Install voix with setuid bit" ON)
+
+# ---- Dependencies ----
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PAM REQUIRED pam)
 
-# Source files
+# ---- Sources ----
 set(VOIX_SOURCES
     src/main.cpp
     src/voix.cpp
@@ -24,18 +30,16 @@ set(VOIX_SOURCES
     src/permission_checker.cpp
 )
 
-# Include directories
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${PAM_INCLUDE_DIRS})
-
-# Create executable
 add_executable(voix ${VOIX_SOURCES})
 
-# Link libraries
+target_include_directories(voix PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PAM_INCLUDE_DIRS}
+)
+
 target_link_libraries(voix PRIVATE ${PAM_LIBRARIES})
 
-
-# Security hardening flags (compatible with both GCC and Clang)
+# ---- Compiler Hardening ----
 target_compile_options(voix PRIVATE
     -Wall
     -Wextra
@@ -44,34 +48,57 @@ target_compile_options(voix PRIVATE
     -fPIE
 )
 
-# Compiler-specific optimizations
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
-    # Clang/LLVM specific flags
-    target_compile_options(voix PRIVATE
-        -fcolor-diagnostics
-    )
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # GCC specific flags
-    target_compile_options(voix PRIVATE
-        -fdiagnostics-color=always
-    )
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+    target_compile_options(voix PRIVATE -fcolor-diagnostics)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(voix PRIVATE -fdiagnostics-color=always)
 endif()
 
-# Install rules
-install(TARGETS voix DESTINATION /usr/bin)
+# ---- Linker Hardening ----
+target_link_options(voix PRIVATE
+    -Wl,-z,relro
+    -Wl,-z,now
+    -Wl,-z,noexecstack
+    -pie
+)
 
-# Install configuration files
-install(FILES config/voix.conf DESTINATION /etc)
+# ---- Install Targets ----
+install(TARGETS voix
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
-# Install PAM configuration
-install(FILES pam.d/voix DESTINATION /etc/pam.d)
+# ---- Deterministic Setuid Handling ----
+if(VOIX_SETUID_INSTALL)
+    install(CODE "
+        message(STATUS \"Setting setuid bit on voix binary\")
+        execute_process(
+            COMMAND chown root:root \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/voix\"
+            RESULT_VARIABLE CHOWN_RESULT
+        )
+        execute_process(
+            COMMAND chmod 4755 \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/voix\"
+            RESULT_VARIABLE CHMOD_RESULT
+        )
 
-# Install documentation
-install(FILES docs/voix.1 DESTINATION /usr/share/man/man1)
+        if(NOT CHOWN_RESULT EQUAL 0 OR NOT CHMOD_RESULT EQUAL 0)
+            message(FATAL_ERROR \"Failed to apply setuid permissions. Install must be run as root.\")
+        endif()
+    ")
+endif()
 
-# Install license file
-install(FILES LICENSE DESTINATION /usr/share/licenses/voix)
+# ---- Config Files ----
+install(FILES config/voix.conf
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
+)
 
-# Setuid installation - apply setuid bit and root ownership during install
-install(SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetuidInstall.cmake)
+install(FILES pam.d/voix
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d
+)
 
+install(FILES docs/voix.1
+    DESTINATION ${CMAKE_INSTALL_MANDIR}/man1
+)
+
+install(FILES LICENSE
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/voix
+)
