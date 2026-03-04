@@ -6,42 +6,61 @@ voix \- privilege escalation tool replacing sudo/doas
 [\fIOPTIONS\fR]
 [\fICOMMAND\fR [\fIARGS\fR...]]
 .SH DESCRIPTION
-Voix is a privilege escalation tool designed to replace sudo, doas, and sudo-rs.
-It uses PAM for authentication and provides a secure, modern approach to privilege management.
+Voix is a modern, secure, and easy-to-use privilege escalation tool.
+It provides a flexible rule-based system for granting permissions and uses PAM for authentication.
 .SH OPTIONS
 .TP
-.B \-h, \-\-help
-Show help message and exit.
+.B \-u, \-\-user \fIUSER\fR
+Execute command as the specified user (default: root).
 .TP
-.B \-v, \-\-version
-Show version information and exit.
+.B \-C, \-\-clear
+Clear any persisted authentications for the current user.
 .TP
-.B \-u \fIUSER\fR, \-\-user \fIUSER\fR
-Execute command as specified user (default: root).
-.TP
-.B \-g \fIGROUP\fR, \-\-group \fIGROUP\fR
-Execute command as specified group.
-.TP
-.B \-S, \-\-shell
-Start a shell as the target user.
+.B \-n, \-\-non-interactive
+Fail if a password is required, rather than prompting.
 .SH CONFIGURATION
-Voix configuration is typically located in \fI/etc/voix.conf\fR.
-The configuration file uses a simple syntax for defining access rules.
+The Voix configuration file, located at \fI/etc/voix.conf\fR, defines the rules for command execution.
+.PP
+The syntax is as follows:
+.PP
+.B (permit|deny) [nopass] <ident> [as <target>] [cmd <command> [args ...]]
+.PP
+.TP
+.B permit
+Allow the user to execute a command.
+.TP
+.B deny
+Prevent the user from executing a command.
+.TP
+.B nopass
+The user will not be prompted for a password.
+.TP
+.B ident
+The user or group to apply the rule to. Groups must be prefixed with a colon (e.g., :wheel).
+.TP
+.B target
+The user to execute the command as (defaults to root).
+.TP
+.B command
+The command to be executed. If no command is specified, any command is allowed.
+.TP
+.B args
+A list of arguments for the command.
 .SH AUTHENTICATION
-Voix uses PAM (Pluggable Authentication Modules) for authentication.
-The PAM configuration is typically located in \fI/etc/pam.d/voix\fR.
+Voix uses the Pluggable Authentication Modules (PAM) framework for authentication.
+The service name is \fBvoix\fR, and its configuration can be found in \fI/etc/pam.d/voix\fR.
 .SH EXAMPLES
-Execute a command as root:
+Execute \fBwhoami\fR as root:
 .IP
 voix whoami
 .PP
-Execute a command as a specific user:
+Execute \fBwhoami\fR as a specific user:
 .IP
-voix -u username whoami
+voix -u user whoami
 .PP
 Start a shell as root:
 .IP
-voix -S
+voix -s
 .SH FILES
 .TP
 .B /etc/voix.conf
@@ -51,7 +70,7 @@ Main configuration file for access rules.
 PAM configuration for authentication.
 .TP
 .B /var/log/voix.log
-Log file for voix commands (if configured).
+Log file for Voix commands.
 .SH SECURITY
 Voix should be owned by root and have the setuid bit set for proper functionality.
 .SH AUTHOR
