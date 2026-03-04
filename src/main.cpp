@@ -21,8 +21,8 @@
 void printUsage() {
     std::cout << "Usage: voix [options] <command> [args...]\n\n";
     std::cout << "Options:\n";
-    std::cout << "  -h, --help     Show this help message\n";
-    std::cout << "  -v, --version  Show version information\n";
+    std::cout << "  -h             Show this help message\n";
+    std::cout << "  -v             Show version information\n";
     std::cout << "  -u USER        Execute as USER (default: root)\n";
     std::cout << "  -c FILE        Use FILE as config (default: /etc/voix.conf)\n";
     std::cout << "  -n             Non-interactive mode\n";
@@ -30,15 +30,14 @@ void printUsage() {
     std::cout << "Examples:\n";
     std::cout << "  voix ls /root\n";
     std::cout << "  voix -u admin systemctl restart nginx\n";
-    std::cout << "  voix apt update\n";
-    std::cout << "  voix -s          # Start interactive shell\n";
+    std::cout << "  voix pacman -Syu\n";
+    std::cout << "  voix -s          # Start interactive shell (WIP)\n";
 }
 
 void printVersion() {
-    std::cout << "Voix version 2.0.0 (Enhanced with OpenDoas integration)\n";
+    std::cout << "Voix version 2.2.0\n";
     std::cout << "Copyright © 2026 Veridian Zenith\n";
     std::cout << "Licensed under OSL v3\n";
-    std::cout << "Includes security enhancements from OpenDoas\n";
 }
 
 int main(int argc, char* argv[]) {
