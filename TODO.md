@@ -4,7 +4,6 @@ This file tracks planned features, enhancements, and bug fixes for the Voix proj
 
 ## High Priority
 
-- **Implement a Testing Framework:** The project currently lacks automated tests. A testing framework (e.g., Google Test) should be integrated to add unit and integration tests, ensuring the reliability and stability of the codebase.
 - **Set Up Continuous Integration (CI):** Create a CI pipeline (e.g., using GitHub Actions) to automatically build and test the project on every push and pull request. This will help catch regressions and ensure that the code always remains in a buildable state.
 
 ## Medium Priority

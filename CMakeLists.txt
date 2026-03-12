@@ -48,10 +48,12 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(PAM REQUIRED pam)
 
 # ---- Testing ----
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 include(FetchContent)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  EXCLUDE_FROM_ALL
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -102,6 +104,20 @@ target_link_libraries(
 
 include(GoogleTest)
 gtest_discover_tests(voix_tests)
+
+# ---- Installation ----
+include(GNUInstallDirs)
+install(
+    TARGETS voix
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+)
+
+if(VOIX_SETUID_INSTALL)
+    install(
+        CODE "execute_process(COMMAND chmod +s ${CMAKE_INSTALL_BINDIR}/voix)"
+    )
+endif()
 
 # ---- Compiler Hardening ----
 target_compile_options(voix PRIVATE

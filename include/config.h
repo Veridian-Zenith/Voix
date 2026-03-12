@@ -1,6 +1,6 @@
 /**
  * @file config.h
- * @brief Configuration management (placeholder for Lua config)
+ * @brief Configuration management
  * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
  */
 
