@@ -5,12 +5,14 @@
 
 namespace Voix {
 
-bool FileUtils::fileExists(const Path& path) const {
-  return access(path.c_str(), F_OK) == 0;
+bool FileUtils::fileExists(Path path) const {
+  std::string path_str{path};
+  return access(path_str.c_str(), F_OK) == 0;
 }
 
-std::optional<std::string> FileUtils::readFile(const Path& path) const {
-  std::ifstream file(path);
+std::optional<std::string> FileUtils::readFile(Path path) const {
+  std::string path_str{path};
+  std::ifstream file(path_str);
   if (!file.is_open()) {
     return std::nullopt;
   }
@@ -22,8 +24,9 @@ std::optional<std::string> FileUtils::readFile(const Path& path) const {
   return buffer.str();
 }
 
-bool FileUtils::writeFile(const Path& path, const Content& content) const {
-  std::ofstream file(path);
+bool FileUtils::writeFile(Path path, Content content) const {
+  std::string path_str{path};
+  std::ofstream file(path_str);
   if (!file.is_open()) {
     return false;
   }

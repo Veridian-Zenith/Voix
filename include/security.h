@@ -8,6 +8,7 @@
 #define SECURITY_H
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <optional>
 
@@ -23,7 +24,7 @@ public:
      * @param username Username to validate
      * @return true if valid, false otherwise
      */
-    bool validateUser(const std::string& username) const;
+    bool validateUser(std::string_view username) const;
 
     /**
      * @brief Validate command and arguments
@@ -31,7 +32,7 @@ public:
      * @param args Command arguments
      * @return true if valid, false otherwise
      */
-    bool validateCommand(const std::string& command,
+    bool validateCommand(std::string_view command,
                          const std::vector<std::string>& args) const;
 
     /**
@@ -39,14 +40,14 @@ public:
      * @param path Path to check
      * @return true if safe, false otherwise
      */
-    bool isSafePath(const std::string& path) const;
+    bool isSafePath(std::string_view path) const;
 
     /**
      * @brief Log security event
      * @param event Event description
      * @param user Username associated with event
      */
-    void logEvent(const std::string& event, const std::string& user) const;
+    void logEvent(std::string_view event, std::string_view user) const;
 
     /**
      * @brief Get current user name
@@ -59,14 +60,14 @@ public:
      * @param command Command to check
      * @return true if dangerous, false otherwise
      */
-    bool isDangerousCommand(const std::string& command) const;
+    bool isDangerousCommand(std::string_view command) const;
 
     /**
      * @brief Check if string contains shell metacharacters
      * @param str String to check
      * @return true if contains dangerous characters, false otherwise
      */
-    bool containsShellMetacharacters(const std::string& str) const;
+    bool containsShellMetacharacters(std::string_view str) const;
 
 private:
     // Enhanced dangerous command list

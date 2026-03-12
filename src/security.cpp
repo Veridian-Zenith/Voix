@@ -7,12 +7,11 @@
 #include "security.h"
 #include <unistd.h>
 #include <sys/types.h>
-#include <pwd.h>
-#include <cstring>
-#include <iostream>
-#include <fstream>
 #include <chrono>
-#include <iomanip>
+#include <format>
+#include <fstream>
+#include <iostream>
+#include <pwd.h>
 
 namespace Voix {
 
@@ -27,7 +26,7 @@ Security::Security()
 
 Security::~Security() = default;
 
-bool Security::validateUser(const std::string& username) const {
+bool Security::validateUser(std::string_view username) const {
     // Basic validation - ensure username is not empty and contains only safe characters
     if (username.empty() || username.length() > 32) {
         return false;
@@ -40,11 +39,12 @@ bool Security::validateUser(const std::string& username) const {
     }
 
     // Check if user exists on the system
-    struct passwd* pw = getpwnam(username.c_str());
+    std::string username_str{username};
+    struct passwd* pw = getpwnam(username_str.c_str());
     return pw != nullptr;
 }
 
-bool Security::validateCommand(const std::string& command,
+bool Security::validateCommand(std::string_view command,
                              const std::vector<std::string>& args) const {
 
     // Check for dangerous commands
@@ -66,32 +66,27 @@ bool Security::validateCommand(const std::string& command,
     return true;
 }
 
-bool Security::isSafePath(const std::string& path) const {
+bool Security::isSafePath(std::string_view path) const {
     // Check for path traversal attempts
-    if (path.find("..") != std::string::npos) {
+    if (path.find("..") != std::string_view::npos) {
         return false;
     }
 
     // Check for absolute paths to sensitive locations
-    if (path.find("/etc/shadow") != std::string::npos ||
-        path.find("/etc/sudoers") != std::string::npos ||
-        path.find("/root") != std::string::npos) {
+    if (path.find("/etc/shadow") != std::string_view::npos ||
+        path.find("/etc/sudoers") != std::string_view::npos ||
+        path.find("/root") != std::string_view::npos) {
         return false;
     }
 
     return true;
 }
 
-void Security::logEvent(const std::string& event, const std::string& user) const {
+void Security::logEvent(std::string_view event, std::string_view user) const {
     std::ofstream log_file("/var/log/voix.log", std::ios::app);
     if (log_file.is_open()) {
         auto now = std::chrono::system_clock::now();
-        auto time_t = std::chrono::system_clock::to_time_t(now);
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-            now.time_since_epoch()) % 1000;
-
-        log_file << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S")
-                << "." << std::setfill('0') << std::setw(3) << ms.count()
+        log_file << std::format("{:%Y-%m-%d %H:%M:%S}", now)
                 << " [" << user << "] " << event << '\n';
         log_file.close();
     }
@@ -108,7 +103,7 @@ std::string Security::getCurrentUser() const {
     return "unknown";
 }
 
-bool Security::isDangerousCommand(const std::string& command) const {
+bool Security::isDangerousCommand(std::string_view command) const {
     for (const auto& dangerous : dangerous_commands_) {
         if (command == dangerous) {
             return true;
@@ -117,7 +112,7 @@ bool Security::isDangerousCommand(const std::string& command) const {
     return false;
 }
 
-bool Security::containsShellMetacharacters(const std::string& str) const {
+bool Security::containsShellMetacharacters(std::string_view str) const {
     for (char c : str) {
         if (dangerous_chars_.find(c) != std::string::npos) {
             return true;

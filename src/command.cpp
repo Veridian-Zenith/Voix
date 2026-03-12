@@ -7,15 +7,16 @@
 
 namespace Voix {
 
-int Command::execute(const std::string& command,
+int Command::execute(std::string_view command,
                      const std::vector<std::string>& args,
-                     const std::string& user) const {
+                     std::string_view user) const {
   pid_t pid = fork();
 
   if (pid == -1) {
     return -1;
   } else if (pid == 0) {
-    struct passwd *pw = getpwnam(user.empty() ? "root" : user.c_str());
+    std::string user_str{user};
+    struct passwd *pw = getpwnam(user.empty() ? "root" : user_str.c_str());
     if (pw) {
       if (setgid(pw->pw_gid) != 0) {
         _exit(1);
@@ -28,7 +29,8 @@ int Command::execute(const std::string& command,
     }
 
     std::vector<const char *> argv;
-    argv.push_back(command.c_str());
+    std::string cmd_str{command};
+    argv.push_back(cmd_str.c_str());
     for (const auto &arg : args) {
       argv.push_back(arg.c_str());
     }
@@ -37,7 +39,7 @@ int Command::execute(const std::string& command,
     setenv("PATH",
            "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin", 1);
 
-    execvp(command.c_str(), const_cast<char *const *>(argv.data()));
+    execvp(cmd_str.c_str(), const_cast<char *const *>(argv.data()));
     _exit(127);
   } else {
     int status;
@@ -49,9 +51,9 @@ int Command::execute(const std::string& command,
   }
 }
 
-std::string Command::buildCommandString(const std::string& command,
+std::string Command::buildCommandString(std::string_view command,
                                         const std::vector<std::string>& args,
-                                        const std::string& user) const {
+                                        std::string_view user) const {
   std::stringstream ss;
   if (!user.empty() && user != "root") {
     ss << "su - " << user << " -c ";

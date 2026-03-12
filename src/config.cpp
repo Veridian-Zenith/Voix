@@ -17,8 +17,9 @@ Config::Config() = default;
 
 
 
-bool Config::load(const std::string& config_path) {
-    std::ifstream config_file(config_path);
+bool Config::load(std::string_view config_path) {
+    std::string path_str{config_path};
+    std::ifstream config_file(path_str);
     if (!config_file.is_open()) {
         return false;
     }
@@ -40,8 +41,9 @@ std::vector<Rule> Config::getRules() const {
     return rules_;
 }
 
-void Config::parseConfigLine(const std::string& line) {
-    std::stringstream ss(line);
+void Config::parseConfigLine(std::string_view line) {
+    std::string line_str{line};
+    std::stringstream ss(line_str);
     std::string keyword;
     ss >> keyword;
 

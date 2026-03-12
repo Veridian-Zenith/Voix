@@ -2,6 +2,7 @@
 #define LOGGER_H
 
 #include <string>
+#include <string_view>
 
 namespace Voix {
 
@@ -11,7 +12,7 @@ public:
     ~Logger() = default;
 
     std::string getTimestamp() const;
-    void log(const std::string& level, const std::string& message) const;
+    void log(std::string_view level, std::string_view message) const;
 };
 
 } // namespace Voix

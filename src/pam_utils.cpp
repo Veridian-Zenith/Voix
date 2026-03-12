@@ -1,4 +1,5 @@
 #include "pam_utils.h"
+#include <print>
 #include <iostream>
 #include <termios.h>
 #include <unistd.h>
@@ -27,14 +28,14 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       new_term.c_lflag &= ~ECHO;
       tcsetattr(STDIN_FILENO, TCSANOW, &new_term);
 
-      std::cout << msg[i]->msg;
-      std::cout.flush();
+      std::print("{}", msg[i]->msg);
+      std::fflush(stdout);
 
       char password[512] = {0};
       std::cin.getline(password, sizeof(password));
 
       tcsetattr(STDIN_FILENO, TCSANOW, &old_term);
-      std::cout << '\n';
+      std::println();
 
       response[i].resp = strdup(password);
       memset(password, 0, sizeof(password));
@@ -42,8 +43,8 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       break;
     }
     case PAM_PROMPT_ECHO_ON:
-      std::cout << msg[i]->msg;
-      std::cout.flush();
+      std::print("{}", msg[i]->msg);
+      std::fflush(stdout);
       {
         std::string input;
         std::getline(std::cin, input);
@@ -52,11 +53,11 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       }
       break;
     case PAM_ERROR_MSG:
-      std::cerr << "PAM Error: " << msg[i]->msg << '\n';
+      std::println(stderr, "PAM Error: {}", msg[i]->msg);
       response[i].resp_retcode = 0;
       break;
     case PAM_TEXT_INFO:
-      std::cout << msg[i]->msg << '\n';
+      std::println("{}", msg[i]->msg);
       response[i].resp_retcode = 0;
       break;
     default:

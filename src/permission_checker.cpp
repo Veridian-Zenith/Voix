@@ -35,7 +35,7 @@ bool PermissionChecker::isAllowed() const {
   return false;
 }
 bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, int ngroups,
-                                    uid_t target_uid, const std::string &command,
+                                    uid_t target_uid, std::string_view command,
                                     const std::vector<std::string> &args) const {
   if (!rule.ident.empty()) {
     if (rule.ident[0] == ':') {
@@ -102,7 +102,7 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
   return true;
 }
 
-std::optional<Rule> PermissionChecker::permit(const std::string &command,
+std::optional<Rule> PermissionChecker::permit(std::string_view command,
                                  const std::vector<std::string> &args,
                                  uid_t target_uid) const {
   std::string current_user = security_->getCurrentUser();

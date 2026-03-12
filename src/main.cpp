@@ -4,7 +4,7 @@
  * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
  */
 
-#include <iostream>
+#include <print>
 #include <string>
 #include <vector>
 #include <cstdlib>
@@ -19,25 +19,25 @@
 #include "security.h"
 
 void printUsage() {
-    std::cout << "Usage: voix [options] <command> [args...]\n\n";
-    std::cout << "Options:\n";
-    std::cout << "  -h             Show this help message\n";
-    std::cout << "  -v             Show version information\n";
-    std::cout << "  -u USER        Execute as USER (default: root)\n";
-    std::cout << "  -c FILE        Use FILE as config (default: /etc/voix.conf)\n";
-    std::cout << "  -n             Non-interactive mode\n";
-    std::cout << "  -s             Execute user's shell\n\n";
-    std::cout << "Examples:\n";
-    std::cout << "  voix ls /root\n";
-    std::cout << "  voix -u admin systemctl restart nginx\n";
-    std::cout << "  voix pacman -Syu\n";
-    std::cout << "  voix -s          # Start interactive shell (WIP)\n";
+    std::print("Usage: voix [options] <command> [args...]\n\n"
+               "Options:\n"
+               "  -h             Show this help message\n"
+               "  -v             Show version information\n"
+               "  -u USER        Execute as USER (default: root)\n"
+               "  -c FILE        Use FILE as config (default: /etc/voix.conf)\n"
+               "  -n             Non-interactive mode\n"
+               "  -s             Execute user's shell\n\n"
+               "Examples:\n"
+               "  voix ls /root\n"
+               "  voix -u admin systemctl restart nginx\n"
+               "  voix pacman -Syu\n"
+               "  voix -s          # Start interactive shell (WIP)\n");
 }
 
 void printVersion() {
-    std::cout << "Voix version 2.2.0\n";
-    std::cout << "Copyright © 2026 Veridian Zenith\n";
-    std::cout << "Licensed under OSL v3\n";
+    std::print("Voix version 2.2.0\n"
+               "Copyright © 2026 Veridian Zenith\n"
+               "Licensed under OSL v3\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
                 printUsage();
                 return 0;
             default:
-                std::cerr << "Error: Unknown option: " << static_cast<char>(ch) << '\n';
+                std::println(stderr, "Error: Unknown option: {}", static_cast<char>(ch));
                 printUsage();
                 return 1;
         }
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
         command_args.push_back(shell);
         free(shell);
     } else if (argc < 1) {
-        std::cerr << "Error: No command specified\n";
+        std::println(stderr, "Error: No command specified");
         printUsage();
         return 1;
     } else {
@@ -113,8 +113,8 @@ int main(int argc, char* argv[]) {
     // Check if running as root (setuid requirement)
     // For development/testing, allow running as non-root with warning
     if (geteuid() != 0) {
-        std::cerr << "Warning: Not running as root. Privilege escalation may not work.\n";
-        std::cerr << "For proper operation, voix should be installed setuid root.\n";
+        std::println(stderr, "Warning: Not running as root. Privilege escalation may not work.\n"
+                             "For proper operation, voix should be installed setuid root.");
         // Continue execution for testing purposes
     }
 
@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
 
         return result;
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << '\n';
+        std::println(stderr, "Error: {}", e.what());
         syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: %s", e.what());
         return 1;
     }

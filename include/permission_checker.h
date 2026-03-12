@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <sys/types.h>
 
@@ -20,7 +21,7 @@ public:
     ~PermissionChecker() = default;
 
     bool isAllowed() const;
-    std::optional<Rule> permit(const std::string& command, const std::vector<std::string>& args,
+    std::optional<Rule> permit(std::string_view command, const std::vector<std::string>& args,
                 uid_t target_uid) const;
 
 private:
@@ -28,7 +29,7 @@ private:
     std::shared_ptr<Config> config_;
 
     bool matchRule(const Rule& rule, uid_t uid, gid_t* groups, int ngroups,
-                   uid_t target_uid, const std::string& command,
+                   uid_t target_uid, std::string_view command,
                    const std::vector<std::string>& args) const;
 };
 

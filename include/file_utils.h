@@ -2,21 +2,22 @@
 #define FILE_UTILS_H
 
 #include <string>
+#include <string_view>
 #include <optional>
 
 namespace Voix {
 
-using Path = std::string;
-using Content = std::string;
+using Path = std::string_view;
+using Content = std::string_view;
 
 class FileUtils {
 public:
     FileUtils() = default;
     ~FileUtils() = default;
 
-    bool fileExists(const Path& path) const;
-    std::optional<std::string> readFile(const Path& path) const;
-    bool writeFile(const Path& path, const Content& content) const;
+    bool fileExists(Path path) const;
+    std::optional<std::string> readFile(Path path) const;
+    bool writeFile(Path path, Content content) const;
 };
 
 } // namespace Voix

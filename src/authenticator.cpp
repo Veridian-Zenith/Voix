@@ -6,7 +6,7 @@
 #include <grp.h>
 #include <unistd.h>
 #include <cstring>
-#include <iostream>
+#include <print>
 #include <utility>
 
 #ifndef NGROUPS_MAX
@@ -41,8 +41,8 @@ bool Authenticator::authenticate(const std::optional<Rule>& rule) const {
 
   int pam_result = pam_start("voix", current_user.c_str(), &conv, &pamh);
   if (pam_result != PAM_SUCCESS) {
-    std::cerr << "PAM initialization failed: "
-              << pam_strerror(nullptr, pam_result) << '\n';
+    std::println(stderr, "PAM initialization failed: {}",
+                 pam_strerror(nullptr, pam_result));
     return false;
   }
 
@@ -50,15 +50,14 @@ bool Authenticator::authenticate(const std::optional<Rule>& rule) const {
   bool auth_success = (pam_result == PAM_SUCCESS);
 
   if (!auth_success) {
-    std::cerr << "Authentication failed: " << pam_strerror(pamh, pam_result)
-              << '\n';
+    std::println(stderr, "Authentication failed: {}", pam_strerror(pamh, pam_result));
     security_->logEvent("PAM authentication failed", current_user);
   } else {
     pam_result = pam_acct_mgmt(pamh, 0);
     auth_success = (pam_result == PAM_SUCCESS);
     if (!auth_success) {
-      std::cerr << "Account validation failed: "
-                << pam_strerror(pamh, pam_result) << '\n';
+      std::println(stderr, "Account validation failed: {}",
+                   pam_strerror(pamh, pam_result));
     }
   }
 

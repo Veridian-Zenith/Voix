@@ -2,6 +2,7 @@
 #define COMMAND_H
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Voix {
@@ -11,13 +12,13 @@ public:
     Command() = default;
     ~Command() = default;
 
-    int execute(const std::string& command,
+    int execute(std::string_view command,
                 const std::vector<std::string>& args,
-                const std::string& user = "root") const;
+                std::string_view user = "root") const;
 
-    std::string buildCommandString(const std::string& command,
+    std::string buildCommandString(std::string_view command,
                                    const std::vector<std::string>& args,
-                                   const std::string& user) const;
+                                   std::string_view user) const;
 };
 
 } // namespace Voix

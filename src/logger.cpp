@@ -1,32 +1,20 @@
 #include "logger.h"
 #include <chrono>
+#include <format>
 #include <fstream>
-#include <iomanip>
-#include <sstream>
+#include <string_view>
 
 namespace Voix {
 
 std::string Logger::getTimestamp() const {
   auto now = std::chrono::system_clock::now();
-  auto time_t = std::chrono::system_clock::to_time_t(now);
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                now.time_since_epoch()) %
-            1000;
-
-  std::stringstream ss;
-  ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S") << "."
-     << std::setfill('0') << std::setw(3) << ms.count();
-
-  return ss.str();
+  return std::format("{:%Y-%m-%d %H:%M:%S}", now);
 }
 
-void Logger::log(const std::string& level, const std::string& message) const {
-  std::string timestamp = getTimestamp();
-  std::string log_entry = "[" + timestamp + "] [" + level + "] " + message;
-
+void Logger::log(std::string_view level, std::string_view message) const {
   std::ofstream log_file("/var/log/voix.log", std::ios::app);
   if (log_file.is_open()) {
-    log_file << log_entry << '\n';
+    log_file << std::format("[{}] [{}] {}\n", getTimestamp(), level, message);
     log_file.close();
   }
 }

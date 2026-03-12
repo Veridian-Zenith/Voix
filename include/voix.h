@@ -8,6 +8,7 @@
 #define VOIX_H
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <optional>
 #include <memory>
@@ -22,13 +23,13 @@ class PermissionChecker;
 
 class Voix {
 public:
-    Voix(const std::string& config_path = "/etc/voix.conf",
+    Voix(std::string_view config_path = "/etc/voix.conf",
          bool non_interactive = false, bool clear_timestamp = false);
     ~Voix();
 
-    int execute(const std::string& command,
+    int execute(std::string_view command,
                 const std::vector<std::string>& args = {},
-                const std::string& user = "root");
+                std::string_view user = "root");
 
 private:
     std::shared_ptr<Config> config_;

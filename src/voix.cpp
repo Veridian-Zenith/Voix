@@ -24,7 +24,7 @@
 
 namespace Voix {
 
-Voix::Voix(const std::string &config_path, bool non_interactive,
+Voix::Voix(std::string_view config_path, bool non_interactive,
            bool clear_timestamp)
     : config_(std::make_shared<Config>()),
       security_(std::make_shared<Security>()),
@@ -45,32 +45,34 @@ Voix::Voix(const std::string &config_path, bool non_interactive,
 
 Voix::~Voix() = default;
 
-int Voix::execute(const std::string &command,
+int Voix::execute(std::string_view command,
                   const std::vector<std::string> &args,
-                  const std::string &user) {
+                  std::string_view user) {
 
   std::string current_user = security_->getCurrentUser();
 
   // Security logging
-  security_->logEvent("Command execution requested: " + command, current_user);
+  std::string command_str{command};
+  std::string user_str{user};
+  security_->logEvent("Command execution requested: " + command_str, current_user);
   syslog(LOG_AUTHPRIV | LOG_INFO, "Command execution requested: %s as %s",
-         command.c_str(), user.c_str());
+         command_str.c_str(), user_str.c_str());
 
   // Validate command using enhanced rules
   uid_t target_uid;
-  struct passwd *pw = getpwnam(user.c_str());
+  struct passwd *pw = getpwnam(user_str.c_str());
   if (!pw) {
-    syslog(LOG_AUTHPRIV | LOG_ERR, "Invalid target user: %s", user.c_str());
+    syslog(LOG_AUTHPRIV | LOG_ERR, "Invalid target user: %s", user_str.c_str());
     return 1;
   }
   target_uid = pw->pw_uid;
 
-  auto rule = permission_checker_->permit(command, args, target_uid);
+  auto rule = permission_checker_->permit(command_str, args, target_uid);
 
   if (!rule) {
-    security_->logEvent("Command not permitted: " + command, current_user);
+    security_->logEvent("Command not permitted: " + command_str, current_user);
     syslog(LOG_AUTHPRIV | LOG_NOTICE, "Command not permitted: %s as %s",
-           command.c_str(), user.c_str());
+           command_str.c_str(), user_str.c_str());
     return 1;
   }
 
@@ -82,7 +84,7 @@ int Voix::execute(const std::string &command,
     return 1;
   }
 
-  return command_->execute(command, args, user);
+  return command_->execute(command_str, args, user_str);
 }
 
 } // namespace Voix

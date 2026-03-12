@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 project(Voix VERSION 2.2.0 LANGUAGES CXX)
 
 # ---- Standards ----
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -47,6 +47,16 @@ option(VOIX_SETUID_INSTALL "Install voix with setuid bit" ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PAM REQUIRED pam)
 
+# ---- Testing ----
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 # ---- Sources ----
 set(VOIX_SOURCES
     src/main.cpp
@@ -70,6 +80,28 @@ target_include_directories(voix PRIVATE
 )
 
 target_link_libraries(voix PRIVATE ${PAM_LIBRARIES})
+
+# ---- Testing Executable ----
+enable_testing()
+add_executable(
+  voix_tests
+  tests/main.cpp
+  tests/test_security.cpp
+  tests/test_config.cpp
+  tests/test_file_utils.cpp
+  # Link necessary source files for testing
+  src/security.cpp
+  src/config.cpp
+  src/file_utils.cpp
+)
+target_include_directories(voix_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(
+  voix_tests
+  GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(voix_tests)
 
 # ---- Compiler Hardening ----
 target_compile_options(voix PRIVATE

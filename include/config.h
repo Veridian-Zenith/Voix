@@ -9,6 +9,7 @@
 
 #include "rule.h"
 #include <string>
+#include <string_view>
 #include <vector>
 #include <memory>
 #include <optional>
@@ -20,12 +21,12 @@ public:
     Config();
     ~Config() = default;
 
-    bool load(const std::string& config_path);
+    bool load(std::string_view config_path);
     std::vector<Rule> getRules() const;
 
 private:
     std::vector<Rule> rules_;
-    void parseConfigLine(const std::string& line);
+    void parseConfigLine(std::string_view line);
 };
 
 } // namespace Voix
