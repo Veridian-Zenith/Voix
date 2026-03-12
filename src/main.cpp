@@ -35,7 +35,7 @@ void printUsage() {
 }
 
 void printVersion() {
-    std::print("Voix version 2.2.0\n"
+    std::print("Voix version 2.3.0\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Licensed under OSL v3\n");
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(Voix VERSION 2.2.0 LANGUAGES CXX)
+project(Voix VERSION 2.3.0 LANGUAGES CXX)
 
 # ---- Standards ----
 set(CMAKE_CXX_STANDARD 26)

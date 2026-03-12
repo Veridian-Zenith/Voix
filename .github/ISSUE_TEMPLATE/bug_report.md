@@ -28,8 +28,8 @@ If applicable, add screenshots to help explain your problem.
 
 ### System Details
 
-- **Voix Version:** [e.g., 2.2.0]
-- **Operating System:** [e.g., Arch Linux, Ubuntu 22.04]
+- **Voix Version:** [e.g., 2.3.0]
+- **Operating System:** [e.g., Arch Linux, CachyOS]
 - **Installation Method:** [e.g., AUR, built from source]
 
 ### Additional Context
