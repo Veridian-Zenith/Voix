@@ -1,7 +1,10 @@
 /**
  * @file config.cpp
  * @brief Basic configuration implementation (stub)
- * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
  */
 
 #include "config.h"
@@ -41,42 +44,55 @@ std::vector<Rule> Config::getRules() const {
     return rules_;
 }
 
+static std::string_view trim(std::string_view s) {
+    s.remove_prefix(std::min(s.find_first_not_of(" \t\r\n"), s.size()));
+    s.remove_suffix(s.size() - std::min(s.find_last_not_of(" \t\r\n") + 1, s.size()));
+    return s;
+}
+
 void Config::parseConfigLine(std::string_view line) {
-    std::string line_str{line};
-    std::stringstream ss(line_str);
+    line = trim(line);
+    if (line.empty() || line[0] == '#') return;
+
+    // Handle global settings (Sanctuary, Path)
+    if (line.starts_with("sanctuary:")) {
+        // Implementation of global log setting could go here
+        return;
+    }
+
+    std::stringstream ss{std::string(line)};
     std::string keyword;
     ss >> keyword;
 
-    if (keyword != "permit" && keyword != "deny") {
+    if (keyword != "ordain" && keyword != "shun") {
         return;
     }
 
     Rule rule;
-    rule.action = (keyword == "permit") ? Rule::PERMIT : Rule::DENY;
+    rule.action = (keyword == "ordain") ? Rule::PERMIT : Rule::DENY;
 
     std::string token;
-    ss >> token;
-
-    if (token == "nopass") {
-        rule.options |= Rule::NOPASS;
-        ss >> token;
-    }
-
-    rule.ident = token;
-
     while (ss >> token) {
-        if (token == "as") {
+        if (token == "trust") {
+            rule.options |= Rule::NOPASS;
+        } else if (token == "mask") {
             ss >> rule.target;
-        } else if (token == "cmd") {
+        } else if (token == "rite") {
             ss >> rule.cmd;
             std::string arg;
-            while(ss >> arg) {
+            while (ss >> arg) {
                 rule.cmdargs.push_back(arg);
             }
-            break;
+            break; 
+        } else {
+            // If it's not a keyword, it's the identifier (user/group)
+            rule.ident = token;
         }
     }
-    rules_.push_back(rule);
+
+    if (!rule.ident.empty()) {
+        rules_.push_back(std::move(rule));
+    }
 }
 
 } // namespace Voix

@@ -1,7 +1,10 @@
 /**
  * @file main.cpp
  * @brief Enhanced Voix main entry point with OpenDoas integration
- * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
  */
 
 #include <print>
@@ -19,25 +22,25 @@
 #include "security.h"
 
 void printUsage() {
-    std::print("Usage: voix [options] <command> [args...]\n\n"
+    std::print("Usage: voix [options] <incantation> [args...]\n\n"
                "Options:\n"
                "  -h             Show this help message\n"
-               "  -v             Show version information\n"
-               "  -u USER        Execute as USER (default: root)\n"
-               "  -c FILE        Use FILE as config (default: /etc/voix.conf)\n"
-               "  -n             Non-interactive mode\n"
-               "  -s             Execute user's shell\n\n"
+               "  -v             Show the version of this artifact\n"
+               "  -u USER        Execute as target mask (default: root)\n"
+               "  -c FILE        Use FILE as the configuration sanctuary\n"
+               "  -n             Non-interactive mode (fail if proof is required)\n"
+               "  -s             Execute user's shell (ascend to shell)\n\n"
                "Examples:\n"
                "  voix ls /root\n"
                "  voix -u admin systemctl restart nginx\n"
-               "  voix pacman -Syu\n"
-               "  voix -s          # Start interactive shell (WIP)\n");
+               "  voix -s          # Start interactive shell ascension\n");
 }
 
 void printVersion() {
-    std::print("Voix version 2.3.0\n"
+    std::print("Voix version 2.3.2 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
-               "Licensed under OSL v3\n");
+               "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
+               "Licensed under the Open Software License v3\n");
 }
 
 int main(int argc, char* argv[]) {

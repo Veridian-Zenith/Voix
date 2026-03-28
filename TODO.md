@@ -1,22 +1,22 @@
-# Voix TODO List
+# The Voix Prophecy (TODO)
 
-This file tracks planned features, enhancements, and bug fixes for the Voix project.
+This scroll tracks upcoming rituals, bindings, and enchantments intended to perfect the Keeper of Realms.
 
-## High Priority
+## The High Rituals (Priority)
 
-- **Set Up Continuous Integration (CI):** Create a CI pipeline (e.g., using GitHub Actions) to automatically build and test the project on every push and pull request. This will help catch regressions and ensure that the code always remains in a buildable state.
+- [ ] **Strengthen the Runes (Clang-Tidy):** Systematically cleanse the codebase of remaining `bugprone` and `performance` spirits identified by `clang-tidy`. Bind the code tighter to the LLVM standard.
 
-## Medium Priority
+## Midsummer Bindings (Medium)
 
-- **Enhance Configuration Options:**
-  - Add support for command aliases in `voix.conf`.
-  - Implement a mechanism for preserving specific environment variables.
-- **Address `clang-tidy` Warnings:** Systematically review and fix the remaining `bugprone` and `performance` warnings identified by `clang-tidy`.
-- **Improve Shell Integration:** The `-s` flag for starting a shell is currently basic. It could be enhanced to provide a more seamless and feature-rich experience, similar to `sudo -s`.
+- [ ] **Expand the Sanctuary (`voix.conf`):**
+  - Carve support for **Command Aliases** inside the configuration rituals.
+  - Implement a mechanism for preserving specific auras (environment variables) during ascension.
+- [ ] **Deepen the Transmutation (-s Shell):** The current `-s` invocation is rudimentary. Enhance the ritual to provide a seamless, feature-rich shell experience comparable to the old `sudo -s`.
+- [ ] **Global Sanctum Settings:** Fully implement the `sanctuary:` (logging) and `path:` (execution boundaries) global config runes as first-class citizens in the parser.
 
-## Low Priority
+## Winter's Rest (Low)
 
-- **Advanced Logging:**
-  - Implement different log levels (e.g., debug, info, warn, error).
-  - Add support for configuring the log output destination (e.g., syslog, file, stderr).
-- **Expand Platform Support:** Test and document the build process for other Linux distributions and potentially other Unix-like operating systems.
+- [ ] **The Oracle's Sight (Advanced Logging):**
+  - Implement dynamic log severities (debug, info, warn, error).
+  - Allow the Oracle to echo to multiple planes (syslog, `/var/log/voix.log`, stderr).
+- [ ] **Expand the Boundaries:** Test the artifact's resilience on other Unix-like planes and ensure the build rituals hold true.

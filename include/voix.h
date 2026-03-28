@@ -1,7 +1,10 @@
 /**
  * @file voix.h
  * @brief Enhanced Voix header with OpenDoas integration
- * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
  */
 
 #ifndef VOIX_H

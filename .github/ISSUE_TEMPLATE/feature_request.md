@@ -1,22 +1,20 @@
 ---
-name: "🚀 Feature Request"
-description: "Suggest an idea for Voix."
-title: "[FEAT] - "
-labels: ["enhancement", "needs-discussion"]
+name: New Incantation (Feature Request)
+about: Propose a new rune, binding, or power for the Void forge
+title: "[FEATURE] "
+labels: ''
+assignees: ''
+
 ---
 
-## Is your feature request related to a problem? Please describe
+## Vision of the Runes
+<!-- Describe the power or capability you wish to see forged. What is the problem it solves? -->
 
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+### Proposed Incantation (Syntax)
+<!-- How would the user invoke this? e.g., in `voix.conf` or the CLI -->
 
-### Describe the solution you'd like
+### Alternatives Consulted
+<!-- Have you tried traversing other realms or using existing tools to accomplish this? -->
 
-A clear and concise description of what you want to happen.
-
-### Describe alternatives you've considered
-
-A clear and concise description of any alternative solutions or features you've considered.
-
-### Additional context
-
-Add any other context or screenshots about the feature request here.
+### Additional Context
+<!-- Provide any diagrams, inspirations, or prophecies related to this request. -->

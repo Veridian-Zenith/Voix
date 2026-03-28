@@ -1,8 +1,10 @@
 /**
  * @file voix.cpp
  * @brief Enhanced Voix implementation with OpenDoas integration
- * @copyright © 2025 Veridian Zenith All code in this repository is licensed
- * under OSL v3.
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
  */
 
 #include "voix.h"
@@ -54,6 +56,13 @@ int Voix::execute(std::string_view command,
   // Security logging
   std::string command_str{command};
   std::string user_str{user};
+
+  if (security_->isCatastrophicCommand(command_str, args)) {
+    security_->logEvent("Catastrophic command blocked: " + command_str, current_user);
+    syslog(LOG_AUTHPRIV | LOG_ALERT, "Catastrophic command blocked: %s", command_str.c_str());
+    return 1;
+  }
+
   security_->logEvent("Command execution requested: " + command_str, current_user);
   syslog(LOG_AUTHPRIV | LOG_INFO, "Command execution requested: %s as %s",
          command_str.c_str(), user_str.c_str());
@@ -84,7 +93,12 @@ int Voix::execute(std::string_view command,
     return 1;
   }
 
-  return command_->execute(command_str, args, user_str);
+  if (authenticator_->openSession()) {
+    int res = command_->execute(command_str, args, user_str);
+    authenticator_->closeSession();
+    return res;
+  }
+  return 1;
 }
 
 } // namespace Voix

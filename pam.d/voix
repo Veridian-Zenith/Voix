@@ -1,16 +1,17 @@
 #%PAM-1.0
-# Voix authentication module configuration
-# Uses system PAM authentication with Unix credentials
+# The Ritual of Proof (Voix PAM configuration)
 
-# Authentication via system password
-auth     required     pam_unix.so        nullok try_first_pass yesuse_first_pass
+# Authentication via system password (must provide proof of soul)
+auth       include      system-auth
+auth       required     pam_nologin.so
 
-# Account management - check if account is valid
-account  required     pam_unix.so
+# Account management - check if account is valid in the realm
+account    include      system-auth
 
 # Password changes (if supported)
-password required     pam_unix.so        sha512 shadow try_first_pass yesuse_first_pass
+password   include      system-auth
 
-# Session management
-session  required     pam_unix.so
-session  required     pam_lastlog.so     showfailed
+# Session management - establish the sanctuary
+session    required     pam_limits.so
+session    required     pam_unix.so
+session    include      system-auth

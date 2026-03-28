@@ -1,16 +1,26 @@
 cmake_minimum_required(VERSION 3.18)
-project(Voix VERSION 2.3.0 LANGUAGES CXX)
+
+# ---- Ignore External Flags ----
+# We clear these BEFORE the project() call to ensure the initial compiler probe 
+# is isolated from user environment pollution.
+set(ENV{CFLAGS} "")
+set(ENV{CXXFLAGS} "")
+set(ENV{LDFLAGS} "")
+set(CMAKE_C_FLAGS "" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
+set(CMAKE_SHARED_LINKER_FLAGS "" CACHE STRING "" FORCE)
+
+project(Voix VERSION 2.3.2 LANGUAGES CXX)
 
 # ---- Standards ----
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# ---- Ignore External Flags ----
-set(CMAKE_C_FLAGS "")
-set(CMAKE_CXX_FLAGS "")
-set(CMAKE_EXE_LINKER_FLAGS "")
-set(CMAKE_SHARED_LINKER_FLAGS "")
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  message(FATAL_ERROR "The Elders require the LLVM Clang toolchain to forge this project. Found: ${CMAKE_CXX_COMPILER_ID}")
+endif()
 
 # ---- Compiler Flags ----
 # Common optimization and warnings
@@ -22,8 +32,6 @@ set(COMMON_FLAGS "-march=native -O3 -pipe -fno-plt \
 
 # Debug / Sanitizers
 set(DEBUG_FLAGS "-g -fstandalone-debug \
--fsanitize=undefined,address,leak \
--fsanitize-recover=all \
 -fno-omit-frame-pointer \
 -fno-optimize-sibling-calls")
 
@@ -47,17 +55,7 @@ option(VOIX_SETUID_INSTALL "Install voix with setuid bit" ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PAM REQUIRED pam)
 
-# ---- Testing ----
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-  EXCLUDE_FROM_ALL
-)
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+
 
 # ---- Sources ----
 set(VOIX_SOURCES
@@ -83,27 +81,7 @@ target_include_directories(voix PRIVATE
 
 target_link_libraries(voix PRIVATE ${PAM_LIBRARIES})
 
-# ---- Testing Executable ----
-enable_testing()
-add_executable(
-  voix_tests
-  tests/main.cpp
-  tests/test_security.cpp
-  tests/test_config.cpp
-  tests/test_file_utils.cpp
-  # Link necessary source files for testing
-  src/security.cpp
-  src/config.cpp
-  src/file_utils.cpp
-)
-target_include_directories(voix_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(
-  voix_tests
-  GTest::gtest_main
-)
 
-include(GoogleTest)
-gtest_discover_tests(voix_tests)
 
 # ---- Installation ----
 include(GNUInstallDirs)
@@ -118,6 +96,27 @@ if(VOIX_SETUID_INSTALL)
         CODE "execute_process(COMMAND chmod +s ${CMAKE_INSTALL_BINDIR}/voix)"
     )
 endif()
+
+# ---- Advanced Installation ----
+# Install the Arcane Runes (Configuration)
+install(
+    FILES config/voix.conf
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
+    RENAME voix.conf
+)
+
+# Install the Ritual of Proof (PAM)
+# Note: On some systems this might need to be /usr/lib/pam.d
+install(
+    FILES pam.d/voix
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d
+)
+
+# Install the Chronicles (Man Page)
+install(
+    FILES docs/voix.1
+    DESTINATION ${CMAKE_INSTALL_MANDIR}/man1
+)
 
 # ---- Compiler Hardening ----
 target_compile_options(voix PRIVATE

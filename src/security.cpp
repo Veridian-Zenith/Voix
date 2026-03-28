@@ -1,7 +1,10 @@
 /**
  * @file security.cpp
  * @brief Enhanced security implementation
- * @copyright © 2025 Veridian Zenith All code in this repository is licensed under OSL v3.
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
  */
 
 #include "security.h"
@@ -15,14 +18,7 @@
 
 namespace Voix {
 
-Security::Security()
-    : dangerous_commands_({
-        "su", "sudo", "doas", "pkexec", "bash", "sh", "zsh", "fish",
-        "dd", "mkfs", "fdisk", "parted", "rm", "rmdir", "chmod", "chown",
-        "kill", "killall", "pkill", "systemctl", "service",
-        "chroot", "unshare", "nsenter", "capsh"
-    }),
-      dangerous_chars_("|&;$`(){}[]<>?!~*\\\"'") {}
+Security::Security() = default;
 
 Security::~Security() = default;
 
@@ -44,27 +40,7 @@ bool Security::validateUser(std::string_view username) const {
     return pw != nullptr;
 }
 
-bool Security::validateCommand(std::string_view command,
-                             const std::vector<std::string>& args) const {
 
-    // Check for dangerous commands
-    if (isDangerousCommand(command)) {
-        return false;
-    }
-
-    // Check for shell metacharacters in command and arguments
-    if (containsShellMetacharacters(command)) {
-        return false;
-    }
-
-    for (const auto& arg : args) {
-        if (containsShellMetacharacters(arg)) {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 bool Security::isSafePath(std::string_view path) const {
     // Check for path traversal attempts
@@ -103,18 +79,20 @@ std::string Security::getCurrentUser() const {
     return "unknown";
 }
 
-bool Security::isDangerousCommand(std::string_view command) const {
-    for (const auto& dangerous : dangerous_commands_) {
-        if (command == dangerous) {
-            return true;
-        }
-    }
-    return false;
-}
+bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args) const {
+    if (command == "rm" || command == "/bin/rm" || command == "/usr/bin/rm") {
+        bool recursive = false;
+        bool force = false;
+        bool target_root = false;
 
-bool Security::containsShellMetacharacters(std::string_view str) const {
-    for (char c : str) {
-        if (dangerous_chars_.find(c) != std::string::npos) {
+        for (const auto& arg : args) {
+            if (arg == "-r" || arg == "-R" || arg == "--recursive") recursive = true;
+            else if (arg == "-f" || arg == "--force") force = true;
+            else if (arg == "-rf" || arg == "-fr") { recursive = true; force = true; }
+            else if (arg == "/" || arg == "/*") target_root = true;
+        }
+
+        if (recursive && force && target_root) {
             return true;
         }
     }

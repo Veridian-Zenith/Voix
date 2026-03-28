@@ -1,17 +1,17 @@
-.TH VOIX 1 "March 2026" "Voix 2.3.0" "User Commands"
+.TH VOIX 1 "March 2026" "Voix 2.3.2" "User Commands"
 .SH NAME
-voix \- privilege escalation tool replacing sudo/doas
+voix \- privilege escalation tool for the Keeper of Realms
 .SH SYNOPSIS
 .B voix
 [\fIOPTIONS\fR]
-[\fICOMMAND\fR [\fIARGS\fR...]]
+[\fIINCANTATION\fR [\fIARGS\fR...]]
 .SH DESCRIPTION
 Voix is a modern, secure, and easy-to-use privilege escalation tool.
-It provides a flexible rule-based system for granting permissions and uses PAM for authentication.
+It provides a flexible rule-based system for granting permissions (Ordinations) and uses PAM for authentication.
 .SH OPTIONS
 .TP
 .B \-u, \-\-user \fIUSER\fR
-Execute command as the specified user (default: root).
+Execute incantation as the specified user (default: root).
 .TP
 .B \-C, \-\-clear
 Clear any persisted authentications for the current user.
@@ -23,29 +23,23 @@ The Voix configuration file, located at \fI/etc/voix.conf\fR, defines the rules 
 .PP
 The syntax is as follows:
 .PP
-.B (permit|deny) [nopass] <ident> [as <target>] [cmd <command> [args ...]]
+.B [ordain|shun] [trust] <ident> [mask <target>] [rite <command> [args ...]]
 .PP
 .TP
-.B permit
-Allow the user to execute a command.
+.B ordain
+Allow the user can execute a command.
 .TP
-.B deny
-Prevent the user from executing a command.
+.B shun
+Prevent the user from executing any command.
 .TP
-.B nopass
+.B trust
 The user will not be prompted for a password.
 .TP
-.B ident
-The user or group to apply the rule to. Groups must be prefixed with a colon (e.g., :wheel).
-.TP
-.B target
+.B mask
 The user to execute the command as (defaults to root).
 .TP
-.B command
+.B rite
 The command to be executed. If no command is specified, any command is allowed.
-.TP
-.B args
-A list of arguments for the command.
 .SH AUTHENTICATION
 Voix uses the Pluggable Authentication Modules (PAM) framework for authentication.
 The service name is \fBvoix\fR, and its configuration can be found in \fI/etc/pam.d/voix\fR.
@@ -54,27 +48,15 @@ Execute \fBwhoami\fR as root:
 .IP
 voix whoami
 .PP
-Execute \fBwhoami\fR as a specific user:
+Execute \fBwhoami\fR as a mask user:
 .IP
 voix -u user whoami
 .PP
 Start a shell as root:
 .IP
 voix -s
-.SH FILES
-.TP
-.B /etc/voix.conf
-Main configuration file for access rules.
-.TP
-.B /etc/pam.d/voix
-PAM configuration for authentication.
-.TP
-.B /var/log/voix.log
-Log file for Voix commands.
-.SH SECURITY
-Voix should be owned by root and have the setuid bit set for proper functionality.
-.SH AUTHOR
-Veridian-Zenith Team
+.SH ARCHITECT
+Veridian-Zenith 2026 (Dae Euhwa - daedaevibin@ik.me)
 .SH SEE ALSO
 .BR sudo (8),
 .BR doas (1),

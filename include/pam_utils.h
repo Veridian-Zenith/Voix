@@ -1,3 +1,11 @@
+/**
+ * @file pam_utils.h
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
+ */
+
 #ifndef PAM_UTILS_H
 #define PAM_UTILS_H
 

@@ -1,37 +1,25 @@
 ---
-name: "🐞 Bug Report"
-description: "Create a report to help us improve Voix."
-title: "[BUG] - "
-labels: ["bug", "triage"]
+name: Shattered Rune (Bug Report)
+about: Report a flaw or fracture within the artifact's logic
+title: "[BUG] "
+labels: ''
+assignees: ''
+
 ---
 
-## Describe the Bug
+## The Flawed Rune
+<!-- Describe what is shattered. What did you attempt to invoke, and what dark magic occurred instead? -->
 
-A clear and concise description of what the bug is.
+### Incantation Cast
+<!-- Provide the exact `voix` command or arguments you used. -->
 
-### Steps to Reproduce
+### The Omens (Expected Behavior)
+<!-- What did you foresee happening before the bug occurred? -->
 
-Steps to reproduce the behavior:
+### Environment
+- **OS/Realm:**
+- **LLVM Clang Version:**
+- **CMake Version:**
 
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-### Expected Behavior
-
-A clear and concise description of what you expected to happen.
-
-### Screenshots
-
-If applicable, add screenshots to help explain your problem.
-
-### System Details
-
-- **Voix Version:** [e.g., 2.3.0]
-- **Operating System:** [e.g., Arch Linux, CachyOS]
-- **Installation Method:** [e.g., AUR, built from source]
-
-### Additional Context
-
-Add any other context about the problem here.
+### Screenshots / Scripts
+<!-- Any additional knowledge that helps the Elders decipher the shatter. -->

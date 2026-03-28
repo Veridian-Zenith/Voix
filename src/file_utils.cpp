@@ -1,3 +1,11 @@
+/**
+ * @file file_utils.cpp
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
+ */
+
 #include "file_utils.h"
 #include <fstream>
 #include <sstream>
