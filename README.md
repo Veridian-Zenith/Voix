@@ -55,7 +55,7 @@ The Elders command strict adherence to modern crafting:
 
 ## The Runes of Law (Configuration)
 
-The heart of Voix is defined in `/etc/voix.conf`. 
+The heart of Voix is defined in `/etc/voix.conf`.
 
 `[ordain|shun] [trust] <ident> [mask <target>] [rite <incantation> [args ...]]`
 
