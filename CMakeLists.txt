@@ -88,14 +88,12 @@ include(GNUInstallDirs)
 install(
     TARGETS voix
     DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+    PERMISSIONS 
+        OWNER_EXECUTE OWNER_WRITE OWNER_READ 
+        GROUP_EXECUTE GROUP_READ 
+        WORLD_EXECUTE WORLD_READ
+        SETUID
 )
-
-if(VOIX_SETUID_INSTALL)
-    install(
-        CODE "execute_process(COMMAND chmod +s ${CMAKE_INSTALL_BINDIR}/voix)"
-    )
-endif()
 
 # ---- Advanced Installation ----
 # Install the Arcane Runes (Configuration)
@@ -103,6 +101,7 @@ install(
     FILES config/voix.conf
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
     RENAME voix.conf
+    PERMISSIONS OWNER_READ OWNER_WRITE
 )
 
 # Install the Ritual of Proof (PAM)
