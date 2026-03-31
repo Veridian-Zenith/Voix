@@ -37,7 +37,7 @@ void printUsage() {
 }
 
 void printVersion() {
-    std::print("Voix version 2.3.2 - The Keeper of Realms\n"
+    std::print("Voix version 2.4.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -92,14 +92,22 @@ int main(int argc, char* argv[]) {
 
     // Handle shell mode
     if (sflag) {
-        char* shell = getenv("SHELL");
-        if (!shell || !*shell) {
-            struct passwd* pw = getpwuid(getuid());
-            if (pw) {
+        char* shell_env = getenv("SHELL");
+        char* shell = nullptr;
+        if (!shell_env || !*shell_env) {
+            struct passwd pwd;
+            struct passwd* pw = nullptr;
+            long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+            if (bufsize == -1) bufsize = 16384;
+            std::vector<char> buffer(bufsize);
+
+            if (getpwuid_r(getuid(), &pwd, buffer.data(), bufsize, &pw) == 0 && pw) {
                 shell = strdup(pw->pw_shell);
             } else {
                 shell = strdup("/bin/sh");
             }
+        } else {
+            shell = strdup(shell_env);
         }
         command_args.push_back(shell);
         free(shell);

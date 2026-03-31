@@ -47,6 +47,9 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
 
       response[i].resp = strdup(password);
       memset(password, 0, sizeof(password));
+      if (!response[i].resp) {
+        goto cleanup;
+      }
       response[i].resp_retcode = 0;
       break;
     }
@@ -57,6 +60,9 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
         std::string input;
         std::getline(std::cin, input);
         response[i].resp = strdup(input.c_str());
+        if (!response[i].resp) {
+          goto cleanup;
+        }
         response[i].resp_retcode = 0;
       }
       break;
@@ -69,13 +75,22 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       response[i].resp_retcode = 0;
       break;
     default:
-      free(response);
-      return PAM_CONV_ERR;
+      goto cleanup;
     }
   }
 
   *resp = response;
   return PAM_SUCCESS;
+
+cleanup:
+  for (int i = 0; i < num_msg; i++) {
+    if (response[i].resp) {
+      memset(response[i].resp, 0, strlen(response[i].resp));
+      free(response[i].resp);
+    }
+  }
+  free(response);
+  return PAM_CONV_ERR;
 }
 
 } // namespace Voix

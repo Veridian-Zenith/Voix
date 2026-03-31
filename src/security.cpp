@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <pwd.h>
+#include <vector>
 
 namespace Voix {
 
@@ -36,8 +37,16 @@ bool Security::validateUser(std::string_view username) const {
 
     // Check if user exists on the system
     std::string username_str{username};
-    struct passwd* pw = getpwnam(username_str.c_str());
-    return pw != nullptr;
+    struct passwd pwd;
+    struct passwd* result = nullptr;
+    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1) bufsize = 16384;
+    std::vector<char> buffer(bufsize);
+
+    if (getpwnam_r(username_str.c_str(), &pwd, buffer.data(), bufsize, &result) != 0 || result == nullptr) {
+        return false;
+    }
+    return true;
 }
 
 
@@ -69,11 +78,15 @@ void Security::logEvent(std::string_view event, std::string_view user) const {
 }
 
 std::string Security::getCurrentUser() const {
-    uid_t uid = geteuid();
-    struct passwd* pw = getpwuid(uid);
+    uid_t uid = getuid();
+    struct passwd pwd;
+    struct passwd* result = nullptr;
+    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1) bufsize = 16384;
+    std::vector<char> buffer(bufsize);
 
-    if (pw) {
-        return std::string(pw->pw_name);
+    if (getpwuid_r(uid, &pwd, buffer.data(), bufsize, &result) == 0 && result != nullptr) {
+        return std::string(result->pw_name);
     }
 
     return "unknown";

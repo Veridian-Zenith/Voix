@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <cstring>
+#include <vector>
 #include "pam_utils.h"
 
 namespace Voix {
@@ -69,8 +70,13 @@ int Voix::execute(std::string_view command,
 
   // Validate command using enhanced rules
   uid_t target_uid;
-  struct passwd *pw = getpwnam(user_str.c_str());
-  if (!pw) {
+  struct passwd pwd;
+  struct passwd *pw = nullptr;
+  long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+  if (bufsize == -1) bufsize = 16384;
+  std::vector<char> buffer(bufsize);
+
+  if (getpwnam_r(user_str.c_str(), &pwd, buffer.data(), bufsize, &pw) != 0 || !pw) {
     syslog(LOG_AUTHPRIV | LOG_ERR, "Invalid target user: %s", user_str.c_str());
     return 1;
   }

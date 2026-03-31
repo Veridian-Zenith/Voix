@@ -11,6 +11,7 @@
 #include <grp.h>
 #include <sstream>
 #include <sys/wait.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 #include <vector>
 #include <cstdlib>
@@ -27,8 +28,13 @@ int Command::execute(std::string_view command,
     return -1;
   } else if (pid == 0) {
     std::string user_str{user};
-    struct passwd *pw = getpwnam(user.empty() ? "root" : user_str.c_str());
-    if (!pw) {
+    struct passwd pwd;
+    struct passwd *pw = nullptr;
+    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1) bufsize = 16384;
+    std::vector<char> buffer(bufsize);
+
+    if (getpwnam_r(user.empty() ? "root" : user_str.c_str(), &pwd, buffer.data(), bufsize, &pw) != 0 || !pw) {
       _exit(1);
     }
 
@@ -48,7 +54,7 @@ int Command::execute(std::string_view command,
 
     // Scrub the environment
     clearenv();
-    
+
     // Restore whitelist & explicitly set target identity
     for (const auto& env : saved_env) {
       setenv(env.first.c_str(), env.second.c_str(), 1);
@@ -59,10 +65,19 @@ int Command::execute(std::string_view command,
     setenv("HOME", pw->pw_dir, 1);
 
     // Prevent FD leakage
-    int max_fd = sysconf(_SC_OPEN_MAX);
-    if (max_fd < 0 || max_fd > 4096) max_fd = 4096;
-    for (int i = 3; i < max_fd; ++i) {
-      close(i);
+    bool closed = false;
+#ifdef SYS_close_range
+    if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
+      closed = true;
+    }
+#endif
+
+    if (!closed) {
+      int max_fd = sysconf(_SC_OPEN_MAX);
+      if (max_fd < 0 || max_fd > 4096) max_fd = 4096;
+      for (int i = 3; i < max_fd; ++i) {
+        close(i);
+      }
     }
 
     std::vector<const char *> argv;

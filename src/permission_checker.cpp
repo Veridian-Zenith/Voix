@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <utility>
+#include <vector>
 
 #ifndef NGROUPS_MAX
 #define NGROUPS_MAX 32
@@ -51,9 +52,14 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
       char *endptr;
       rgid = strtol(rule.ident.c_str() + 1, &endptr, 10);
       if (*endptr != '\0') {
-        struct group *gr = getgrnam(rule.ident.c_str() + 1);
-        if (gr)
-          rgid = gr->gr_gid;
+        struct group grp;
+        struct group *result = nullptr;
+        long bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+        if (bufsize == -1) bufsize = 16384;
+        std::vector<char> buffer(bufsize);
+
+        if (getgrnam_r(rule.ident.c_str() + 1, &grp, buffer.data(), bufsize, &result) == 0 && result != nullptr)
+          rgid = result->gr_gid;
       }
 
       bool group_found = false;
@@ -66,9 +72,14 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
       if (!group_found)
         return false;
     } else {
-      struct passwd *pw = getpwnam(rule.ident.c_str());
-      if (pw) {
-        if (pw->pw_uid != uid)
+      struct passwd pwd;
+      struct passwd *result = nullptr;
+      long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+      if (bufsize == -1) bufsize = 16384;
+      std::vector<char> buffer(bufsize);
+
+      if (getpwnam_r(rule.ident.c_str(), &pwd, buffer.data(), bufsize, &result) == 0 && result != nullptr) {
+        if (result->pw_uid != uid)
           return false;
       } else {
         uid_t rule_uid =
@@ -80,9 +91,14 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
   }
 
   if (!rule.target.empty()) {
-    struct passwd *pw = getpwnam(rule.target.c_str());
-    if (pw) {
-      if (pw->pw_uid != target_uid)
+    struct passwd pwd;
+    struct passwd *result = nullptr;
+    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufsize == -1) bufsize = 16384;
+    std::vector<char> buffer(bufsize);
+
+    if (getpwnam_r(rule.target.c_str(), &pwd, buffer.data(), bufsize, &result) == 0 && result != nullptr) {
+      if (result->pw_uid != target_uid)
         return false;
     } else {
       uid_t rule_uid =
@@ -114,11 +130,16 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
                                  const std::vector<std::string> &args,
                                  uid_t target_uid) const {
   std::string current_user = security_->getCurrentUser();
-  struct passwd *pw = getpwnam(current_user.c_str());
-  if (!pw)
+  struct passwd pwd;
+  struct passwd *result = nullptr;
+  long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+  if (bufsize == -1) bufsize = 16384;
+  std::vector<char> buffer(bufsize);
+
+  if (getpwnam_r(current_user.c_str(), &pwd, buffer.data(), bufsize, &result) != 0 || result == nullptr)
     return std::nullopt;
 
-  uid_t uid = pw->pw_uid;
+  uid_t uid = result->pw_uid;
   gid_t groups[NGROUPS_MAX + 1];
   int ngroups = getgroups(NGROUPS_MAX, groups);
   if (ngroups == -1)

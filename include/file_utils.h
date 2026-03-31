@@ -11,21 +11,30 @@
 
 #include <string>
 #include <string_view>
-#include <optional>
+#include <expected>
+#include <filesystem>
+#include <system_error>
 
 namespace Voix {
 
-using Path = std::string_view;
-using Content = std::string_view;
+namespace fs = std::filesystem;
+
+enum class FileError {
+    NotFound,
+    PermissionDenied,
+    ReadError,
+    WriteError,
+    Unknown
+};
 
 class FileUtils {
 public:
     FileUtils() = default;
     ~FileUtils() = default;
 
-    bool fileExists(Path path) const;
-    std::optional<std::string> readFile(Path path) const;
-    bool writeFile(Path path, Content content) const;
+    bool fileExists(const fs::path& path) const;
+    std::expected<std::string, FileError> readFile(const fs::path& path) const;
+    std::expected<void, FileError> writeFile(const fs::path& path, std::string_view content) const;
 };
 
 } // namespace Voix

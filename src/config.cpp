@@ -13,6 +13,7 @@
 #include <sstream>
 #include <algorithm>
 #include <optional>
+#include <cctype>
 
 namespace Voix {
 
@@ -54,16 +55,39 @@ void Config::parseConfigLine(std::string_view line) {
     line = trim(line);
     if (line.empty() || line[0] == '#') return;
 
-    // Handle global settings (Sanctuary, Path)
     if (line.starts_with("sanctuary:")) {
         // Implementation of global log setting could go here
         return;
     }
 
-    std::stringstream ss{std::string(line)};
-    std::string keyword;
-    ss >> keyword;
+    std::vector<std::string> tokens;
+    std::string current;
+    bool in_quotes = false;
+    bool escaped = false;
+    for (char c : line) {
+        if (escaped) {
+            current += c;
+            escaped = false;
+        } else if (c == '\\') {
+            escaped = true;
+        } else if (c == '"') {
+            in_quotes = !in_quotes;
+        } else if (std::isspace(static_cast<unsigned char>(c)) && !in_quotes) {
+            if (!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
+            }
+        } else {
+            current += c;
+        }
+    }
+    if (!current.empty()) {
+        tokens.push_back(current);
+    }
 
+    if (tokens.empty()) return;
+
+    const std::string& keyword = tokens[0];
     if (keyword != "ordain" && keyword != "shun") {
         return;
     }
@@ -71,21 +95,27 @@ void Config::parseConfigLine(std::string_view line) {
     Rule rule;
     rule.action = (keyword == "ordain") ? Rule::PERMIT : Rule::DENY;
 
-    std::string token;
-    while (ss >> token) {
+    for (size_t i = 1; i < tokens.size(); ++i) {
+        const std::string& token = tokens[i];
         if (token == "trust") {
             rule.options |= Rule::NOPASS;
         } else if (token == "mask") {
-            ss >> rule.target;
-        } else if (token == "rite") {
-            ss >> rule.cmd;
-            std::string arg;
-            while (ss >> arg) {
-                rule.cmdargs.push_back(arg);
+            if (i + 1 < tokens.size()) {
+                rule.target = tokens[++i];
             }
-            break; 
+        } else if (token == "rite") {
+            if (i + 1 < tokens.size()) {
+                rule.cmd = tokens[++i];
+                for (size_t j = i + 1; j < tokens.size(); ++j) {
+                    rule.cmdargs.push_back(tokens[j]);
+                }
+            }
+            break;
         } else {
             // If it's not a keyword, it's the identifier (user/group)
+            // If multiple tokens are found before any keywords,
+            // only the last one will be used as the identifier.
+            // This is consistent with simple parsing.
             rule.ident = token;
         }
     }
@@ -96,3 +126,4 @@ void Config::parseConfigLine(std::string_view line) {
 }
 
 } // namespace Voix
+

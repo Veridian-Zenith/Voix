@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
 # ---- Ignore External Flags ----
-# We clear these BEFORE the project() call to ensure the initial compiler probe 
+# We clear these BEFORE the project() call to ensure the initial compiler probe
 # is isolated from user environment pollution.
 set(ENV{CFLAGS} "")
 set(ENV{CXXFLAGS} "")
@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_SHARED_LINKER_FLAGS "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 2.3.2 LANGUAGES CXX)
+project(Voix VERSION 2.4.0 LANGUAGES CXX)
 
 # ---- Standards ----
 set(CMAKE_CXX_STANDARD 26)
@@ -88,9 +88,9 @@ include(GNUInstallDirs)
 install(
     TARGETS voix
     DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PERMISSIONS 
-        OWNER_EXECUTE OWNER_WRITE OWNER_READ 
-        GROUP_EXECUTE GROUP_READ 
+    PERMISSIONS
+        OWNER_EXECUTE OWNER_WRITE OWNER_READ
+        GROUP_EXECUTE GROUP_READ
         WORLD_EXECUTE WORLD_READ
         SETUID
 )
