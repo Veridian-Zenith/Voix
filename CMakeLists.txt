@@ -41,7 +41,7 @@ set(ALL_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}")
 
 # Apply flags explicitly
 set(CMAKE_C_FLAGS "${ALL_C_FLAGS}" CACHE STRING "C compiler flags" FORCE)
-set(CMAKE_CXX_FLAGS "${ALL_CXX_FLAGS}" CACHE STRING "C++ compiler flags" FORCE)
+set(CMAKE_CXX_FLAGS "${ALL_CXX_FLAGS} -fexperimental-library" CACHE STRING "C++ compiler flags" FORCE)
 
 # ---- Linker Flags ----
 set(LDFLAGS "-fuse-ld=lld -Wl,-O1,--as-needed,-z,relro,-z,now")

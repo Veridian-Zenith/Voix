@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "rule.h"
+#include "system_utils.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -18,8 +19,6 @@
 namespace Voix {
 
 Config::Config() = default;
-
-
 
 bool Config::load(std::string_view config_path) {
     std::string path_str{config_path};
@@ -102,6 +101,7 @@ void Config::parseConfigLine(std::string_view line) {
         } else if (token == "mask") {
             if (i + 1 < tokens.size()) {
                 rule.target = tokens[++i];
+                rule.target_uid = SystemUtils::getUidByName(rule.target);
             }
         } else if (token == "rite") {
             if (i + 1 < tokens.size()) {
@@ -112,11 +112,12 @@ void Config::parseConfigLine(std::string_view line) {
             }
             break;
         } else {
-            // If it's not a keyword, it's the identifier (user/group)
-            // If multiple tokens are found before any keywords,
-            // only the last one will be used as the identifier.
-            // This is consistent with simple parsing.
             rule.ident = token;
+            if (rule.ident.starts_with("%")) {
+                rule.ident_gid = SystemUtils::getGidByName(rule.ident.substr(1));
+            } else {
+                rule.ident_uid = SystemUtils::getUidByName(rule.ident);
+            }
         }
     }
 

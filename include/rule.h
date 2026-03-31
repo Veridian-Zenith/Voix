@@ -12,6 +12,8 @@
 
 #include <string>
 #include <vector>
+#include <optional>
+#include <sys/types.h>
 
 namespace Voix {
 
@@ -26,7 +28,12 @@ public:
     };
 
     std::string ident;
+    std::optional<uid_t> ident_uid;
+    std::optional<gid_t> ident_gid;
+
     std::string target;
+    std::optional<uid_t> target_uid;
+
     std::string cmd;
     std::vector<std::string> cmdargs;
     std::vector<std::string> envlist;

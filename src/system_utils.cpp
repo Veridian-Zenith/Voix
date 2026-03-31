@@ -11,6 +11,9 @@
 #include <string_view>
 #include <unistd.h>
 #include <cstdlib>
+#include <pwd.h>
+#include <grp.h>
+#include <vector>
 
 namespace Voix {
 
@@ -33,6 +36,48 @@ void SystemUtils::setEnvironment(const std::vector<std::string>& env_vars) const
       setenv(key.c_str(), value.c_str(), 1);
     }
   }
+}
+
+std::optional<uid_t> SystemUtils::getUidByName(const std::string& name) {
+    struct passwd pwd;
+    struct passwd *result;
+    std::vector<char> buf(1024);
+    int s;
+
+    while (true) {
+        s = getpwnam_r(name.c_str(), &pwd, buf.data(), buf.size(), &result);
+        if (s == ERANGE) {
+            buf.resize(buf.size() * 2);
+        } else {
+            break;
+        }
+    }
+
+    if (result == nullptr) {
+        return std::nullopt;
+    }
+    return result->pw_uid;
+}
+
+std::optional<gid_t> SystemUtils::getGidByName(const std::string& name) {
+    struct group grp;
+    struct group *result;
+    std::vector<char> buf(1024);
+    int s;
+
+    while (true) {
+        s = getgrnam_r(name.c_str(), &grp, buf.data(), buf.size(), &result);
+        if (s == ERANGE) {
+            buf.resize(buf.size() * 2);
+        } else {
+            break;
+        }
+    }
+
+    if (result == nullptr) {
+        return std::nullopt;
+    }
+    return result->gr_gid;
 }
 
 } // namespace Voix

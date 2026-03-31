@@ -46,66 +46,54 @@ bool PermissionChecker::isAllowed() const {
 bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, int ngroups,
                                     uid_t target_uid, std::string_view command,
                                     const std::vector<std::string> &args) const {
-  if (!rule.ident.empty()) {
-    if (rule.ident[0] == ':') {
-      gid_t rgid;
-      char *endptr;
-      rgid = strtol(rule.ident.c_str() + 1, &endptr, 10);
-      if (*endptr != '\0') {
-        struct group grp;
-        struct group *result = nullptr;
-        long bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
-        if (bufsize == -1) bufsize = 16384;
-        std::vector<char> buffer(bufsize);
-
-        if (getgrnam_r(rule.ident.c_str() + 1, &grp, buffer.data(), bufsize, &result) == 0 && result != nullptr)
-          rgid = result->gr_gid;
+  if (rule.ident_uid.has_value()) {
+      if (rule.ident_uid.value() != uid) {
+          return false;
       }
-
+  } else if (rule.ident_gid.has_value()) {
       bool group_found = false;
       for (int i = 0; i < ngroups; i++) {
-        if (rgid == groups[i]) {
-          group_found = true;
-          break;
-        }
+          if (rule.ident_gid.value() == groups[i]) {
+              group_found = true;
+              break;
+          }
       }
-      if (!group_found)
-        return false;
-    } else {
-      struct passwd pwd;
-      struct passwd *result = nullptr;
-      long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-      if (bufsize == -1) bufsize = 16384;
-      std::vector<char> buffer(bufsize);
-
-      if (getpwnam_r(rule.ident.c_str(), &pwd, buffer.data(), bufsize, &result) == 0 && result != nullptr) {
-        if (result->pw_uid != uid)
+      if (!group_found) {
           return false;
+      }
+  } else if (!rule.ident.empty()) {
+      // Fallback for cases where resolution failed or for special identifiers
+      // If it starts with %, it's a group that wasn't found
+      if (rule.ident.starts_with("%")) {
+          return false;
+      }
+      // Otherwise try numeric UID match if it's a number
+      char* endptr;
+      uid_t rule_uid = static_cast<uid_t>(strtol(rule.ident.c_str(), &endptr, 10));
+      if (*endptr == '\0') {
+          if (rule_uid != uid) {
+              return false;
+          }
       } else {
-        uid_t rule_uid =
-            static_cast<uid_t>(strtol(rule.ident.c_str(), nullptr, 10));
-        if (rule_uid != uid)
+          // It was a name that couldn't be resolved at config load time
           return false;
       }
-    }
   }
 
-  if (!rule.target.empty()) {
-    struct passwd pwd;
-    struct passwd *result = nullptr;
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = 16384;
-    std::vector<char> buffer(bufsize);
-
-    if (getpwnam_r(rule.target.c_str(), &pwd, buffer.data(), bufsize, &result) == 0 && result != nullptr) {
-      if (result->pw_uid != target_uid)
-        return false;
-    } else {
-      uid_t rule_uid =
-          static_cast<uid_t>(strtol(rule.target.c_str(), nullptr, 10));
-      if (rule_uid != target_uid)
-        return false;
-    }
+  if (rule.target_uid.has_value()) {
+      if (rule.target_uid.value() != target_uid) {
+          return false;
+      }
+  } else if (!rule.target.empty()) {
+      char* endptr;
+      uid_t rule_uid = static_cast<uid_t>(strtol(rule.target.c_str(), &endptr, 10));
+      if (*endptr == '\0') {
+          if (rule_uid != target_uid) {
+              return false;
+          }
+      } else {
+          return false;
+      }
   }
 
   if (!rule.cmd.empty()) {

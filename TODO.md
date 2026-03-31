@@ -5,7 +5,8 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 ## CRITICAL SECURITY FIXES
 
 - [x] **Bypass Fix (`geteuid` vs `getuid`):** Correct the logic in `Security::validateContext` to use `getuid()` instead of `geteuid()` when checking the real calling user, preventing potential bypasses when invoked via other SUID binaries.
-- [ ] **Identity Resolution TOCTOU:** Refactor `PermissionChecker::matchRule` to avoid `getpwnam`/`getgrnam` calls during the matching phase. Resolve all identities to UIDs/GIDs during configuration loading to minimize TOCTOU windows.
+- [x] **Identity Resolution TOCTOU:** Refactor `PermissionChecker::matchRule` to avoid `getpwnam`/`getgrnam` calls during the matching phase. Resolve all identities to UIDs/GIDs during configuration loading to minimize TOCTOU windows.
+- [x] **CI Build Stabilization:** Integrate `std::expected` (and `-fexperimental-library` flags) into the CI pipelines to ensure consistent builds across different compiler versions.
 
 ## ARCHITECTURAL IMPROVEMENTS
 
