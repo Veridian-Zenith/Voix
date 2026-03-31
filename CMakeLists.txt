@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_SHARED_LINKER_FLAGS "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 2.4.0 LANGUAGES CXX)
+project(Voix VERSION 2.5.0 LANGUAGES CXX)
 
 # ---- Standards ----
 set(CMAKE_CXX_STANDARD 26)
@@ -49,13 +49,11 @@ set(CMAKE_EXE_LINKER_FLAGS "${LDFLAGS}" CACHE STRING "Executable linker flags" F
 set(CMAKE_SHARED_LINKER_FLAGS "${LDFLAGS}" CACHE STRING "Shared linker flags" FORCE)
 
 # ---- Options ----
-option(VOIX_SETUID_INSTALL "Install voix with setuid bit" ON)
 
 # ---- Dependencies ----
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PAM REQUIRED pam)
-
-
+pkg_check_modules(LIBCAP REQUIRED libcap)
 
 # ---- Sources ----
 set(VOIX_SOURCES
@@ -77,38 +75,62 @@ add_executable(voix ${VOIX_SOURCES})
 target_include_directories(voix PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${PAM_INCLUDE_DIRS}
+    ${LIBCAP_INCLUDE_DIRS}
 )
 
-target_link_libraries(voix PRIVATE ${PAM_LIBRARIES})
+target_link_libraries(voix PRIVATE
+    ${PAM_LIBRARIES}
+    ${LIBCAP_LIBRARIES}
+)
 
 
 
 # ---- Installation ----
 include(GNUInstallDirs)
+# Install the Shadow Weave (Binary)
+# Note: Ownership (root:root) should be handled by the package manager or installer
 install(
     TARGETS voix
     DESTINATION ${CMAKE_INSTALL_BINDIR}
     PERMISSIONS
-        OWNER_EXECUTE OWNER_WRITE OWNER_READ
-        GROUP_EXECUTE GROUP_READ
-        WORLD_EXECUTE WORLD_READ
-        SETUID
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ GROUP_EXECUTE
+        WORLD_READ WORLD_EXECUTE
 )
+
+# Grant Arcane Powers (Capabilities) post-installation
+install(CODE "
+    execute_process(
+        COMMAND setcap cap_audit_write,cap_dac_read_search+ep \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/voix\"
+        RESULT_VARIABLE res
+    )
+    if(NOT res EQUAL 0)
+        message(FATAL_ERROR \"Failed to set capabilities on voix binary.\")
+    endif()
+")
 
 # ---- Advanced Installation ----
 # Install the Arcane Runes (Configuration)
+# Note: Ownership (root:root) should be handled by the package manager or installer
 install(
     FILES config/voix.conf
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
     RENAME voix.conf
-    PERMISSIONS OWNER_READ OWNER_WRITE
+    PERMISSIONS
+        OWNER_READ
+        OWNER_WRITE
 )
 
 # Install the Ritual of Proof (PAM)
+# Note: Ownership (root:root) should be handled by the package manager or installer
 # Note: On some systems this might need to be /usr/lib/pam.d
 install(
     FILES pam.d/voix
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d
+    PERMISSIONS
+        OWNER_READ OWNER_WRITE
+        GROUP_READ
+        WORLD_READ
 )
 
 # Install the Chronicles (Man Page)
@@ -139,3 +161,24 @@ target_link_options(voix PRIVATE
     -Wl,-z,noexecstack
     -pie
 )
+
+# ---- Testing ----
+enable_testing()
+
+set(TEST_SOURCES
+    tests/main.cpp
+    tests/test_security.cpp
+    tests/test_file_utils.cpp
+    src/security.cpp
+    src/file_utils.cpp
+    src/logger.cpp
+    src/system_utils.cpp
+)
+
+add_executable(run_tests ${TEST_SOURCES})
+
+target_include_directories(run_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_test(NAME run_tests COMMAND run_tests)

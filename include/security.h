@@ -59,6 +59,16 @@ public:
      */
     bool isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args) const;
 
+    /**
+     * @brief Raise capabilities to perform privileged operations.
+     */
+    void raiseCapabilities();
+
+    /**
+     * @brief Drop all capabilities.
+     */
+    void dropCapabilities();
+
 
 
 private:

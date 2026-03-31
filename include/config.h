@@ -26,8 +26,14 @@ public:
 
     bool load(std::string_view config_path);
     std::vector<Rule> getRules() const;
+    std::string getSanctuary() const;
+    std::string getPath() const;
 
 private:
+    std::string sanctuary_;
+    std::string path_;
+    std::string file_content_;
+    std::vector<std::string> processed_tokens_;
     std::vector<Rule> rules_;
     void parseConfigLine(std::string_view line);
 };

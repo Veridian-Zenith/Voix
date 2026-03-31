@@ -33,6 +33,7 @@ public:
     ~FileUtils() = default;
 
     bool fileExists(const fs::path& path) const;
+    bool isSecurePath(const fs::path& path) const;
     std::expected<std::string, FileError> readFile(const fs::path& path) const;
     std::expected<void, FileError> writeFile(const fs::path& path, std::string_view content) const;
 };

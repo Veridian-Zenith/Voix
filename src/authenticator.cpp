@@ -24,17 +24,17 @@
 
 namespace Voix {
 
-Authenticator::Authenticator(std::shared_ptr<Security> security,
+PamAuthenticator::PamAuthenticator(std::shared_ptr<Security> security,
                              bool non_interactive)
     : security_(std::move(security)), non_interactive_(non_interactive) {}
 
-Authenticator::~Authenticator() {
+PamAuthenticator::~PamAuthenticator() {
     if (pamh_) {
         pam_end(pamh_, PAM_SUCCESS);
     }
 }
 
-bool Authenticator::authenticate(const std::optional<Rule>& rule) {
+bool PamAuthenticator::authenticate(const std::optional<Rule>& rule) {
   if (rule && (rule->options & Rule::NOPASS)) {
     return true;
   }
@@ -90,9 +90,9 @@ bool Authenticator::authenticate(const std::optional<Rule>& rule) {
   return auth_success;
 }
 
-bool Authenticator::openSession() {
+bool PamAuthenticator::openSession() {
     if (!pamh_) return true;
-    
+
     int result = pam_setcred(pamh_, PAM_ESTABLISH_CRED);
     if (result == PAM_SUCCESS) {
         result = pam_open_session(pamh_, 0);
@@ -105,7 +105,7 @@ bool Authenticator::openSession() {
     return false;
 }
 
-void Authenticator::closeSession() {
+void PamAuthenticator::closeSession() {
     if (pamh_) {
         pam_close_session(pamh_, 0);
         pam_setcred(pamh_, PAM_DELETE_CRED);

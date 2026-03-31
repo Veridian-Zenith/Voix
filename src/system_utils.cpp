@@ -38,14 +38,15 @@ void SystemUtils::setEnvironment(const std::vector<std::string>& env_vars) const
   }
 }
 
-std::optional<uid_t> SystemUtils::getUidByName(const std::string& name) {
+std::optional<uid_t> SystemUtils::getUidByName(std::string_view name) {
     struct passwd pwd;
     struct passwd *result;
     std::vector<char> buf(1024);
     int s;
+    std::string name_str(name);
 
     while (true) {
-        s = getpwnam_r(name.c_str(), &pwd, buf.data(), buf.size(), &result);
+        s = getpwnam_r(name_str.c_str(), &pwd, buf.data(), buf.size(), &result);
         if (s == ERANGE) {
             buf.resize(buf.size() * 2);
         } else {
@@ -59,14 +60,15 @@ std::optional<uid_t> SystemUtils::getUidByName(const std::string& name) {
     return result->pw_uid;
 }
 
-std::optional<gid_t> SystemUtils::getGidByName(const std::string& name) {
+std::optional<gid_t> SystemUtils::getGidByName(std::string_view name) {
     struct group grp;
     struct group *result;
     std::vector<char> buf(1024);
     int s;
+    std::string name_str(name);
 
     while (true) {
-        s = getgrnam_r(name.c_str(), &grp, buf.data(), buf.size(), &result);
+        s = getgrnam_r(name_str.c_str(), &grp, buf.data(), buf.size(), &result);
         if (s == ERANGE) {
             buf.resize(buf.size() * 2);
         } else {

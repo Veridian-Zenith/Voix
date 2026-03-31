@@ -10,11 +10,11 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 
 ## ARCHITECTURAL IMPROVEMENTS
 
-- [ ] **Resource Limiting (RLIMIT):** Implement `setrlimit` calls in `Command::execute` to prevent resource exhaustion attacks by escalated processes.
-- [ ] **Signal Handling:** Ensure signals are properly masked/handled during the fork-exec transition to prevent premature termination or state corruption of the parent process.
-- [ ] **Authenticator Abstraction:** Refactor `Authenticator` into an interface to support diverse authentication realms (e.g., OIDC, SSH keys, hardware tokens) alongside PAM.
-- [ ] **Capability-Based Ascension:** Replace raw SUID logic with `libcap` to grant only necessary capabilities (e.g., `CAP_SETUID`, `CAP_SETGID`) to the `Voix` binary, adhering to the principle of least privilege.
-- [ ] **Immutable Configuration:** Implement a check to ensure `voix.conf` is owned by root and has `0600` or `0644` permissions before loading, preventing unauthorized rule injection.
+- [x] **Resource Limiting (RLIMIT):** Implement `setrlimit` calls in `Command::execute` to prevent resource exhaustion attacks by escalated processes.
+- [x] **Signal Handling:** Ensure signals are properly masked/handled during the fork-exec transition to prevent premature termination or state corruption of the parent process.
+- [x] **Authenticator Abstraction:** Refactor `Authenticator` into an interface to support diverse authentication realms (e.g., OIDC, SSH keys, hardware tokens) alongside PAM.
+- [x] **Capability-Based Ascension:** Replace raw SUID logic with `libcap` to grant only necessary capabilities (e.g., `CAP_SETUID`, `CAP_SETGID`) to the `Voix` binary, adhering to the principle of least privilege.
+- [x] **Immutable Configuration:** Implement a check to ensure `voix.conf` is owned by root and has `0600` or `0644` permissions before loading, preventing unauthorized rule injection.
 
 ## CODE QUALITY & ROBUSTNESS
 
@@ -27,26 +27,26 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 
 - [x] **`std::filesystem` Migration:** Replace legacy C-style file operations and manual path manipulation with `std::filesystem` for better safety and portability.
 - [x] **`std::expected` for Error Handling:** Refactor internal APIs to use `std::expected` (or a backport) to provide more descriptive error states without relying on exceptions or magic return values.
-- [ ] **`std::format` Integration:** Modernize logging and string formatting to use `std::format` for type safety and performance.
+- [x] **`std::format` Integration:** Modernize logging and string formatting to use `std::format` for type safety and performance.
 
 ## The High Rituals (Priority)
 
-- [ ] **Strengthen the Runes (Clang-Tidy):** Systematically cleanse the codebase of remaining `bugprone` and `performance` spirits identified by `clang-tidy`. Bind the code tighter to the LLVM standard.
-- [ ] **Sanitizer Orchestration:** Integrate Address and Undefined Behavior sanitizers into a dedicated `cmake` hardening profile for development (e.g., `-DVOIX_HARDEN=ON`).
-- [ ] **Zero-Copy Lexer:** Further refine `src/config.cpp` to use extreme zero-allocation patterns with `std::string_view` across the entire rule-matching engine.
+- [x] **Strengthen the Runes (Clang-Tidy):** Systematically cleanse the codebase of remaining `bugprone` and `performance` spirits identified by `clang-tidy`. Bind the code tighter to the LLVM standard.
+- [x] **Sanitizer Orchestration:** Integrate Address and Undefined Behavior sanitizers into a dedicated `cmake` hardening profile for development (e.g., `-DVOIX_HARDEN=ON`).
+- [x] **Zero-Copy Lexer:** Further refine `src/config.cpp` to use extreme zero-allocation patterns with `std::string_view` across the entire rule-matching engine.
 
 ## Midsummer Bindings (Medium)
 
-- [ ] **Expand the Sanctuary (`voix.conf`):**
+- [x] **Expand the Sanctuary (`voix.conf`):**
   - Implement **Command Aliases** inside the configuration rituals.
   - Create a mechanism for preserving specific auras (environment variables) during ascension.
-- [ ] **Deepen the Transmutation (-s Shell):** The current `-s` invocation is rudimentary. Enhance the ritual to provide a seamless, feature-rich shell experience comparable to the old `sudo -s`.
-- [ ] **Global Sanctum Settings:** Fully implement the `sanctuary:` (logging) and `path:` (execution boundaries) global config runes as first-class citizens in the parser.
-- [ ] **Audit Sanctum:** Ensure the oracle's logs are stored in a secure sanctuary (`/var/log/voix/`) with `0600` permissions.
+- [x] **Deepen the Transmutation (-s Shell):** The current `-s` invocation is rudimentary. Enhance the ritual to provide a seamless, feature-rich shell experience comparable to the old `sudo -s`.
+- [x] **Global Sanctum Settings:** Fully implement the `sanctuary:` (logging) and `path:` (execution boundaries) global config runes as first-class citizens in the parser.
+- [x] **Audit Sanctum:** Ensure the oracle's logs are stored in a secure sanctuary (`/var/log/voix/`) with `0600` permissions.
 
 ## Winter's Rest (Low)
 
-- [ ] **The Oracle's Sight (Advanced Logging):**
+- [x] **The Oracle's Sight (Advanced Logging):**
   - Implement dynamic log severities (debug, info, warn, error).
   - Allow the Oracle to echo to multiple planes (syslog, `/var/log/voix.log`, stderr).
-- [ ] **The Great Expansion:** Test the artifact's resilience on other Unix-like planes and ensure the build rituals remain immutable.
+- [x] **The Great Expansion:** Test the artifact's resilience on other Unix-like planes and ensure the build rituals remain immutable.

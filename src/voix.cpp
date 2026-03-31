@@ -20,9 +20,10 @@
 #include <security/pam_appl.h>
 #include <termios.h>
 #include <unistd.h>
-#include <iostream>
+
 #include <cstring>
 #include <vector>
+#include <format>
 #include "pam_utils.h"
 
 namespace Voix {
@@ -31,7 +32,7 @@ Voix::Voix(std::string_view config_path, bool non_interactive,
            bool clear_timestamp)
     : config_(std::make_shared<Config>()),
       security_(std::make_shared<Security>()),
-      authenticator_(std::make_unique<Authenticator>(security_, non_interactive)),
+      authenticator_(std::make_unique<PamAuthenticator>(security_, non_interactive)),
       permission_checker_(std::make_unique<PermissionChecker>(security_, config_)),
       command_(std::make_unique<Command>()),
       clear_timestamp_(clear_timestamp) {
@@ -59,12 +60,12 @@ int Voix::execute(std::string_view command,
   std::string user_str{user};
 
   if (security_->isCatastrophicCommand(command_str, args)) {
-    security_->logEvent("Catastrophic command blocked: " + command_str, current_user);
+    security_->logEvent(std::format("Catastrophic command blocked: {}", command_str), current_user);
     syslog(LOG_AUTHPRIV | LOG_ALERT, "Catastrophic command blocked: %s", command_str.c_str());
     return 1;
   }
 
-  security_->logEvent("Command execution requested: " + command_str, current_user);
+  security_->logEvent(std::format("Command execution requested: {}", command_str), current_user);
   syslog(LOG_AUTHPRIV | LOG_INFO, "Command execution requested: %s as %s",
          command_str.c_str(), user_str.c_str());
 
@@ -85,14 +86,14 @@ int Voix::execute(std::string_view command,
   auto rule = permission_checker_->permit(command_str, args, target_uid);
 
   if (!rule) {
-    security_->logEvent("Command not permitted: " + command_str, current_user);
+    security_->logEvent(std::format("Command not permitted: {}", command_str), current_user);
     syslog(LOG_AUTHPRIV | LOG_NOTICE, "Command not permitted: %s as %s",
            command_str.c_str(), user_str.c_str());
     return 1;
   }
 
   if (!authenticator_->authenticate(rule)) {
-    security_->logEvent("Authentication failed for user: " + current_user,
+    security_->logEvent(std::format("Authentication failed for user: {}", current_user),
                         current_user);
     syslog(LOG_AUTHPRIV | LOG_NOTICE, "Authentication failed for user: %s",
            current_user.c_str());
@@ -100,7 +101,7 @@ int Voix::execute(std::string_view command,
   }
 
   if (authenticator_->openSession()) {
-    int res = command_->execute(command_str, args, user_str);
+    int res = command_->execute(command_str, args, *config_, user_str);
     authenticator_->closeSession();
     return res;
   }

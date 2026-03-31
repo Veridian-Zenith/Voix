@@ -10,7 +10,7 @@
 #ifndef RULE_H
 #define RULE_H
 
-#include <string>
+#include <string_view>
 #include <vector>
 #include <optional>
 #include <sys/types.h>
@@ -27,16 +27,16 @@ public:
         NOLOG = 0x8
     };
 
-    std::string ident;
+    std::string_view ident;
     std::optional<uid_t> ident_uid;
     std::optional<gid_t> ident_gid;
 
-    std::string target;
+    std::string_view target;
     std::optional<uid_t> target_uid;
 
-    std::string cmd;
-    std::vector<std::string> cmdargs;
-    std::vector<std::string> envlist;
+    std::string_view cmd;
+    std::vector<std::string_view> cmdargs;
+    std::vector<std::string_view> envlist;
     Action action;
     int options;
 

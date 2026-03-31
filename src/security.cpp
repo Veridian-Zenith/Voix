@@ -9,11 +9,12 @@
 
 #include "security.h"
 #include <unistd.h>
+#include <sys/capability.h>
 #include <sys/types.h>
 #include <chrono>
 #include <format>
 #include <fstream>
-#include <iostream>
+
 #include <pwd.h>
 #include <vector>
 
@@ -71,8 +72,7 @@ void Security::logEvent(std::string_view event, std::string_view user) const {
     std::ofstream log_file("/var/log/voix.log", std::ios::app);
     if (log_file.is_open()) {
         auto now = std::chrono::system_clock::now();
-        log_file << std::format("{:%Y-%m-%d %H:%M:%S}", now)
-                << " [" << user << "] " << event << '\n';
+        log_file << std::format("{:%Y-%m-%d %H:%M:%S} [{}] {}\n", now, user, event);
         log_file.close();
     }
 }
@@ -110,6 +110,41 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
         }
     }
     return false;
+}
+
+void Security::raiseCapabilities() {
+    cap_t caps = cap_get_proc();
+    if (!caps) {
+        throw std::runtime_error("cap_get_proc failed");
+    }
+
+    cap_value_t required_caps[] = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH};
+    if (cap_set_flag(caps, CAP_EFFECTIVE, 2, required_caps, CAP_SET) == -1) {
+        cap_free(caps);
+        throw std::runtime_error("cap_set_flag failed");
+    }
+
+    if (cap_set_proc(caps) == -1) {
+        cap_free(caps);
+        throw std::runtime_error("cap_set_proc failed to set new caps");
+    }
+    cap_free(caps);
+}
+
+void Security::dropCapabilities() {
+    cap_t caps = cap_get_proc();
+    if (!caps) {
+        // Not much we can do.
+        return;
+    }
+    if(cap_clear(caps) == -1) {
+        cap_free(caps);
+        return;
+    }
+    if (cap_set_proc(caps) == -1) {
+        // perror("cap_set_proc - dropping caps");
+    }
+    cap_free(caps);
 }
 
 } // namespace Voix

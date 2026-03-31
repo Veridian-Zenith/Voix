@@ -21,7 +21,7 @@ namespace Voix {
 class Config;
 class Security;
 class Command;
-class Authenticator;
+class IAuthenticator;
 class PermissionChecker;
 
 class Voix {
@@ -37,7 +37,7 @@ public:
 private:
     std::shared_ptr<Config> config_;
     std::shared_ptr<Security> security_;
-    std::unique_ptr<Authenticator> authenticator_;
+    std::unique_ptr<IAuthenticator> authenticator_;
     std::unique_ptr<PermissionChecker> permission_checker_;
     std::unique_ptr<Command> command_;
     bool clear_timestamp_;

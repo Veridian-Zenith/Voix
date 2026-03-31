@@ -8,7 +8,7 @@
 
 #include "pam_utils.h"
 #include <print>
-#include <iostream>
+
 #include <termios.h>
 #include <unistd.h>
 #include <cstring>

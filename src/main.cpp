@@ -17,6 +17,7 @@
 #include <syslog.h>
 #include <cstring>
 #include <memory>
+#include <sys/capability.h>
 #include "voix.h"
 #include "config.h"
 #include "security.h"
@@ -121,15 +122,17 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Check if running as root (setuid requirement)
     // For development/testing, allow running as non-root with warning
-    if (geteuid() != 0) {
+    /*if (geteuid() != 0) {
         std::println(stderr, "Warning: Not running as root. Privilege escalation may not work.\n"
                              "For proper operation, voix should be installed setuid root.");
         // Continue execution for testing purposes
-    }
+    }*/
+
+    Voix::Security security;
 
     try {
+        security.raiseCapabilities();
         // Initialize Voix with enhanced configuration
         Voix::Voix voix(config_path, nflag, Lflag);
 
@@ -143,10 +146,12 @@ int main(int argc, char* argv[]) {
         syslog(LOG_AUTHPRIV | LOG_INFO, "Command executed: %s as %s",
               command.c_str(), target_user.c_str());
 
+        security.dropCapabilities();
         return result;
     } catch (const std::exception& e) {
         std::println(stderr, "Error: {}", e.what());
         syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: %s", e.what());
+        security.dropCapabilities();
         return 1;
     }
 }

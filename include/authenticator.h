@@ -21,14 +21,22 @@ namespace Voix {
 class Security;
 class Rule;
 
-class Authenticator {
+class IAuthenticator {
 public:
-    Authenticator(std::shared_ptr<Security> security, bool non_interactive);
-    ~Authenticator();
+    virtual ~IAuthenticator() = default;
+    virtual bool authenticate(const std::optional<Rule>& rule) = 0;
+    virtual bool openSession() = 0;
+    virtual void closeSession() = 0;
+};
 
-    bool authenticate(const std::optional<Rule>& rule);
-    bool openSession();
-    void closeSession();
+class PamAuthenticator : public IAuthenticator {
+public:
+    PamAuthenticator(std::shared_ptr<Security> security, bool non_interactive);
+    ~PamAuthenticator() override;
+
+    bool authenticate(const std::optional<Rule>& rule) override;
+    bool openSession() override;
+    void closeSession() override;
 
 private:
     std::shared_ptr<Security> security_;
