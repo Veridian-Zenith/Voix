@@ -12,6 +12,9 @@
 #include <string>
 #include <string_view>
 
+#define LOG_ERROR(msg) Voix::Logger().log("ERROR", msg)
+#define LOG_WARN(msg) Voix::Logger().log("WARN", msg)
+
 namespace Voix {
 
 class Logger {

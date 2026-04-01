@@ -1,8 +1,8 @@
-# Whisper of a Breach (Security Policy)
+# Security Policy
 
 ## Supported Versions
 
-The Elders currently only sustain and support the following versions of the artifact. Ensure you are using a supported version before uttering a whisper.
+The following table shows the versions of Voix that are currently supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -11,14 +11,16 @@ The Elders currently only sustain and support the following versions of the arti
 
 ## Reporting a Vulnerability
 
-If you uncover a flaw in the Runes that could compromise the integrity of the realms (a privilege escalation bypass, memory corruption, or logic flaw), **do not shout it in the public square.** 
+If you discover a security vulnerability, please report it to us as soon as possible. **Please do not report security vulnerabilities through public GitHub issues.**
 
-Please send a whisper directly to the High Architect at:
+Instead, please email the details of the vulnerability to:
 **[daedaevibin@ik.me](mailto:daedaevibin@ik.me)**
 
-Provide as much detail as possible:
-- The exact incantation that triggers the breach.
-- The state of the configuration `/etc/voix.conf`.
-- Memory logs or stack traces if available.
+Please include the following information in your report:
 
-You will receive an acknowledgment of your whisper within 48 hours, and the forge will begin shaping a defense immediately.
+- A description of the vulnerability.
+- The steps to reproduce the vulnerability.
+- The version of Voix you are using.
+- Any relevant configuration files.
+
+You should receive a response within 48 hours. We appreciate your help in keeping Voix secure.

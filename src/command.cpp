@@ -7,6 +7,7 @@
  */
 
 #include "command.h"
+#include "logger.h"
 #include <csignal>
 #include <pwd.h>
 #include <grp.h>
@@ -19,7 +20,6 @@
 #include <cstdlib>
 #include <utility>
 #include <sys/resource.h>
-#include "logger.h"
 
 namespace Voix {
 
@@ -145,8 +145,8 @@ void Command::setResourceLimits() const {
     }
 
     struct rlimit mem_limit;
-    mem_limit.rlim_cur = 1024 * 1024 * 100; // 100 MB
-    mem_limit.rlim_max = 1024 * 1024 * 100;
+    mem_limit.rlim_cur = 1024 * 1024 * 512; // 512 MB
+    mem_limit.rlim_max = 1024 * 1024 * 512;
     if (setrlimit(RLIMIT_AS, &mem_limit) != 0) {
         LOG_WARN("Failed to set memory limit");
     }

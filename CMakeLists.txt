@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_SHARED_LINKER_FLAGS "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 2.5.0 LANGUAGES CXX)
+project(Voix VERSION 2.5.1 LANGUAGES CXX)
 
 # ---- Standards ----
 set(CMAKE_CXX_STANDARD 26)
@@ -49,6 +49,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${LDFLAGS}" CACHE STRING "Executable linker flags" F
 set(CMAKE_SHARED_LINKER_FLAGS "${LDFLAGS}" CACHE STRING "Shared linker flags" FORCE)
 
 # ---- Options ----
+option(BUILD_TESTING "Build with testing enabled" ON)
 
 # ---- Dependencies ----
 find_package(PkgConfig REQUIRED)
@@ -82,6 +83,14 @@ target_link_libraries(voix PRIVATE
     ${PAM_LIBRARIES}
     ${LIBCAP_LIBRARIES}
 )
+
+if(BUILD_TESTING)
+    target_sources(voix PRIVATE
+        tests/test_main.cpp
+        tests/test_security.cpp
+        tests/test_file_utils.cpp
+    )
+endif()
 
 
 
@@ -150,8 +159,6 @@ target_compile_options(voix PRIVATE
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
     target_compile_options(voix PRIVATE -fcolor-diagnostics)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(voix PRIVATE -fdiagnostics-color=always)
 endif()
 
 # ---- Linker Hardening ----
@@ -162,23 +169,4 @@ target_link_options(voix PRIVATE
     -pie
 )
 
-# ---- Testing ----
-enable_testing()
 
-set(TEST_SOURCES
-    tests/main.cpp
-    tests/test_security.cpp
-    tests/test_file_utils.cpp
-    src/security.cpp
-    src/file_utils.cpp
-    src/logger.cpp
-    src/system_utils.cpp
-)
-
-add_executable(run_tests ${TEST_SOURCES})
-
-target_include_directories(run_tests PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-add_test(NAME run_tests COMMAND run_tests)

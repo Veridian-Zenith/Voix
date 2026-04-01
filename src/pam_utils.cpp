@@ -7,6 +7,8 @@
  */
 
 #include "pam_utils.h"
+#include <iostream>
+#include <string>
 #include <print>
 
 #include <termios.h>

@@ -1,26 +1,33 @@
 ---
-name: Shattered Rune (Bug Report)
-about: Report a flaw or fracture within the artifact's logic
+name: Bug Report
+about: Report a bug or unexpected behavior
 title: "[BUG] "
 labels: ''
 assignees: ''
 
 ---
 
-## The Flawed Rune
-<!-- Describe what is shattered. What did you attempt to invoke, and what dark magic occurred instead? -->
+### Description
+<!-- A clear and concise description of the bug. -->
 
-### Incantation Cast
-<!-- Provide the exact `voix` command or arguments you used. -->
+### Steps to Reproduce
 
-### The Omens (Expected Behavior)
-<!-- What did you foresee happening before the bug occurred? -->
+1.
+2.
+3.
+
+### Expected Behavior
+<!-- What you expected to happen. -->
+
+### Actual Behavior
+<!-- What actually happened. -->
 
 ### Environment
 
-- **OS/Realm:**
+- **Voix Version:**
+- **Operating System:**
 - **LLVM Clang Version:**
 - **CMake Version:**
 
-### Screenshots / Scripts
-<!-- Any additional knowledge that helps the Elders decipher the shatter. -->
+### Additional Context
+<!-- Add any other context about the problem here. -->

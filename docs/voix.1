@@ -1,17 +1,16 @@
-.TH VOIX 1 "March 2026" "Voix 2.4.0" "User Commands"
+.TH VOIX 1 "April 2026" "Voix 2.4.0" "User Commands"
 .SH NAME
-voix \- privilege escalation tool for the Keeper of Realms
+voix \- a modern, secure privilege escalation tool
 .SH SYNOPSIS
 .B voix
 [\fIOPTIONS\fR]
-[\fIINCANTATION\fR [\fIARGS\fR...]]
+[\fICOMMAND\fR [\fIARGS\fR...]]
 .SH DESCRIPTION
-Voix is a modern, secure, and easy-to-use privilege escalation tool.
-It provides a flexible rule-based system for granting permissions (Ordinations) and uses PAM for authentication.
+Voix is a secure, modern, and easy-to-use privilege escalation tool for Unix-like operating systems. It is designed to be a secure replacement for \fBsudo\fR and is inspired by \fBOpenDoas\fR. Voix uses Pluggable Authentication Modules (PAM) for authentication and has a simple, easy-to-understand configuration file.
 .SH OPTIONS
 .TP
 .B \-u, \-\-user \fIUSER\fR
-Execute incantation as the specified user (default: root).
+Execute command as the specified user (default: root).
 .TP
 .B \-C, \-\-clear
 Clear any persisted authentications for the current user.
@@ -23,39 +22,56 @@ The Voix configuration file, located at \fI/etc/voix.conf\fR, defines the rules 
 .PP
 The syntax is as follows:
 .PP
-.B [ordain|shun] [trust] <ident> [mask <target>] [rite <command> [args ...]]
+.B [permit|deny] [persist] <identity> [as <target>] [cmd <command> [args ...]]
 .PP
 .TP
-.B ordain
-Allow the user can execute a command.
+.B permit
+Allow the user to execute a command.
 .TP
-.B shun
+.B deny
 Prevent the user from executing any command.
 .TP
-.B trust
+.B persist
 The user will not be prompted for a password.
 .TP
-.B mask
+.B as
 The user to execute the command as (defaults to root).
 .TP
-.B rite
+.B cmd
 The command to be executed. If no command is specified, any command is allowed.
 .SH AUTHENTICATION
 Voix uses the Pluggable Authentication Modules (PAM) framework for authentication.
 The service name is \fBvoix\fR, and its configuration can be found in \fI/etc/pam.d/voix\fR.
+.PP
+A typical configuration is as follows:
+.IP
+.nf
+#%PAM-1.0
+auth       include      system-auth
+account    include      system-auth
+password   include      system-auth
+session    include      system-auth
+.fi
 .SH EXAMPLES
 Execute \fBwhoami\fR as root:
 .IP
 voix whoami
 .PP
-Execute \fBwhoami\fR as a mask user:
+Execute \fBwhoami\fR as a specific user:
 .IP
 voix -u user whoami
 .PP
-Start a shell as root:
+Restart a service:
 .IP
-voix -s
-.SH ARCHITECT
+voix /usr/bin/systemctl restart nginx.service
+.PP
+Allow a user to run a specific command without a password:
+.IP
+.nf
+# /etc/voix.conf
+permit persist :wheel
+.fi
+.SH AUTHOR
 Veridian-Zenith 2026 (Dae Euhwa - daedaevibin@ik.me)
 .SH SEE ALSO
 .BR sudo (8),

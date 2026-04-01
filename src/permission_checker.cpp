@@ -69,7 +69,7 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
       }
       // Otherwise try numeric UID match if it's a number
       char* endptr;
-      uid_t rule_uid = static_cast<uid_t>(strtol(rule.ident.c_str(), &endptr, 10));
+      uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
       if (*endptr == '\0') {
           if (rule_uid != uid) {
               return false;
@@ -86,7 +86,7 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
       }
   } else if (!rule.target.empty()) {
       char* endptr;
-      uid_t rule_uid = static_cast<uid_t>(strtol(rule.target.c_str(), &endptr, 10));
+      uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.target).c_str(), &endptr, 10));
       if (*endptr == '\0') {
           if (rule_uid != target_uid) {
               return false;

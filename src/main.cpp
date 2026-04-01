@@ -22,6 +22,10 @@
 #include "config.h"
 #include "security.h"
 
+#if BUILD_TESTING
+#include "tests/test_main.h"
+#endif
+
 void printUsage() {
     std::print("Usage: voix [options] <incantation> [args...]\n\n"
                "Options:\n"
@@ -57,6 +61,15 @@ int main(int argc, char* argv[]) {
     bool nflag = false;
     bool sflag = false;
     bool Lflag = false;
+
+    if (argc > 1 && strcmp(argv[1], "--run-tests") == 0) {
+#if BUILD_TESTING
+        return run_tests(argc, argv);
+#else
+        std::println(stderr, "Tests are not enabled in this build.");
+        return 1;
+#endif
+    }
 
     int ch;
     while ((ch = getopt(argc, argv, "+C:Lnsu:vh")) != -1) {
