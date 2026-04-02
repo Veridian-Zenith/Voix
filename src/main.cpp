@@ -48,11 +48,12 @@ void printVersion() {
                "Licensed under the Open Software License v3\n");
 }
 
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        printUsage();
-        return 1;
-    }
+int main(int argc, char* argv[]) noexcept {
+    try {
+        if (argc < 2) {
+            printUsage();
+            return 1;
+        }
 
     // Parse command line arguments (enhanced with OpenDoas options)
     std::string target_user = "root";
@@ -165,6 +166,10 @@ int main(int argc, char* argv[]) {
         std::println(stderr, "Error: {}", e.what());
         syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: %s", e.what());
         security.dropCapabilities();
+        return 1;
+    } catch (...) {
+        std::println(stderr, "Error: Unknown exception occurred");
+        syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: Unknown exception");
         return 1;
     }
 }

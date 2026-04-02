@@ -18,10 +18,13 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # ---- Compiler Flags ----
-set(COMMON_FLAGS "-march=native -O3 -pipe -fno-plt -Wno-unused-variable -Wno-unused-parameter")
+set(COMMON_FLAGS "-march=native -O3 -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter")
 set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
 
 set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS} -fexperimental-library" CACHE STRING "" FORCE)
+
+# ---- Linker Flags ----
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -pie -flto=thin")
 
 # ---- Dependencies ----
 find_package(PkgConfig REQUIRED)
@@ -56,5 +59,5 @@ install(FILES config/voix.conf DESTINATION /etc RENAME voix.conf PERMISSIONS OWN
 install(FILES pam.d/voix DESTINATION /etc/pam.d PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
 install(FILES docs/voix.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-target_compile_options(voix PRIVATE -Wall -Wextra -fstack-protector-strong -fPIE)
-target_link_options(voix PRIVATE -Wl,-z,relro -Wl,-z,now -pie)
+target_compile_options(voix PRIVATE -Wall -Wextra)
+target_link_options(voix PRIVATE)

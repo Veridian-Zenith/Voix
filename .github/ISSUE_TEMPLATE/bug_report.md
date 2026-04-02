@@ -24,10 +24,11 @@ assignees: ''
 
 ### Environment
 
-- **Voix Version:**
-- **Operating System:**
-- **LLVM Clang Version:**
+- **Voix Version (artifact version):**
+- **Operating System (plane of existence):**
+- **LLVM Clang Version (the forge):**
 - **CMake Version:**
+- **PAM version:**
 
 ### Additional Context
 <!-- Add any other context about the problem here. -->

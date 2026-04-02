@@ -102,8 +102,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 #endif
 
     if (!closed) {
-      int max_fd = sysconf(_SC_OPEN_MAX);
-      if (max_fd < 0 || max_fd > 4096) max_fd = 4096;
+      long max_fd_l = sysconf(_SC_OPEN_MAX);
+      if (max_fd_l < 0 || max_fd_l > 4096) max_fd_l = 4096;
+      int max_fd = static_cast<int>(max_fd_l);
       for (int i = 3; i < max_fd; ++i) {
         close(i);
       }

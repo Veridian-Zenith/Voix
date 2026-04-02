@@ -20,7 +20,7 @@ namespace Voix {
 class Security {
 public:
     Security();
-    ~Security();
+    ~Security() = default;
 
     /**
      * @brief Validate user exists and is safe
