@@ -16,6 +16,7 @@
 #include <fstream>
 #include <numeric>
 #include <format>
+#include <regex>
 
 namespace Voix {
 
@@ -94,6 +95,27 @@ bool Config::load(std::string_view config_path) {
                 rules_.push_back(std::move(rule));
             }
         }
+
+        if (config["security"]) {
+            if (config["security"]["blocklist"]) {
+                for (auto block_item : config["security"]["blocklist"]) {
+                    if (block_item.IsScalar()) {
+                        // Exact string match - convert to regex with anchors and escaped characters
+                        std::string exact = block_item.as<std::string>();
+                        std::string pattern = "^" + exact + "$";
+                        blocklist_.push_back(exact);
+                        compiled_blocklist_.emplace_back(pattern, std::regex::optimize | std::regex::icase);
+                    } else if (block_item.IsMap() && block_item["regex"]) {
+                        // Regex pattern list
+                        for (auto regex_item : block_item["regex"]) {
+                            std::string pattern = regex_item.as<std::string>();
+                            blocklist_.push_back(pattern);
+                            compiled_blocklist_.emplace_back(pattern, std::regex::optimize | std::regex::icase);
+                        }
+                    }
+                }
+            }
+        }
     } catch (const YAML::Exception& e) {
         logger.log("ERROR", std::format("Failed to parse YAML config: {}", e.what()));
         return false;
@@ -119,4 +141,5 @@ std::string Config::getPath() const {
 }
 
 } // namespace Voix
+
 

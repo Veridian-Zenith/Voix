@@ -16,6 +16,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <regex>
 #include <yaml-cpp/yaml.h>
 
 namespace Voix {
@@ -29,11 +30,15 @@ public:
     std::vector<Rule> getRules() const;
     std::string getSanctuary() const;
     std::string getPath() const;
+    const std::vector<std::string>& getBlocklist() const { return blocklist_; }
+    const std::vector<std::regex>& getCompiledBlocklist() const { return compiled_blocklist_; }
 
 private:
     std::string sanctuary_;
     std::vector<std::string> path_list_;
     std::vector<Rule> rules_;
+    std::vector<std::string> blocklist_;
+    std::vector<std::regex> compiled_blocklist_;
 };
 
 } // namespace Voix

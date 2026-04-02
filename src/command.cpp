@@ -61,7 +61,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Preserve whitelist environment
-    std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG"};
+    std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH", "LD_LIBRARY_PATH", "CMAKE_PREFIX_PATH", "CMAKE_INCLUDE_PATH", "CC", "CXX"};
     std::vector<std::pair<std::string, std::string>> saved_env;
     if (options.preserve_env) {
       extern char **environ;
@@ -84,12 +84,6 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     if (initgroups(pw->pw_name, pw->pw_gid) != 0) _exit(1);
     if (setgid(pw->pw_gid) != 0) _exit(1);
     if (setuid(pw->pw_uid) != 0) _exit(1);
-
-    // Change to sanctuary directory
-    if (chdir(config.getSanctuary().c_str()) != 0) {
-        LOG_ERROR("Failed to change directory to sanctuary");
-        _exit(1);
-    }
 
     // Scrub the environment
     clearenv();

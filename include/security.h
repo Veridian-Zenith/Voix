@@ -14,6 +14,7 @@
 #include <string_view>
 #include <vector>
 #include <optional>
+#include "config.h"
 
 namespace Voix {
 
@@ -55,9 +56,10 @@ public:
      * @brief Prevent unequivocally destructive commands (e.g. rm -rf /)
      * @param command Command to check
      * @param args Command arguments
+     * @param config Configuration instance for blocklist
      * @return true if catastrophic, false otherwise
      */
-    bool isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args) const;
+    bool isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const;
 
     /**
      * @brief Raise capabilities to perform privileged operations.

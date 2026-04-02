@@ -17,6 +17,8 @@
 #include <filesystem>
 #include <pwd.h>
 #include <vector>
+#include <regex>
+#include <algorithm>
 
 namespace Voix {
 
@@ -100,7 +102,33 @@ std::string Security::getCurrentUser() const {
     return "unknown";
 }
 
-bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args) const {
+bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const {
+    std::string full_command = std::string(command);
+    std::string normalized_command = std::string(command);
+
+    for (const auto& arg : args) {
+        full_command += " " + arg;
+
+        // Attempt to normalize path arguments for better matching
+        try {
+            if (arg.starts_with("/") || arg.starts_with(".")) {
+                normalized_command += " " + std::filesystem::absolute(arg).string();
+            } else {
+                normalized_command += " " + arg;
+            }
+        } catch (...) {
+            normalized_command += " " + arg;
+        }
+    }
+
+    // Trim
+    auto trim = [](std::string& s) {
+        s.erase(0, s.find_first_not_of(" \t\r\n"));
+        s.erase(s.find_last_not_of(" \t\r\n") + 1);
+    };
+    trim(full_command);
+    trim(normalized_command);
+
     if (command == "rm" || command == "/bin/rm" || command == "/usr/bin/rm") {
         bool recursive = false;
         bool force = false;
@@ -114,6 +142,13 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
         }
 
         if (recursive && force && target_root) {
+            return true;
+        }
+    }
+
+    // Regex check
+    for (const auto& regex : config.getCompiledBlocklist()) {
+        if (std::regex_search(full_command, regex) || std::regex_search(normalized_command, regex)) {
             return true;
         }
     }
