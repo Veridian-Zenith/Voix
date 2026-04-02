@@ -126,7 +126,7 @@ void Security::raiseCapabilities() {
 
     if (cap_set_proc(caps) == -1) {
         cap_free(caps);
-        throw std::runtime_error("cap_set_proc failed to set new caps");
+        throw std::runtime_error("Insufficient privileges. Voix must be installed setuid root or have proper file capabilities.");
     }
     cap_free(caps);
 }

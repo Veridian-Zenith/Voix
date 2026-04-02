@@ -192,7 +192,7 @@ void Config::parseConfigLine(std::string_view line) {
             break;
         } else {
             rule.ident = token;
-            if (rule.ident.starts_with("%")) {
+            if (rule.ident.starts_with("%") || rule.ident.starts_with(":")) {
                 rule.ident_gid = SystemUtils::getGidByName(rule.ident.substr(1));
             } else {
                 rule.ident_uid = SystemUtils::getUidByName(rule.ident);

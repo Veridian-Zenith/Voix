@@ -101,6 +101,8 @@ bool PamAuthenticator::openSession() {
             return false;
         }
         return true;
+    } else {
+        std::println(stderr, "Failed to set PAM credentials: {}", pam_strerror(pamh_, result));
     }
     return false;
 }

@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <print>
 #include <vector>
 #include <format>
 #include "pam_utils.h"
@@ -86,6 +87,7 @@ int Voix::execute(std::string_view command,
   auto rule = permission_checker_->permit(command_str, args, target_uid);
 
   if (!rule) {
+    std::println(stderr, "voix: command not permitted");
     security_->logEvent(std::format("Command not permitted: {}", command_str), current_user);
     syslog(LOG_AUTHPRIV | LOG_NOTICE, "Command not permitted: %s as %s",
            command_str.c_str(), user_str.c_str());

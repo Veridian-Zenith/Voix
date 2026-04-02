@@ -57,7 +57,7 @@ The Elders command strict adherence to modern crafting:
 
 To begin your journey with Voix, you must first configure the PAM pact. Create a new scroll at `/etc/pam.d/voix` and inscribe the following:
 
-```
+```txt
 #%PAM-1.0
 auth       include      system-auth
 account    include      system-auth

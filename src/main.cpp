@@ -42,7 +42,7 @@ void printUsage() {
 }
 
 void printVersion() {
-    std::print("Voix version 2.4.0 - The Keeper of Realms\n"
+    std::print("Voix version 2.6.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");

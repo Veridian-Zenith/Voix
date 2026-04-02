@@ -7,7 +7,7 @@ set(ENV{LDFLAGS} "")
 set(CMAKE_C_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 2.5.1 LANGUAGES CXX)
+project(Voix VERSION 2.6.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,22 +42,18 @@ endif()
 # ---- Installation ----
 include(GNUInstallDirs)
 
-install(TARGETS voix DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+option(SET_PERMISSIONS "Set permissions and capabilities during install" ON)
 
-# Non-fatal capability setting for local builds
-install(CODE "
-    execute_process(
-        COMMAND setcap cap_audit_write,cap_dac_read_search+ep \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\${CMAKE_INSTALL_BINDIR}/voix\"
-        RESULT_VARIABLE res
-    )
-    if(NOT res EQUAL 0)
-        message(STATUS \"Capability setting skipped or failed (Normal for packaging).\")
-    endif()
-")
+if(SET_PERMISSIONS)
+    install(TARGETS voix DESTINATION ${CMAKE_INSTALL_BINDIR}
+            PERMISSIONS SETUID OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+else()
+    install(TARGETS voix DESTINATION ${CMAKE_INSTALL_BINDIR}
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endif()
 
-install(FILES config/voix.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR} RENAME voix.conf PERMISSIONS OWNER_READ OWNER_WRITE)
-install(FILES pam.d/voix DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+install(FILES config/voix.conf DESTINATION /etc RENAME voix.conf PERMISSIONS OWNER_READ OWNER_WRITE)
+install(FILES pam.d/voix DESTINATION /etc/pam.d PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
 install(FILES docs/voix.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
 target_compile_options(voix PRIVATE -Wall -Wextra -fstack-protector-strong -fPIE)

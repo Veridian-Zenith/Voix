@@ -1,6 +1,7 @@
 #include "file_utils.h"
 #include <print>
 #include <fstream>
+#undef NDEBUG
 #include <cassert>
 #include <sys/stat.h>
 #include <sys/types.h>

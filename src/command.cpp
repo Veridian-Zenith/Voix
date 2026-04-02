@@ -137,26 +137,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 }
 
 void Command::setResourceLimits() const {
-    struct rlimit cpu_limit;
-    cpu_limit.rlim_cur = 60; // 60 seconds
-    cpu_limit.rlim_max = 60;
-    if (setrlimit(RLIMIT_CPU, &cpu_limit) != 0) {
-        LOG_WARN("Failed to set CPU time limit");
-    }
-
-    struct rlimit mem_limit;
-    mem_limit.rlim_cur = 1024 * 1024 * 512; // 512 MB
-    mem_limit.rlim_max = 1024 * 1024 * 512;
-    if (setrlimit(RLIMIT_AS, &mem_limit) != 0) {
-        LOG_WARN("Failed to set memory limit");
-    }
-
-    struct rlimit nofile_limit;
-    nofile_limit.rlim_cur = 256;
-    nofile_limit.rlim_max = 256;
-    if (setrlimit(RLIMIT_NOFILE, &nofile_limit) != 0) {
-        LOG_WARN("Failed to set file descriptor limit");
-    }
+    // Limits removed to allow large operations like pacman -Syu to complete successfully
 }
 
 std::string Command::buildCommandString(std::string_view command,
