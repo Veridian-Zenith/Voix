@@ -40,14 +40,21 @@ clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' 
 clang-tidy -p build src/*.cpp include/*.h -- -Iinclude -std=c++26 2>&1 | tee tidy.log
 ```
 
-**Fish Ritual:**
+**Fish Ritual (Manual):**
 
 ```fish
-# In fish, 2>&1 works as well in modern versions
+# In fish, specifying checks and build path before compiler arguments
 clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' \
            -p build \
            src/*.cpp include/*.h \
            -- -Iinclude -std=c++26 2>&1 | tee tidy.log
+```
+
+**Fish Ritual (Using config):**
+
+```fish
+# Automated ritual using the provided .clang-tidy configuration
+clang-tidy -p build src/*.cpp include/*.h -- -Iinclude -std=c++26 2>&1 | tee tidy.log
 ```
 
 *Note: The `--` separates file list and `clang-tidy` options from compiler arguments like `-Iinclude` and `-std=c++26`. If you place `clang-tidy` options like `--checks` after the `--`, they will be passed to the compiler and ignored by `clang-tidy`, often resulting in an "Error: no checks enabled" message.*
