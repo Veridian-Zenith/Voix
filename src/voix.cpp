@@ -52,6 +52,7 @@ Voix::~Voix() = default;
 
 int Voix::execute(std::string_view command,
                   const std::vector<std::string> &args,
+                  const CommandOptions& options,
                   std::string_view user) {
 
   std::string current_user = security_->getCurrentUser();
@@ -103,7 +104,7 @@ int Voix::execute(std::string_view command,
   }
 
   if (authenticator_->openSession()) {
-    int res = command_->execute(command_str, args, *config_, user_str);
+    int res = command_->execute(command_str, args, *config_, options, user_str);
     authenticator_->closeSession();
     return res;
   }

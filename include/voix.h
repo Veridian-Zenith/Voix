@@ -15,12 +15,12 @@
 #include <vector>
 #include <optional>
 #include <memory>
+#include "command.h"
 
 namespace Voix {
 
 class Config;
 class Security;
-class Command;
 class IAuthenticator;
 class PermissionChecker;
 
@@ -31,7 +31,8 @@ public:
     ~Voix();
 
     int execute(std::string_view command,
-                const std::vector<std::string>& args = {},
+                const std::vector<std::string>& args,
+                const CommandOptions& options,
                 std::string_view user = "root");
 
 private:

@@ -18,6 +18,7 @@
 #include <cstring>
 #include <memory>
 #include <sys/capability.h>
+#include <getopt.h>
 #include "voix.h"
 #include "config.h"
 #include "security.h"
@@ -42,7 +43,7 @@ void printUsage() {
 }
 
 void printVersion() {
-    std::print("Voix version 2.7.1 - The Keeper of Realms\n"
+    std::print("Voix version 2.8.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -61,7 +62,7 @@ int main(int argc, char* argv[]) noexcept {
         std::vector<std::string> command_args;
         bool nflag = false;
         bool sflag = false;
-        bool lflag = false;
+        Voix::CommandOptions options;
 
         if (argc > 1 && strcmp(argv[1], "--run-tests") == 0) {
 #if BUILD_TESTING
@@ -73,13 +74,28 @@ int main(int argc, char* argv[]) noexcept {
         }
 
         int ch;
-        while ((ch = getopt(argc, argv, "+C:Lnsu:vh")) != -1) {
+        static struct option long_options[] = {
+            {"login", no_argument, nullptr, 'i'},
+            {"preserve-env", no_argument, nullptr, 'E'},
+            {"list", no_argument, nullptr, 'l'},
+            {"help", no_argument, nullptr, 'h'},
+            {"version", no_argument, nullptr, 'v'},
+            {nullptr, 0, nullptr, 0}
+        };
+
+        while ((ch = getopt_long(argc, argv, "+C:Eilnsu:vh", long_options, nullptr)) != -1) {
             switch (ch) {
                 case 'C':
                     config_path = optarg;
                     break;
-                case 'L':
-                    lflag = true;
+                case 'E':
+                    options.preserve_env = true;
+                    break;
+                case 'i':
+                    options.login_shell = true;
+                    break;
+                case 'l':
+                    options.list_commands = true;
                     break;
                 case 'u':
                     target_user = optarg;
@@ -126,7 +142,7 @@ int main(int argc, char* argv[]) noexcept {
             }
             command_args.push_back(shell);
             free(shell);
-        } else if (argc < 1) {
+        } else if (argc < 1 && !options.list_commands) {
             std::println(stderr, "Error: No command specified");
             printUsage();
             return 1;
@@ -141,17 +157,27 @@ int main(int argc, char* argv[]) noexcept {
         try {
             security.raiseCapabilities();
             // Initialize Voix with enhanced configuration
-            Voix::Voix voix(config_path, nflag, lflag);
+            Voix::Voix voix(config_path, nflag, options.list_commands);
 
-            std::string command = command_args[0];
-            std::vector<std::string> args(command_args.begin() + 1, command_args.end());
+            std::string command = "";
+            std::vector<std::string> args;
+            if (!command_args.empty()) {
+              command = command_args[0];
+              args = std::vector<std::string>(command_args.begin() + 1, command_args.end());
+            }
 
             // Execute command with enhanced security
-            int result = voix.execute(command, args, target_user);
+            int result = 0;
+            if (options.list_commands) {
+                // TODO: Implement list_commands logic here
+                std::println("List commands not yet implemented.");
+            } else {
+                result = voix.execute(command, args, options, target_user);
 
-            // Log successful execution
-            syslog(LOG_AUTHPRIV | LOG_INFO, "Command executed: %s as %s",
-                  command.c_str(), target_user.c_str());
+                // Log successful execution
+                syslog(LOG_AUTHPRIV | LOG_INFO, "Command executed: %s as %s",
+                      command.c_str(), target_user.c_str());
+            }
 
             security.dropCapabilities();
             return result;

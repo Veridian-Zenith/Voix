@@ -24,7 +24,7 @@
 namespace Voix {
 
 int Command::execute(std::string_view command, const std::vector<std::string>& args,
-                      const Config& config, std::string_view user) const {
+                      const Config& config, const CommandOptions& options, std::string_view user) const {
   sigset_t new_mask, old_mask;
   sigfillset(&new_mask);
   if (pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask) != 0) {
@@ -63,9 +63,20 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     // Preserve whitelist environment
     std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG"};
     std::vector<std::pair<std::string, std::string>> saved_env;
-    for (const auto& var : whitelist) {
-      if (const char* val = getenv(var.c_str())) {
-        saved_env.push_back({var, val});
+    if (options.preserve_env) {
+      extern char **environ;
+      for (char **env = ::environ; *env != nullptr; ++env) {
+        std::string entry(*env);
+        size_t pos = entry.find('=');
+        if (pos != std::string::npos) {
+          saved_env.push_back({entry.substr(0, pos), entry.substr(pos + 1)});
+        }
+      }
+    } else {
+      for (const auto& var : whitelist) {
+        if (const char* val = getenv(var.c_str())) {
+          saved_env.push_back({var, val});
+        }
       }
     }
 
@@ -91,6 +102,11 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     setenv("USER", pw->pw_name, 1);
     setenv("LOGNAME", pw->pw_name, 1);
     setenv("HOME", pw->pw_dir, 1);
+
+    // Set shell
+    if (options.login_shell) {
+      setenv("SHELL", pw->pw_shell, 1);
+    }
 
     // Prevent FD leakage
     setResourceLimits();
@@ -118,7 +134,20 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
-    execvp(cmd_str.c_str(), const_cast<char *const *>(argv.data()));
+    if (options.login_shell) {
+      // Execute command in a login shell
+      std::string login_shell_cmd = "-l";
+      std::string c_arg = "-c";
+      std::string full_cmd = cmd_str;
+      for (const auto &arg : args) {
+        full_cmd += " " + arg;
+      }
+
+      const char *args_exec[] = {pw->pw_shell, login_shell_cmd.c_str(), c_arg.c_str(), full_cmd.c_str(), nullptr};
+      execvp(pw->pw_shell, const_cast<char *const *>(args_exec));
+    } else {
+      execvp(cmd_str.c_str(), const_cast<char *const *>(argv.data()));
+    }
     _exit(127);
   } else {
     // Parent process

@@ -16,6 +16,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <yaml-cpp/yaml.h>
 
 namespace Voix {
 
@@ -31,11 +32,8 @@ public:
 
 private:
     std::string sanctuary_;
-    std::string path_;
-    std::string file_content_;
-    std::vector<std::string> processed_tokens_;
+    std::vector<std::string> path_list_;
     std::vector<Rule> rules_;
-    void parseConfigLine(std::string_view line);
 };
 
 } // namespace Voix

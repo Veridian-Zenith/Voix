@@ -16,6 +16,12 @@
 
 namespace Voix {
 
+struct CommandOptions {
+    bool preserve_env = false;
+    bool login_shell = false;
+    bool list_commands = false;
+};
+
 class Command {
 public:
     Command() = default;
@@ -24,6 +30,7 @@ public:
     int execute(std::string_view command,
                 const std::vector<std::string>& args,
                 const Config& config,
+                const CommandOptions& options,
                 std::string_view user = "root") const;
 
     std::string buildCommandString(std::string_view command,
