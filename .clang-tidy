@@ -1,4 +1,5 @@
 ---
+ExtraArgs: ['-std=c++26']
 Checks:          '-*,bugprone-*,performance-*,readability-identifier-naming,-bugprone-exception-escape'
 WarningsAsErrors: ''
 HeaderFilterRegex: 'include/.*'
