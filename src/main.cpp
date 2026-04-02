@@ -42,7 +42,7 @@ void printUsage() {
 }
 
 void printVersion() {
-    std::print("Voix version 2.7.0 - The Keeper of Realms\n"
+    std::print("Voix version 2.7.1 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) noexcept {
         std::vector<std::string> command_args;
         bool nflag = false;
         bool sflag = false;
-        bool Lflag = false;
+        bool lflag = false;
 
         if (argc > 1 && strcmp(argv[1], "--run-tests") == 0) {
 #if BUILD_TESTING
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) noexcept {
                     config_path = optarg;
                     break;
                 case 'L':
-                    Lflag = true;
+                    lflag = true;
                     break;
                 case 'u':
                     target_user = optarg;
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) noexcept {
         try {
             security.raiseCapabilities();
             // Initialize Voix with enhanced configuration
-            Voix::Voix voix(config_path, nflag, Lflag);
+            Voix::Voix voix(config_path, nflag, lflag);
 
             std::string command = command_args[0];
             std::vector<std::string> args(command_args.begin() + 1, command_args.end());

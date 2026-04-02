@@ -37,7 +37,7 @@ private:
     std::shared_ptr<Config> config_;
 
     bool matchRule(const Rule& rule, uid_t uid, gid_t* groups, int ngroups,
-                   uid_t target_uid, std::string_view command,
+                   std::string_view command, uid_t target_uid,
                    const std::vector<std::string>& args) const;
 };
 

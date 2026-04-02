@@ -44,7 +44,7 @@ bool PermissionChecker::isAllowed() const {
   return false;
 }
 bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, int ngroups,
-                                    uid_t target_uid, std::string_view command,
+                                    std::string_view command, uid_t target_uid,
                                     const std::vector<std::string> &args) const {
   if (rule.ident_uid.has_value()) {
       if (rule.ident_uid.value() != uid) {
@@ -137,7 +137,7 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
   auto rules = config_->getRules();
 
   for (const auto &rule : rules) {
-    if (matchRule(rule, uid, groups, ngroups, target_uid, command, args)) {
+    if (matchRule(rule, uid, groups, ngroups, command, target_uid, args)) {
       if (rule.action == Rule::PERMIT) {
         return rule;
       } else {

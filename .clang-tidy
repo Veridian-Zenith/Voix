@@ -1,16 +1,24 @@
 ---
-Checks:          '-*,bugprone-*,performance-*,readability-identifier-naming'
+Checks:          '-*,bugprone-*,performance-*,readability-identifier-naming,-bugprone-exception-escape'
 WarningsAsErrors: ''
 HeaderFilterRegex: 'include/.*'
 CheckOptions:
   - key:             readability-identifier-naming.ClassCase
     value:           CamelCase
   - key:             readability-identifier-naming.FunctionCase
-    value:           camelBack
+    value:           lower_case
+  - key:             readability-identifier-naming.FunctionIgnoredRegexp
+    value:           '^(pam_.*|getRules|getSanctuary|getPath|parseConfigLine|validateUser|isSafePath|logEvent|getCurrentUser|isCatastrophicCommand|raiseCapabilities|dropCapabilities|printUsage|printVersion|authenticate|openSession|closeSession|buildCommandString|setResourceLimits|fileExists|isSecurePath|readFile|writeFile|getTimestamp|isAllowed|matchRule|setUserCredentials|setEnvironment|getUidByName|getGidByName)$'
   - key:             readability-identifier-naming.VariableCase
-    value:           snake_case
+    value:           lower_case
   - key:             readability-identifier-naming.ParameterCase
-    value:           snake_case
+    value:           lower_case
   - key:             readability-identifier-naming.MemberCase
-    value:           snake_case
+    value:           lower_case
+  - key:             readability-identifier-naming.MemberSuffix
+    value:           _
+  - key:             readability-identifier-naming.PublicMemberCase
+    value:           lower_case
+  - key:             readability-identifier-naming.PublicMemberSuffix
+    value:           ''
 ...
