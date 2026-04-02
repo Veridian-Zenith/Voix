@@ -152,7 +152,6 @@ install(
 target_compile_options(voix PRIVATE
     -Wall
     -Wextra
-    -Werror
     -fstack-protector-strong
     -fPIE
 )
