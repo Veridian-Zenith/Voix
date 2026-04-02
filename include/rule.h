@@ -14,6 +14,7 @@
 #include <vector>
 #include <optional>
 #include <sys/types.h>
+#include <cstdint>
 
 namespace Voix {
 

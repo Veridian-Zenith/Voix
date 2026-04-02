@@ -19,12 +19,38 @@ cmake -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -D
 
 ### 2. Cleansing the Code (Tidy)
 
-We encourage contributors to run `clang-tidy` and address any warnings:
+We encourage contributors to run `clang-tidy` and address any warnings. It is essential that the checks are specified **before** the double dash (`--`), which is used to separate `clang-tidy` options from compiler-specific arguments.
+
+A `.clang-tidy` configuration file has been provided in the root directory to standardize our rituals.
+
+**Bash Ritual (Manual):**
 
 ```bash
-# Example command (adjust paths as needed)
-clang-tidy src/*.cpp include/*.h -- -Iinclude -std=c++26
+# Correct syntax: Specify checks and build path before the compiler arguments
+clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' \
+           -p build \
+           src/*.cpp include/*.h \
+           -- -Iinclude -std=c++26 2>&1 | tee tidy.log
 ```
+
+**Bash Ritual (Using config):**
+
+```bash
+# The configuration from .clang-tidy is used automatically
+clang-tidy -p build src/*.cpp include/*.h -- -Iinclude -std=c++26 2>&1 | tee tidy.log
+```
+
+**Fish Ritual:**
+
+```fish
+# In fish, 2>&1 works as well in modern versions
+clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' \
+           -p build \
+           src/*.cpp include/*.h \
+           -- -Iinclude -std=c++26 2>&1 | tee tidy.log
+```
+
+*Note: The `--` separates file list and `clang-tidy` options from compiler arguments like `-Iinclude` and `-std=c++26`. If you place `clang-tidy` options like `--checks` after the `--`, they will be passed to the compiler and ignored by `clang-tidy`, often resulting in an "Error: no checks enabled" message.*
 
 ### 3. Testing the Artifact
 

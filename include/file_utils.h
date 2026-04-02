@@ -14,6 +14,7 @@
 #include <expected>
 #include <filesystem>
 #include <system_error>
+#include <cstdint>
 
 namespace Voix {
 
