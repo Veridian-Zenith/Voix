@@ -1,30 +1,54 @@
 cmake_minimum_required(VERSION 3.18)
 
 # ---- Ignore External Flags ----
+# Ensuring build consistency by ignoring environment-inherited flags
 set(ENV{CFLAGS} "")
 set(ENV{CXXFLAGS} "")
 set(ENV{LDFLAGS} "")
 set(CMAKE_C_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 3.0.1 LANGUAGES CXX)
+project(Voix VERSION 3.1.0 LANGUAGES CXX)
 
+# ---- Cache Acceleration ----
+# Explicitly use ccache as the compiler launcher for speed and consistency
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "ccache found: ${CCACHE_PROGRAM}")
+    set(CMAKE_C_COMPILER_LAUNCHER   "${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+else()
+    message(WARNING "ccache not found. Proceeding with raw compilation.")
+endif()
+
+# ---- Project Standards ----
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ---- Toolchain Validation ----
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  message(FATAL_ERROR "Clang required. Found: ${CMAKE_CXX_COMPILER_ID}")
+    message(FATAL_ERROR "Clang required. Found: ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
-# ---- Compiler Flags ----
-set(COMMON_FLAGS "-march=native -O3 -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter")
+# ---- Compiler & Feature Flags ----
+# Optimized for Intel 12th Gen (march=native) and C++26 experimental features
+# Using LLVM toolchain (Clang + LLD + Oz optimization)
+set(COMMON_FLAGS "-march=native -Oz -pipe -fno-plt -fstack-protector-strong \
+-fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
+-Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26")
+
 set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
 
-set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS} -fexperimental-library" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}" CACHE STRING "" FORCE)
 
 # ---- Linker Flags ----
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -pie -flto=thin")
+# Utilizing LLD, ThinLTO caching, and Identical Code Folding (ICF)
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl,-O2 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
+-Wl,-z,noexecstack -Wl,--icf=all -Wl,--thinlto-cache-dir=${CMAKE_BINARY_DIR}/thinlto_cache \
+-pie -flto=thin" CACHE STRING "" FORCE)
 
 # ---- Dependencies ----
 find_package(PkgConfig REQUIRED)
@@ -32,14 +56,25 @@ pkg_check_modules(PAM REQUIRED pam)
 pkg_check_modules(LIBCAP REQUIRED libcap)
 find_package(yaml-cpp REQUIRED)
 
-# ---- Target ----
+# ---- Source & Executable ----
 file(GLOB_RECURSE VOIX_SOURCES src/*.cpp)
 add_executable(voix ${VOIX_SOURCES})
 
-target_include_directories(voix PRIVATE include ${PAM_INCLUDE_DIRS} ${LIBCAP_INCLUDE_DIRS})
-target_link_libraries(voix PRIVATE ${PAM_LIBRARIES} ${LIBCAP_LIBRARIES} yaml-cpp)
+target_include_directories(voix PRIVATE
+    include
+    ${PAM_INCLUDE_DIRS}
+    ${LIBCAP_INCLUDE_DIRS}
+)
 
-# Define BUILD_TESTING option
+target_link_libraries(voix PRIVATE
+    ${PAM_LIBRARIES}
+    ${LIBCAP_LIBRARIES}
+    yaml-cpp::yaml-cpp
+)
+
+target_compile_options(voix PRIVATE -Wall -Wextra)
+
+# ---- Testing Logic ----
 if(NOT DEFINED BUILD_TESTING)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(BUILD_TESTING ON CACHE BOOL "Build tests" FORCE)
@@ -65,9 +100,12 @@ else()
             PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 endif()
 
-install(FILES config/voix.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR} RENAME voix.conf PERMISSIONS OWNER_READ OWNER_WRITE)
-install(FILES pam.d/voix DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+install(FILES config/voix.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
+        RENAME voix.conf
+        PERMISSIONS OWNER_READ OWNER_WRITE)
+
+install(FILES pam.d/voix DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+
 install(FILES docs/voix.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-target_compile_options(voix PRIVATE -Wall -Wextra)
-target_link_options(voix PRIVATE)
