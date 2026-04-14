@@ -135,7 +135,7 @@ std::string Config::getSanctuary() const {
 std::string Config::getPath() const {
     if (path_list_.empty()) return "";
     return std::accumulate(std::next(path_list_.begin()), path_list_.end(), path_list_[0],
-                           [](std::string a, std::string b) {
+                           [](const std::string& a, const std::string& b) {
                                return a + ":" + b;
                            });
 }

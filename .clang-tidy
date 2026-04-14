@@ -1,5 +1,5 @@
 ---
-ExtraArgs: ['-std=c++26']
+ExtraArgs: ['-std=c++26', '-x', 'c++']
 Checks:          '-*,bugprone-*,performance-*,readability-identifier-naming,-bugprone-exception-escape'
 WarningsAsErrors: ''
 HeaderFilterRegex: 'include/.*'

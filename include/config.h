@@ -30,8 +30,8 @@ public:
     std::vector<Rule> getRules() const;
     std::string getSanctuary() const;
     std::string getPath() const;
-    const std::vector<std::string>& getBlocklist() const { return blocklist_; }
-    const std::vector<std::regex>& getCompiledBlocklist() const { return compiled_blocklist_; }
+    const std::vector<std::string>& get_blocklist() const { return blocklist_; }
+    const std::vector<std::regex>& get_compiled_blocklist() const { return compiled_blocklist_; }
 
 private:
     std::string sanctuary_;

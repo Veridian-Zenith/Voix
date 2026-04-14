@@ -147,7 +147,7 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
     }
 
     // Regex check
-    for (const auto& regex : config.getCompiledBlocklist()) {
+    for (const auto& regex : config.get_compiled_blocklist()) {
         if (std::regex_search(full_command, regex) || std::regex_search(normalized_command, regex)) {
             return true;
         }

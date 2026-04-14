@@ -37,7 +37,7 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 ## The High Rituals (Priority)
 
 - [x] **Strengthen the Runes (Clang-Tidy):** Systematically cleanse the codebase of remaining `bugprone` and `performance` spirits identified by `clang-tidy`. Bind the code tighter to the LLVM standard.
-- [ ] **Contributor's Path (Tidy & Clean):** (Open Task) Contributors are encouraged to run `clang-tidy` on their contributions and the existing codebase to ensure maximum purity. Cleanups and corrections are always welcome.
+- [x] **Contributor's Path (Tidy & Clean):** (Open Task) Contributors are encouraged to run `clang-tidy` on their contributions and the existing codebase to ensure maximum purity. Cleanups and corrections are always welcome.
 - [x] **Sanitizer Orchestration:** Integrate Address and Undefined Behavior sanitizers into a dedicated `cmake` hardening profile for development (e.g., `-DVOIX_HARDEN=ON`).
 - [x] **Zero-Copy Lexer:** Further refine `src/config.cpp` to use extreme zero-allocation patterns with `std::string_view` across the entire rule-matching engine.
 - [ ] **Binary Hardening Audit:** Ensure all production builds utilize the full spectrum of LLVM hardening (ThinLTO, Control Flow Integrity (CFI), Shadow Call Stack).
