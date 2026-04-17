@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <format>
+#include <sstream>
 
 namespace Voix {
 
@@ -119,6 +120,21 @@ std::expected<void, FileError> FileUtils::writeFile(const fs::path& path, std::s
   }
 
   return {};
+}
+
+std::string FileUtils::resolveCommand(const std::string& command, const std::string& path_env) const {
+    if (command.empty()) return "";
+    if (command[0] == '/') return command; // Already absolute
+
+    std::stringstream ss(path_env);
+    std::string item;
+    while (std::getline(ss, item, ':')) {
+        fs::path p = fs::path(item) / command;
+        if (fileExists(p)) {
+            return p.string();
+        }
+    }
+    return "";
 }
 
 } // namespace Voix

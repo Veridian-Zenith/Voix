@@ -8,6 +8,7 @@
 
 #include "command.h"
 #include "logger.h"
+#include "file_utils.h"
 #include <csignal>
 #include <pwd.h>
 #include <grp.h>
@@ -134,17 +135,29 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     std::vector<const char *> argv;
     std::string cmd_str{command};
-    argv.push_back(cmd_str.c_str());
-    for (const auto &arg : args) {
-      argv.push_back(arg.c_str());
+
+    // Resolve non-absolute paths
+    if (!cmd_str.empty() && cmd_str[0] != '/') {
+        FileUtils fileUtils;
+        std::string resolved = fileUtils.resolveCommand(cmd_str, config.getPath());
+        if (resolved.empty()) {
+            LOG_ERROR(std::format("Command not found: {}", cmd_str));
+            _exit(127);
+        }
+        cmd_str = resolved;
     }
-    argv.push_back(nullptr);
 
     // Enforce absolute paths
     if (cmd_str.empty() || cmd_str[0] != '/') {
         LOG_ERROR(std::format("Command must be an absolute path: {}", cmd_str));
         _exit(127);
     }
+
+    argv.push_back(cmd_str.c_str());
+    for (const auto &arg : args) {
+      argv.push_back(arg.c_str());
+    }
+    argv.push_back(nullptr);
 
     if (options.login_shell) {
       // Execute command in a login shell
