@@ -2,9 +2,9 @@
 
 ## Prophecy
 
-Born from the ancient runes of OpenDoas, Voix is a secure, mystical invocation designed to govern the ascension of privileges across your systems. Through the pact of Pluggable Authentication Modules (PAM) and immutable rules, only the worthy are granted the power to traverse higher planes of execution.
+Born from the ancient runes of OpenDoas, Voix is a modern, secure invocation designed to govern the ascension of privileges across your systems. As a hardened successor to traditional tools like `sudo` and `doas`, it utilizes the pact of Pluggable Authentication Modules (PAM) and immutable rules to ensure only the worthy are granted the power to traverse higher planes of execution.
 
-"Where `sudo` scatters trust, Voix binds it."
+"Where `sudo` scatters trust, Voix binds it with modern security."
 
 ## The Arcane Arts (Features)
 

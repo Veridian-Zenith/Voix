@@ -1,6 +1,6 @@
-# Using Voix as a `sudo` Replacement
+# Using Voix as a `sudo`/`doas` Replacement
 
-This guide explains how to configure `voix` as a drop-in replacement for `sudo` to manage privilege escalation.
+This guide explains how to configure `voix` as a modern, secure, and performant drop-in replacement for traditional privilege escalation tools like `sudo` and `doas`.
 
 ## 1. Configuring Voix for Privilege Escalation
 
