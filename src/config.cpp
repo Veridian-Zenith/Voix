@@ -57,11 +57,11 @@ bool Config::load(std::string_view config_path) {
             for (auto rule_node : config["rules"]) {
                 Rule rule;
                 if (rule_node["ordain"]) {
-                    rule.action = Rule::PERMIT;
+                    rule.action = Rule::Action::PERMIT;
                 } else if (rule_node["shun"]) {
-                    rule.action = Rule::DENY;
+                    rule.action = Rule::Action::DENY;
                 } else if (rule_node["action"]) {
-                    rule.action = (rule_node["action"].as<std::string>() == "permit") ? Rule::PERMIT : Rule::DENY;
+                    rule.action = (rule_node["action"].as<std::string>() == "permit") ? Rule::Action::PERMIT : Rule::Action::DENY;
                 }
 
                 if (rule_node["identity"]) {

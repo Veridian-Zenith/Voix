@@ -5,6 +5,6 @@ void test_isSecurePath();
 
 int run_tests([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
     test_isSecurePath();
-    std::cout << "All tests passed!" << std::endl;
+    std::println("All tests passed!");
     return 0;
 }

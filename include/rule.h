@@ -20,8 +20,8 @@ namespace Voix {
 
 class Rule {
 public:
-    enum Action : uint8_t { PERMIT, DENY };
-    enum Option : uint8_t {
+    enum class Action : std::uint8_t { PERMIT, DENY };
+    enum Option : std::uint8_t {
         NOPASS = 0x1,
         KEEPENV = 0x2,
         PERSIST = 0x4,
@@ -41,7 +41,7 @@ public:
     Action action;
     int options;
 
-    Rule() : action(PERMIT), options(0) {}
+    Rule() : action(Action::PERMIT), options(0) {}
 };
 
 } // namespace Voix

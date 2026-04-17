@@ -39,7 +39,7 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 - [x] **`std::filesystem` Migration:** Replace legacy C-style file operations and manual path manipulation with `std::filesystem` for better safety and portability.
 - [x] **`std::expected` for Error Handling:** Refactor internal APIs to use `std::expected` (or a backport) to provide more descriptive error states without relying on exceptions or magic return values.
 - [x] **`std::format` Integration:** Modernize logging and string formatting to use `std::format` for type safety and performance.
-- [ ] **`std::print` Standardized Migration:** Ensure all terminal output consistently uses `std::print` and `std::println` as per C++23/26 standards.
+- [x] **`std::print` Standardized Migration:** Ensure all terminal output consistently uses `std::print` and `std::println` as per C++23/26 standards.
 - [ ] **Reflection-based Config Parsing:** (Future) Explore C++26 reflection (if available in LLVM) to further simplify and harden the configuration loading rituals.
 
 ## The High Rituals (Priority)

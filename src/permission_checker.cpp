@@ -36,7 +36,7 @@ bool PermissionChecker::isAllowed() const {
   // A user is allowed if there is at least one permit rule for them.
   auto rules = config_->getRules();
   for (const auto& rule : rules) {
-    if (rule.action == Rule::PERMIT && rule.ident == current_user) {
+    if (rule.action == Rule::Action::PERMIT && rule.ident == current_user) {
       return true;
     }
   }
@@ -138,7 +138,7 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
 
   for (const auto &rule : rules) {
     if (matchRule(rule, uid, groups, ngroups, command, target_uid, args)) {
-      if (rule.action == Rule::PERMIT) {
+      if (rule.action == Rule::Action::PERMIT) {
         return rule;
       } else {
         return std::nullopt;

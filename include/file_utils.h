@@ -20,7 +20,7 @@ namespace Voix {
 
 namespace fs = std::filesystem;
 
-enum class FileError : uint8_t {
+enum class FileError : std::uint8_t {
     NotFound,
     PermissionDenied,
     ReadError,
