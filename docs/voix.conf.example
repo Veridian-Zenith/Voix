@@ -1,30 +1,37 @@
-# Global settings
-globals:
+# Voix v4.0.0 configuration
+
+# Core system settings
+core:
   # The sacred path to the temporary directory where Voix performs its rites.
   sanctuary: /tmp
   # Trusted paths to seek out incantations (executables).
-  path:
+  paths:
     - /bin
     - /sbin
     - /usr/bin
     - /usr/sbin
 
-# Access control rules
-rules:
+# Access Control List
+acl:
   # Ordain members of the 'wheel' group to perform any rite without a token of proof.
-  - action: permit
-    identity: :wheel
-    trust: true
+  group:
+    wheel:
+      - action: permit
+        options: [trust]
 
-  # Allow 'initiate' to restart a service as 'root' without a password.
-  - action: permit
-    identity: initiate
-    mask: root
-    rite: /usr/bin/systemctl
-    args:
-      - restart
-      - nginx
+  user:
+    # Allow 'initiate' to restart a service as 'root' without a password.
+    initiate:
+      - action: permit
+        target: root
+        command: /usr/bin/systemctl
+        args: [restart, nginx]
 
-  # Shun 'exiled' users from performing any rite.
-  - action: deny
-    identity: exiled
+    # Shun 'exiled' users from performing any rite.
+    exiled:
+      - action: deny
+
+# Security Policies
+security:
+  blocklist:
+    - /bin/sh

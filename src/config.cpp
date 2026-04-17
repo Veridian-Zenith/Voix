@@ -22,6 +22,40 @@ namespace Voix {
 
 Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}) {}
 
+
+namespace {
+    Voix::Rule parseRule(const YAML::Node& rule_node) {
+        Voix::Rule rule;
+        if (rule_node["action"]) {
+            rule.action = (rule_node["action"].as<std::string>() == "permit") ? Voix::Rule::Action::PERMIT : Voix::Rule::Action::DENY;
+        }
+
+        if (rule_node["options"]) {
+            for (auto opt : rule_node["options"]) {
+                if (opt.as<std::string>() == "trust") {
+                    rule.options |= Voix::Rule::NOPASS;
+                }
+            }
+        }
+
+        if (rule_node["target"]) {
+            rule.target = rule_node["target"].as<std::string>();
+            rule.target_uid = Voix::SystemUtils::getUidByName(rule.target);
+        }
+
+        if (rule_node["command"]) {
+            rule.cmd = rule_node["command"].as<std::string>();
+        }
+
+        if (rule_node["args"]) {
+            for (auto arg : rule_node["args"]) {
+                rule.cmdargs.push_back(arg.as<std::string>());
+            }
+        }
+        return rule;
+    }
+}
+
 bool Config::load(std::string_view config_path) {
     std::string path_str{config_path};
     FileUtils file_utils;
@@ -40,59 +74,41 @@ bool Config::load(std::string_view config_path) {
     try {
         YAML::Node config = YAML::LoadFile(path_str);
 
-        if (config["globals"]) {
-            if (config["globals"]["sanctuary"]) {
-                sanctuary_ = config["globals"]["sanctuary"].as<std::string>();
+        if (config["core"]) {
+            if (config["core"]["sanctuary"]) {
+                sanctuary_ = config["core"]["sanctuary"].as<std::string>();
             }
-            if (config["globals"]["path"]) {
+            if (config["core"]["paths"]) {
                 path_list_.clear();
-                for (auto path_entry : config["globals"]["path"]) {
+                for (auto path_entry : config["core"]["paths"]) {
                     path_list_.push_back(path_entry.as<std::string>());
                 }
             }
         }
 
-        if (config["rules"]) {
+        if (config["acl"]) {
             rules_.clear();
-            for (auto rule_node : config["rules"]) {
-                Rule rule;
-                if (rule_node["ordain"]) {
-                    rule.action = Rule::Action::PERMIT;
-                } else if (rule_node["shun"]) {
-                    rule.action = Rule::Action::DENY;
-                } else if (rule_node["action"]) {
-                    rule.action = (rule_node["action"].as<std::string>() == "permit") ? Rule::Action::PERMIT : Rule::Action::DENY;
-                }
-
-                if (rule_node["identity"]) {
-                    rule.ident = rule_node["identity"].as<std::string>();
-                    if (rule.ident.starts_with("%") || rule.ident.starts_with(":")) {
-                        rule.ident_gid = SystemUtils::getGidByName(rule.ident.substr(1));
-                    } else {
-                        rule.ident_uid = SystemUtils::getUidByName(rule.ident);
+            if (config["acl"]["user"]) {
+                for (auto it = config["acl"]["user"].begin(); it != config["acl"]["user"].end(); ++it) {
+                    std::string username = it->first.as<std::string>();
+                    for (auto rule_node : it->second) {
+                        Rule rule = parseRule(rule_node);
+                        rule.ident = username;
+                        rule.ident_uid = SystemUtils::getUidByName(username);
+                        rules_.push_back(std::move(rule));
                     }
                 }
-
-                if (rule_node["trust"] && rule_node["trust"].as<bool>()) {
-                    rule.options |= Rule::NOPASS;
-                }
-
-                if (rule_node["mask"]) {
-                    rule.target = rule_node["mask"].as<std::string>();
-                    rule.target_uid = SystemUtils::getUidByName(rule.target);
-                }
-
-                if (rule_node["command"] || rule_node["rite"]) {
-                    rule.cmd = rule_node["command"] ? rule_node["command"].as<std::string>() : rule_node["rite"].as<std::string>();
-                }
-
-                if (rule_node["args"]) {
-                    for (auto arg : rule_node["args"]) {
-                        rule.cmdargs.push_back(arg.as<std::string>());
+            }
+            if (config["acl"]["group"]) {
+                for (auto it = config["acl"]["group"].begin(); it != config["acl"]["group"].end(); ++it) {
+                    std::string groupname = it->first.as<std::string>();
+                    for (auto rule_node : it->second) {
+                        Rule rule = parseRule(rule_node);
+                        rule.ident = ":" + groupname;
+                        rule.ident_gid = SystemUtils::getGidByName(groupname);
+                        rules_.push_back(std::move(rule));
                     }
                 }
-
-                rules_.push_back(std::move(rule));
             }
         }
 
@@ -100,18 +116,10 @@ bool Config::load(std::string_view config_path) {
             if (config["security"]["blocklist"]) {
                 for (auto block_item : config["security"]["blocklist"]) {
                     if (block_item.IsScalar()) {
-                        // Exact string match - convert to regex with anchors and escaped characters
                         std::string exact = block_item.as<std::string>();
                         std::string pattern = "^" + exact + "$";
                         blocklist_.push_back(exact);
                         compiled_blocklist_.emplace_back(pattern, std::regex::optimize | std::regex::icase);
-                    } else if (block_item.IsMap() && block_item["regex"]) {
-                        // Regex pattern list
-                        for (auto regex_item : block_item["regex"]) {
-                            std::string pattern = regex_item.as<std::string>();
-                            blocklist_.push_back(pattern);
-                            compiled_blocklist_.emplace_back(pattern, std::regex::optimize | std::regex::icase);
-                        }
                     }
                 }
             }
