@@ -2,6 +2,14 @@
 
 This scroll tracks upcoming rituals, bindings, and enchantments intended to perfect the Keeper of Realms.
 
+## RECENTLY DISCOVERED VULNERABILITIES
+
+- [x] **Critical: Fix Privilege Escalation via `LD_LIBRARY_PATH`** in environment whitelisting.
+- [x] **Critical: Fix Command Injection in Login Shells (`-s` / `--login`)** arguments concatenation.
+- [x] **High: Enforce absolute paths** for command resolution instead of relying on `execvp`.
+- [x] **Medium: Fix TOCTOU in Path Sanitization** by using `realpath` instead of string matching.
+- [x] **Medium: Prevent File Descriptor leaks** and reset inherited resource limits before `exec`.
+
 ## CRITICAL SECURITY FIXES
 
 - [x] **Bypass Fix (`geteuid` vs `getuid`):** Correct the logic in `Security::validateContext` to use `getuid()` instead of `geteuid()` when checking the real calling user, preventing potential bypasses when invoked via other SUID binaries.

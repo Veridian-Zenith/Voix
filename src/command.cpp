@@ -61,7 +61,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Preserve whitelist environment
-    std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH", "LD_LIBRARY_PATH", "CMAKE_PREFIX_PATH", "CMAKE_INCLUDE_PATH", "CC", "CXX"};
+    std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH", "CMAKE_PREFIX_PATH", "CMAKE_INCLUDE_PATH", "CC", "CXX"};
     std::vector<std::pair<std::string, std::string>> saved_env;
     if (options.preserve_env) {
       extern char **environ;
@@ -112,13 +112,25 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 #endif
 
     if (!closed) {
-      long max_fd_l = sysconf(_SC_OPEN_MAX);
-      if (max_fd_l < 0 || max_fd_l > 4096) max_fd_l = 4096;
-      int max_fd = static_cast<int>(max_fd_l);
+      struct rlimit rl;
+      if (getrlimit(RLIMIT_NOFILE, &rl) != 0) {
+          rl.rlim_cur = 4096; // Fallback
+      }
+      int max_fd = static_cast<int>(rl.rlim_cur);
       for (int i = 3; i < max_fd; ++i) {
         close(i);
       }
     }
+
+    auto escape = [](const std::string& s) {
+      std::string escaped = "'";
+      for (char c : s) {
+        if (c == '\'') escaped += "'\\''";
+        else escaped += c;
+      }
+      escaped += "'";
+      return escaped;
+    };
 
     std::vector<const char *> argv;
     std::string cmd_str{command};
@@ -128,19 +140,25 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
+    // Enforce absolute paths
+    if (cmd_str.empty() || cmd_str[0] != '/') {
+        LOG_ERROR("Command must be an absolute path: {}", cmd_str);
+        _exit(127);
+    }
+
     if (options.login_shell) {
       // Execute command in a login shell
       std::string login_shell_cmd = "-l";
       std::string c_arg = "-c";
-      std::string full_cmd = cmd_str;
+      std::string full_cmd = escape(cmd_str);
       for (const auto &arg : args) {
-        full_cmd += " " + arg;
+        full_cmd += " " + escape(arg);
       }
 
       const char *args_exec[] = {pw->pw_shell, login_shell_cmd.c_str(), c_arg.c_str(), full_cmd.c_str(), nullptr};
-      execvp(pw->pw_shell, const_cast<char *const *>(args_exec));
+      execv(pw->pw_shell, const_cast<char *const *>(args_exec));
     } else {
-      execvp(cmd_str.c_str(), const_cast<char *const *>(argv.data()));
+      execv(cmd_str.c_str(), const_cast<char *const *>(argv.data()));
     }
     _exit(127);
   } else {
@@ -161,7 +179,14 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 }
 
 void Command::setResourceLimits() const {
-    // Limits removed to allow large operations like pacman -Syu to complete successfully
+    struct rlimit rl;
+    // Set reasonable default limits
+    rl.rlim_cur = 1024; // Lower soft limit
+    rl.rlim_max = 4096; // Hard limit
+
+    if (setrlimit(RLIMIT_NOFILE, &rl) != 0) {
+        LOG_ERROR("Failed to set RLIMIT_NOFILE");
+    }
 }
 
 std::string Command::buildCommandString(std::string_view command,

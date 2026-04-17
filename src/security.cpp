@@ -53,29 +53,28 @@ bool Security::isSafePath(std::string_view path) const {
     // Canonicalize path to prevent traversal bypasses
     try {
         std::filesystem::path p(path);
-        if (p.is_relative()) {
-             // For simplicity in this check, we only allow absolute or simple relative
-             // Real validation happens in FileUtils
+        // Use weakly_canonical to handle paths that may not exist yet
+        std::filesystem::path canonical = std::filesystem::weakly_canonical(p);
+        std::string canonical_str = canonical.string();
+
+        // Check for path traversal attempts
+        if (canonical_str.find("..") != std::string::npos) {
+            return false;
         }
+
+        // Check for absolute paths to sensitive locations
+        static const std::vector<std::string_view> forbidden = {
+            "/etc/shadow", "/etc/sudoers", "/root", "/etc/voix.conf"
+        };
+
+        for (auto target : forbidden) {
+            if (canonical_str.find(target) != std::string::npos) return false;
+        }
+
+        return true;
     } catch (...) {
         return false;
     }
-
-    // Check for path traversal attempts
-    if (path.contains("..")) {
-        return false;
-    }
-
-    // Check for absolute paths to sensitive locations
-    static const std::vector<std::string_view> forbidden = {
-        "/etc/shadow", "/etc/sudoers", "/root", "/etc/voix.conf"
-    };
-
-    for (auto target : forbidden) {
-        if (path.contains(target)) return false;
-    }
-
-    return true;
 }
 
 void Security::logEvent(std::string_view event, std::string_view user) const {
