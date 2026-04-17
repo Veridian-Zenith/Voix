@@ -72,3 +72,27 @@ void test_isSecurePath() {
 
     std::println("test_isSecurePath passed!");
 }
+
+void test_resolveCommand() {
+    Voix::FileUtils file_utils;
+    // Assuming /bin and /usr/bin exist
+    std::string path_env = "/bin:/usr/bin";
+
+    assert(file_utils.resolveCommand("ls", path_env) == "/bin/ls");
+    assert(file_utils.resolveCommand("nonexistent", path_env) == "");
+
+    // Test relative path:
+    const char* temp_file = "temp_test_file";
+    FILE* f = fopen(temp_file, "w");
+    fprintf(f, "#!/bin/sh\nexit 0\n");
+    fclose(f);
+    chmod(temp_file, 0755);
+
+    // Resolve should work
+    std::string resolved = file_utils.resolveCommand("./temp_test_file", path_env);
+    assert(!resolved.empty() && "Failed to resolve relative path");
+
+    unlink(temp_file);
+
+    std::println("test_resolveCommand passed!");
+}

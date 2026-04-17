@@ -48,7 +48,7 @@ set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}" CACHE STRING "" FORCE)
 # ---- Linker Flags ----
 # Utilizing LLD, ThinLTO caching, and Identical Code Folding (ICF)
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
--Wl,-z,noexecstack -Wl,--icf=all -Wl,--thinlto-cache-dir=${CMAKE_BINARY_DIR}/thinlto_cache \
+-Wl,-z,noexecstack -Wl,--icf=all \
 -pie -flto=thin" CACHE STRING "" FORCE)
 
 # ---- Dependencies ----
@@ -59,20 +59,25 @@ find_package(yaml-cpp REQUIRED)
 
 # ---- Source & Executable ----
 file(GLOB_RECURSE VOIX_SOURCES src/*.cpp)
-add_executable(voix ${VOIX_SOURCES})
+list(REMOVE_ITEM VOIX_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+add_library(voix_lib STATIC ${VOIX_SOURCES})
+add_executable(voix src/main.cpp)
 
-target_include_directories(voix PRIVATE
-    include
-    ${PAM_INCLUDE_DIRS}
-    ${LIBCAP_INCLUDE_DIRS}
-)
-
-target_link_libraries(voix PRIVATE
+target_link_libraries(voix_lib PUBLIC
     ${PAM_LIBRARIES}
     ${LIBCAP_LIBRARIES}
     yaml-cpp::yaml-cpp
 )
 
+target_include_directories(voix_lib PUBLIC
+    include
+    ${PAM_INCLUDE_DIRS}
+    ${LIBCAP_INCLUDE_DIRS}
+)
+
+target_link_libraries(voix PRIVATE voix_lib)
+
+target_compile_options(voix_lib PRIVATE -Wall -Wextra)
 target_compile_options(voix PRIVATE -Wall -Wextra)
 
 # ---- Testing Logic ----

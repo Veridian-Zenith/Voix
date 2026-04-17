@@ -124,13 +124,22 @@ std::expected<void, FileError> FileUtils::writeFile(const fs::path& path, std::s
 
 std::string FileUtils::resolveCommand(const std::string& command, const std::string& path_env) const {
     if (command.empty()) return "";
-    if (command[0] == '/') return command; // Already absolute
 
+    // 1. If command contains '/', it's an explicit path.
+    if (command.find('/') != std::string::npos) {
+        fs::path p = fs::absolute(command);
+        if (access(p.c_str(), X_OK) == 0) {
+            return p.string();
+        }
+        return "";
+    }
+
+    // 2. Otherwise, look up in $PATH.
     std::stringstream ss(path_env);
     std::string item;
     while (std::getline(ss, item, ':')) {
         fs::path p = fs::path(item) / command;
-        if (fileExists(p)) {
+        if (access(p.c_str(), X_OK) == 0) {
             return p.string();
         }
     }
