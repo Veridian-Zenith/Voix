@@ -29,43 +29,42 @@ The Elders command strict adherence to modern crafting:
 
 1. **Obtain the Scrolls**:
 
-   ```bash
-   git clone https://github.com/Veridian-Zenith/Voix.git && cd Voix
-   ```
+    ```bash
+    git clone https://github.com/Veridian-Zenith/Voix.git && cd Voix
+    ```
 
-2. **Ignite the Forge**:
+2. **Forge the Release Artifact**:
 
-   ```bash
-   cmake -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
-   ```
+    ```bash
+    cmake -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
+    cmake --build build
+    ```
 
-3. **Shape the Artifact**:
+3. **Test the Artifact (Debug Builds Only)**:
 
-   ```bash
-   cmake --build build
-   ```
+    ```bash
+    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+    cmake --build build
+    cd build && ctest
+    ```
 
-4. **Commend it to the System**:
+4. **Install the Artifact**:
 
-   ```bash
-   sudo cmake --install build
-   ```
+    ```bash
+    sudo cmake --install build
+    ```
 
-   *Arch Linux users may seek the `voix` package directly from the AUR Archives.*
+    *Arch Linux users are encouraged to install via AUR using `paru` or `yay` for automatic management of permissions and capabilities:*
+
+    ```bash
+    paru -S voix
+    # OR
+    yay -S voix
+    ```
 
 ## First Invocation (Getting Started)
 
-To begin your journey with Voix, you must first configure the PAM pact. Create a new scroll at `/etc/pam.d/voix` and inscribe the following:
-
-```txt
-#%PAM-1.0
-auth       include      system-auth
-account    include      system-auth
-password   include      system-auth
-session    include      system-auth
-```
-
-With the pact sealed, you may now invoke Voix.
+With the forge and installation complete, ensure your PAM configuration at `/etc/pam.d/voix` is aligned with your security policy, and you may now invoke Voix.
 
 ## The Runes of Law (Configuration)
 
@@ -118,7 +117,7 @@ voix <incantation> [args...]
 
 **Problem:** "Permission denied"
 
-**Solution:** The runes of law are not in your favor. Consult the `/etc/voix.conf` scroll to ensure you are worthy of the incantation.
+**Solution:** The runes of law are not in your favor. Consult the `/etc/voix.conf` scroll to ensure you are worthy.
 
 ## The Architect's Code
 
@@ -126,8 +125,8 @@ Every function, every design, everything is modular, has a use, and is well put-
 
 1. Speak exclusively in C++26.
 2. Honor the Clang compiler constraints.
-3. Bind your work with `clang-tidy` to cleanse any lingering chaos (see `CONTRIBUTING.md` for the exact ritual).
+3. Bind your work with `clang-tidy` to cleanse any lingering chaos (see `[CONTRIBUTING.md](./CONTRIBUTING.md)` for the exact ritual).
 
 ## The Final Vow (License)
 
-Voix is sealed and distributed under the Open Software License v3.0 (OSL-3.0). See the `LICENSE` scroll for eternal details.
+Voix is sealed and distributed under the Open Software License v3.0 (OSL-3.0). See the `[LICENSE](./LICENSE)` scroll for eternal details.

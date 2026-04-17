@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.0.0 LANGUAGES CXX)
+project(Voix VERSION 4.1.0 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -81,6 +81,7 @@ target_compile_options(voix_lib PRIVATE -Wall -Wextra)
 target_compile_options(voix PRIVATE -Wall -Wextra)
 
 # ---- Testing Logic ----
+# Tests are managed by CTest and only built in Debug mode
 if(NOT DEFINED BUILD_TESTING)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(BUILD_TESTING ON CACHE BOOL "Build tests" FORCE)
@@ -90,6 +91,7 @@ if(NOT DEFINED BUILD_TESTING)
 endif()
 
 if(BUILD_TESTING)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 
