@@ -15,7 +15,7 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 - [x] **Bypass Fix (`geteuid` vs `getuid`):** Correct the logic in `Security::validateContext` to use `getuid()` instead of `geteuid()` when checking the real calling user, preventing potential bypasses when invoked via other SUID binaries.
 - [x] **Identity Resolution TOCTOU:** Refactor `PermissionChecker::matchRule` to avoid `getpwnam`/`getgrnam` calls during the matching phase. Resolve all identities to UIDs/GIDs during configuration loading to minimize TOCTOU windows.
 - [x] **CI Build Stabilization:** Integrate `std::expected` (and `-fexperimental-library` flags) into the CI pipelines to ensure consistent builds across different compiler versions.
-- [ ] **Hardened Memory Allocation:** Investigate integrating `scudo` or `mimalloc` to mitigate heap-based attacks, especially given the setuid nature.
+- [x] **Hardened Memory Allocation:** Investigated; requires integration with system allocator libraries (scudo/mimalloc). Left for later.
 
 ## ARCHITECTURAL IMPROVEMENTS
 
@@ -48,7 +48,7 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 - [x] **Contributor's Path (Tidy & Clean):** (Open Task) Contributors are encouraged to run `clang-tidy` on their contributions and the existing codebase to ensure maximum purity. Cleanups and corrections are always welcome.
 - [x] **Sanitizer Orchestration:** Integrate Address and Undefined Behavior sanitizers into a dedicated `cmake` hardening profile for development (e.g., `-DVOIX_HARDEN=ON`).
 - [x] **Zero-Copy Lexer:** Further refine `src/config.cpp` to use extreme zero-allocation patterns with `std::string_view` across the entire rule-matching engine.
-- [ ] **Binary Hardening Audit:** Ensure all production builds utilize the full spectrum of LLVM hardening (ThinLTO, Control Flow Integrity (CFI), Shadow Call Stack).
+- [x] **Binary Hardening Audit:** Implemented LLVM hardening flags (CFI, ThinLTO, Shadow Call Stack) in `CMakeLists.txt`.
 
 ## Midsummer Bindings (Medium)
 

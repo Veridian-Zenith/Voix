@@ -38,6 +38,7 @@ endif()
 # Using LLVM toolchain (Clang + LLD + Oz optimization)
 set(COMMON_FLAGS "-march=native -Oz -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
+-fsanitize=cfi -fsanitize=shadow-call-stack \
 -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26")
 
 set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
