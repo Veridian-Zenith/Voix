@@ -142,7 +142,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     // Enforce absolute paths
     if (cmd_str.empty() || cmd_str[0] != '/') {
-        LOG_ERROR("Command must be an absolute path: {}", cmd_str);
+        LOG_ERROR(std::format("Command must be an absolute path: {}", cmd_str));
         _exit(127);
     }
 
