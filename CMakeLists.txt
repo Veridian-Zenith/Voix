@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 3.1.0 LANGUAGES CXX)
+project(Voix VERSION 3.1.1 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -46,7 +46,7 @@ set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}" CACHE STRING "" FORCE)
 
 # ---- Linker Flags ----
 # Utilizing LLD, ThinLTO caching, and Identical Code Folding (ICF)
-set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl,-O2 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
 -Wl,-z,noexecstack -Wl,--icf=all -Wl,--thinlto-cache-dir=${CMAKE_BINARY_DIR}/thinlto_cache \
 -pie -flto=thin" CACHE STRING "" FORCE)
 
