@@ -1,0 +1,59 @@
+name: Release Artifacts
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build x86_64-bin
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM 22
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          sudo apt-get install -y clang-22 lld-22 libpam0g-dev libcap-dev libyaml-cpp-dev ninja-build
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DCMAKE_C_COMPILER=clang-22 \
+            -DVOIX_ARCH=x86-64 \
+            -DENABLE_PERMISSIONS=OFF
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Prepare Package
+        run: |
+          mkdir -p voix-bin
+          cp build/voix voix-bin/
+          cp pam.d/voix voix-bin/voix.pam
+          cp config/voix.conf voix-bin/
+          cp docs/voix.1 voix-bin/
+          tar -czf voix-x86_64-bin.tar.gz voix-bin/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: voix-x86_64-bin
+          path: voix-x86_64-bin.tar.gz
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: voix-x86_64-bin.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

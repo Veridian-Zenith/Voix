@@ -28,15 +28,20 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ---- Architecture Selection ----
+# Allow overriding the architecture for generic binary builds (e.g., CI/CD)
+set(VOIX_ARCH "native" CACHE STRING "Target architecture for compilation (default: native)")
+message(STATUS "Targeting architecture: ${VOIX_ARCH}")
+
 # ---- Toolchain Validation ----
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "Clang required. Found: ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
 # ---- Compiler & Feature Flags ----
-# Optimized for Intel 12th Gen (march=native) and C++26 experimental features
+# Optimized for the chosen architecture and C++26 experimental features
 # Using LLVM toolchain (Clang + LLD + Oz optimization)
-set(COMMON_FLAGS "-march=native -Oz -pipe -fno-plt -fstack-protector-strong \
+set(COMMON_FLAGS "-march=${VOIX_ARCH} -Oz -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
 -fsanitize=cfi -fsanitize=shadow-call-stack \
 -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26")

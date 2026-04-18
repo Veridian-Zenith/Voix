@@ -4,6 +4,10 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 
 ## RECENTLY DISCOVERED VULNERABILITIES
 
+- [ ] **Critical: Fix Environment Variable Leakage** during `-E` preservation (sanitize `LD_*`, `BASH_ENV`, etc.).
+- [ ] **Critical: Restrict Default Environment Whitelist** to exclude compiler variables (`CC`, `CXX`, `CMAKE_*`).
+- [ ] **High: Implement Strict Capability Bounding** in the child process before `execv` to prevent privilege inheritance.
+- [ ] **High: Adopt Command Allowlist model** instead of relying on brittle `isCatastrophicCommand` string matching.
 - [x] **Critical: Fix Privilege Escalation via `LD_LIBRARY_PATH`** in environment whitelisting.
 - [x] **Critical: Fix Command Injection in Login Shells (`-s` / `--login`)** arguments concatenation.
 - [x] **High: Enforce absolute paths** for command resolution instead of relying on `execvp`.
@@ -33,6 +37,9 @@ This scroll tracks upcoming rituals, bindings, and enchantments intended to perf
 - [x] **Secure File Descriptor Handling:** Use `close_range` (where available) or a robust loop to ensure all non-essential file descriptors are closed before `execve`.
 - [x] **Enhanced Config Validation:** Add more rigorous validation for configuration parameters, including path canonicalization and range checking for numeric values.
 - [ ] **Fuzzing Rituals:** Establish `libFuzzer` or `AFL++` harnesses for the configuration parser and rule-matching engine.
+- [ ] **RAII for C-APIs:** Wrap `cap_t`, `pam_handle`, and other C-structs in RAII wrappers to eliminate manual `free`/`cap_free` calls.
+- [ ] **Modernize String Handling:** Replace remaining `strdup`/`free` calls in `main.cpp` with `std::string` or `std::string_view` for better safety.
+- [ ] **Type-Safe Casts:** Replace remaining C-style casts with `static_cast` or `reinterpret_cast`.
 
 ## MODERNIZATION (C++26)
 

@@ -68,33 +68,43 @@ With the forge and installation complete, ensure your PAM configuration at `/etc
 
 ## The Runes of Law (Configuration)
 
-The heart of Voix is defined in `/etc/voix.conf`.
-
-`[ordain|shun] [trust] <ident> [mask <target>] [rite <incantation> [args ...]]`
+The heart of Voix is defined in `/etc/voix.conf` using a structured YAML format.
 
 **Deconstructing the Runes:**
 
-- `ordain|shun`: The primary incantation. `ordain` grants power, while `shun` denies it.
-- `trust`: (Optional) A sacred boon that allows the user to execute incantations without re-authenticating for a time.
-- `<ident>`: The user or group to apply the rule to. Groups must be prefixed with a colon (`:`), like `:wizards`.
-- `mask <target>`: (Optional) The target user to execute the incantation as. Defaults to `root`, the highest of all.
-- `rite <incantation>`: (Optional) The specific incantation to be executed. If not specified, the user can execute any incantation.
-- `[args ...]`: (Optional) Arguments for the incantation.
+- **`core`**: Global settings like the `sanctuary` (temp directory) and allowed execution `paths`.
+- **`acl`**: The Access Control List, divided into `user` and `group` realms.
+  - **`action`**: Use `permit` to ordain power or `deny` to shun a soul.
+  - **`options`**: (Optional) Use `trust` to grant power without re-authentication for a time.
+  - **`target`**: (Optional) The entity to execute as. Defaults to `root`.
+  - **`command`**: (Optional) The specific rite allowed.
+  - **`args`**: (Optional) Specific arguments required for the rite.
+- **`security`**: Global restrictions, such as a `blocklist` of forbidden incantations.
 
 **An Offering to the Config:**
 
-```conf
-# The High Circle may invoke anything with ritual trust
-ordain trust :wheel
+```yaml
+core:
+  paths: [/bin, /usr/bin]
 
-# The Initiate may gaze into the system state without a token of proof
-ordain trust initiate mask root rite /usr/bin/systemctl
+acl:
+  group:
+    # The High Circle may invoke anything with ritual trust
+    wheel:
+      - action: permit
+        options: [trust]
 
-# The apprentice may only restart the mystic server
-ordain apprentice mask root rite /usr/bin/systemctl restart magic.service
+  user:
+    # The Initiate may restart a service as 'root' without a token of proof
+    initiate:
+      - action: permit
+        target: root
+        command: /usr/bin/systemctl
+        args: [restart, nginx]
 
-# Exiled souls shall remain shunned
-shun exiled
+    # Exiled souls shall remain shunned
+    exiled:
+      - action: deny
 ```
 
 ## Invoking the Power
