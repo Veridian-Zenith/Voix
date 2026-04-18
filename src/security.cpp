@@ -8,6 +8,7 @@
  */
 
 #include "security.h"
+#include "logger.h"
 #include <unistd.h>
 #include <sys/capability.h>
 #include <sys/types.h>
@@ -19,8 +20,24 @@
 #include <vector>
 #include <regex>
 #include <algorithm>
+#include <seccomp.h>
+#include <memory>
 
 namespace Voix {
+
+struct CapDeleter {
+    void operator()(cap_t p) const {
+        if (p) cap_free(p);
+    }
+};
+using UniqueCap = std::unique_ptr<std::remove_pointer_t<cap_t>, CapDeleter>;
+
+struct SeccompDeleter {
+    void operator()(scmp_filter_ctx ctx) const {
+        if (ctx) seccomp_release(ctx);
+    }
+};
+using UniqueSeccomp = std::unique_ptr<std::remove_pointer_t<scmp_filter_ctx>, SeccompDeleter>;
 
 Security::Security() = default;
 
@@ -155,38 +172,67 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
 }
 
 void Security::raiseCapabilities() {
-    cap_t caps = cap_get_proc();
+    UniqueCap caps(cap_get_proc());
     if (!caps) {
         throw std::runtime_error("cap_get_proc failed");
     }
 
-    cap_value_t required_caps[] = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH};
-    if (cap_set_flag(caps, CAP_EFFECTIVE, 2, required_caps, CAP_SET) == -1) {
-        cap_free(caps);
+    cap_value_t required_caps[] = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_SETUID};
+    if (cap_set_flag(caps.get(), CAP_EFFECTIVE, 3, required_caps, CAP_SET) == -1) {
         throw std::runtime_error("cap_set_flag failed");
     }
 
-    if (cap_set_proc(caps) == -1) {
-        cap_free(caps);
+    if (cap_set_proc(caps.get()) == -1) {
         throw std::runtime_error("Insufficient privileges. Voix must be installed setuid root or have proper file capabilities.");
     }
-    cap_free(caps);
 }
 
-void Security::dropCapabilities() {
-    cap_t caps = cap_get_proc();
+void Security::dropCapabilities(const std::vector<cap_value_t>& keep_caps) {
+    UniqueCap caps(cap_get_proc());
     if (!caps) {
-        // Not much we can do.
+        LOG_WARN("Failed to get capabilities before dropping");
         return;
     }
-    if(cap_clear(caps) == -1) {
-        cap_free(caps);
+    if(cap_clear(caps.get()) == -1) {
+        LOG_WARN("Failed to clear capabilities");
         return;
     }
-    if (cap_set_proc(caps) == -1) {
-        // perror("cap_set_proc - dropping caps");
+    if (!keep_caps.empty()) {
+        if (cap_set_flag(caps.get(), CAP_PERMITTED, keep_caps.size(), keep_caps.data(), CAP_SET) == -1) {
+            LOG_WARN("Failed to set permitted capabilities to keep");
+        }
+        if (cap_set_flag(caps.get(), CAP_EFFECTIVE, keep_caps.size(), keep_caps.data(), CAP_SET) == -1) {
+            LOG_WARN("Failed to set effective capabilities to keep");
+        }
     }
-    cap_free(caps);
+    if (cap_set_proc(caps.get()) == -1) {
+        LOG_WARN("Failed to set capabilities (drop)");
+    }
+}
+
+void Security::applySeccompBlacklist() const {
+    UniqueSeccomp ctx(seccomp_init(SCMP_ACT_ALLOW));
+    if (!ctx) {
+        LOG_WARN("Failed to init seccomp");
+        _exit(1);
+    }
+
+    if (seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(delete_module), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(init_module), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(finit_module), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(reboot), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapon), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapoff), 0) < 0) {
+        LOG_WARN("Failed to add seccomp rules");
+        _exit(1);
+    }
+
+    if (seccomp_load(ctx.get()) < 0) {
+        LOG_WARN("Failed to load seccomp");
+        _exit(1);
+    }
+    LOG_WARN("Seccomp rules applied successfully");
 }
 
 } // namespace Voix

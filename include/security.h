@@ -14,6 +14,7 @@
 #include <string_view>
 #include <vector>
 #include <optional>
+#include <sys/capability.h>
 #include "config.h"
 
 namespace Voix {
@@ -67,11 +68,15 @@ public:
     void raiseCapabilities();
 
     /**
-     * @brief Drop all capabilities.
+     * @brief Drop all capabilities, optionally keeping some.
+     * @param keep_caps Vector of capabilities to keep.
      */
-    void dropCapabilities();
+    void dropCapabilities(const std::vector<cap_value_t>& keep_caps = {});
 
-
+    /**
+     * @brief Apply Seccomp blacklist to restrict dangerous system calls.
+     */
+    void applySeccompBlacklist() const;
 
 private:
 

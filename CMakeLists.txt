@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.1.0 LANGUAGES CXX)
+project(Voix VERSION 4.1.1 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -60,6 +60,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -W
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PAM REQUIRED pam)
 pkg_check_modules(LIBCAP REQUIRED libcap)
+pkg_check_modules(LIBSECCOMP REQUIRED libseccomp)
 find_package(yaml-cpp REQUIRED)
 
 # ---- Source & Executable ----
@@ -71,6 +72,7 @@ add_executable(voix src/main.cpp)
 target_link_libraries(voix_lib PUBLIC
     ${PAM_LIBRARIES}
     ${LIBCAP_LIBRARIES}
+    ${LIBSECCOMP_LIBRARIES}
     yaml-cpp::yaml-cpp
 )
 
@@ -78,6 +80,7 @@ target_include_directories(voix_lib PUBLIC
     include
     ${PAM_INCLUDE_DIRS}
     ${LIBCAP_INCLUDE_DIRS}
+    ${LIBSECCOMP_INCLUDE_DIRS}
 )
 
 target_link_libraries(voix PRIVATE voix_lib)

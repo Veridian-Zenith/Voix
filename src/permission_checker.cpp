@@ -15,6 +15,9 @@
 #include <cstring>
 #include <utility>
 #include <vector>
+#include <algorithm>
+#include <ranges>
+#include <span>
 
 #ifndef NGROUPS_MAX
 #define NGROUPS_MAX 32
@@ -35,13 +38,9 @@ bool PermissionChecker::isAllowed() const {
 
   // A user is allowed if there is at least one permit rule for them.
   auto rules = config_->getRules();
-  for (const auto& rule : rules) {
-    if (rule.action == Rule::Action::PERMIT && rule.ident == current_user) {
-      return true;
-    }
-  }
-
-  return false;
+  return std::ranges::any_of(rules, [&](const auto& rule) {
+    return rule.action == Rule::Action::PERMIT && rule.ident == current_user;
+  });
 }
 bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, int ngroups,
                                     std::string_view command, uid_t target_uid,
@@ -51,13 +50,7 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
           return false;
       }
   } else if (rule.ident_gid.has_value()) {
-      bool group_found = false;
-      for (int i = 0; i < ngroups; i++) {
-          if (rule.ident_gid.value() == groups[i]) {
-              group_found = true;
-              break;
-          }
-      }
+      bool group_found = std::ranges::find(std::span(groups, ngroups), rule.ident_gid.value()) != std::span(groups, ngroups).end();
       if (!group_found) {
           return false;
       }
@@ -104,10 +97,8 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
       if (args.size() != rule.cmdargs.size())
         return false;
 
-      for (size_t i = 0; i < args.size(); i++) {
-        if (rule.cmdargs[i] != args[i])
-          return false;
-      }
+      if (!std::ranges::equal(args, rule.cmdargs))
+        return false;
     }
   }
 

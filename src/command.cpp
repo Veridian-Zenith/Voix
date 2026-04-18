@@ -9,6 +9,7 @@
 #include "command.h"
 #include "logger.h"
 #include "file_utils.h"
+#include "security.h"
 #include <csignal>
 #include <pwd.h>
 #include <grp.h>
@@ -21,6 +22,7 @@
 #include <cstdlib>
 #include <utility>
 #include <sys/resource.h>
+#include <ranges>
 
 namespace Voix {
 
@@ -62,7 +64,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Preserve whitelist environment
-    std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH", "CMAKE_PREFIX_PATH", "CMAKE_INCLUDE_PATH", "CC", "CXX"};
+    std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
     std::vector<std::pair<std::string, std::string>> saved_env;
     if (options.preserve_env) {
       extern char **environ;
@@ -70,15 +72,18 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         std::string entry(*env);
         size_t pos = entry.find('=');
         if (pos != std::string::npos) {
-          saved_env.push_back({entry.substr(0, pos), entry.substr(pos + 1)});
+          std::string key = entry.substr(0, pos);
+          // Sanitize sensitive environment variables
+          if (key.starts_with("LD_") || key == "BASH_ENV" || key == "ENV") continue;
+          saved_env.push_back({key, entry.substr(pos + 1)});
         }
       }
     } else {
-      for (const auto& var : whitelist) {
+      std::ranges::for_each(whitelist, [&](const auto& var) {
         if (const char* val = getenv(var.c_str())) {
           saved_env.push_back({var, val});
         }
-      }
+      });
     }
 
     // Drop privileges completely
@@ -86,13 +91,24 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     if (setgid(pw->pw_gid) != 0) _exit(1);
     if (setuid(pw->pw_uid) != 0) _exit(1);
 
-    // Scrub the environment
-    clearenv();
+    Security sec;
+    if (sec.isCatastrophicCommand(command, args, config)) {
+        std::vector<cap_value_t> caps_to_keep;
+        if (user == "root") {
+            // Keep essential capabilities for root
+            caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN};
+        }
+
+        sec.dropCapabilities(caps_to_keep);
+
+        // Scrub the environment
+        clearenv();
+    }
 
     // Restore whitelist & explicitly set target identity
-    for (const auto& env : saved_env) {
+    std::ranges::for_each(saved_env, [](const auto& env) {
       setenv(env.first.c_str(), env.second.c_str(), 1);
-    }
+    });
     setenv("PATH", config.getPath().c_str(), 1);
     setenv("USER", pw->pw_name, 1);
     setenv("LOGNAME", pw->pw_name, 1);
@@ -103,24 +119,26 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       setenv("SHELL", pw->pw_shell, 1);
     }
 
-    // Prevent FD leakage
-    setResourceLimits();
-    bool closed = false;
+    if (sec.isCatastrophicCommand(command, args, config)) {
+        // Prevent FD leakage
+        setResourceLimits();
+        bool closed = false;
 #ifdef SYS_close_range
-    if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
-      closed = true;
-    }
+        if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
+          closed = true;
+        }
 #endif
 
-    if (!closed) {
-      struct rlimit rl;
-      if (getrlimit(RLIMIT_NOFILE, &rl) != 0) {
-          rl.rlim_cur = 4096; // Fallback
-      }
-      int max_fd = static_cast<int>(rl.rlim_cur);
-      for (int i = 3; i < max_fd; ++i) {
-        close(i);
-      }
+        if (!closed) {
+          struct rlimit rl;
+          if (getrlimit(RLIMIT_NOFILE, &rl) != 0) {
+              rl.rlim_cur = 4096; // Fallback
+          }
+          int max_fd = static_cast<int>(rl.rlim_cur);
+          for (int i : std::views::iota(3, max_fd)) {
+            close(i);
+          }
+        }
     }
 
     auto escape = [](const std::string& s) {

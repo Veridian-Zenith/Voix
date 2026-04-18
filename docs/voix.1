@@ -1,4 +1,4 @@
-.TH VOIX 1 "April 2026" "Voix 4.1.0" "User Commands"
+.TH VOIX 1 "April 2026" "Voix 4.1.1" "User Commands"
 .SH NAME
 voix \- a modern, secure privilege escalation tool
 .SH SYNOPSIS
@@ -9,23 +9,32 @@ voix \- a modern, secure privilege escalation tool
 Voix is a secure, modern, and easy-to-use privilege escalation tool for Unix-like operating systems. It is designed to be a secure replacement for \fBsudo\fR and is inspired by \fBOpenDoas\fR. Voix uses Pluggable Authentication Modules (PAM) for authentication and a YAML-based configuration file for defining access rules.
 .SH OPTIONS
 .TP
-.B \-u, \-\-user \fIUSER\fR
-Execute command as the specified target user (default: root).
-.TP
 .B \-C, \-\-config \fIFILE\fR
-Use the specified file as the configuration source (default: /etc/voix.conf).
-.TP
-.B \-n, \-\-non-interactive
-Non-interactive mode; fail if authentication is required.
-.TP
-.B \-i, \-\-login
-Execute the command in a login shell environment.
+Use the specified file as the configuration sanctuary (default: /etc/voix.conf).
 .TP
 .B \-E, \-\-preserve-env
 Preserve the user's environment variables.
 .TP
+.B \-i, \-\-login
+Execute the command in a login shell environment.
+.TP
+.B \-l, \-\-list
+List the commands that the current user is permitted to execute.
+.TP
+.B \-n
+Non-interactive mode; fail if proof (authentication) is required.
+.TP
 .B \-s, \-\-shell
-Execute the user's login shell.
+Execute the user's login shell (ascend to shell).
+.TP
+.B \-u \fIUSER\fR
+Execute command as the specified target mask (default: root).
+.TP
+.B \-v, \-\-version
+Show the version of this artifact.
+.TP
+.B \-h, \-\-help
+Show the help message.
 .SH CONFIGURATION
 The Voix configuration file, located at \fI/etc/voix.conf\fR, is a YAML file that defines rules for command execution.
 .PP
@@ -41,6 +50,10 @@ voix whoami
 Execute \fBwhoami\fR as a specific user:
 .IP
 voix -u user whoami
+.PP
+Start an interactive shell ascension:
+.IP
+voix -s
 .SH AUTHOR
 Veridian-Zenith 2026 (Dae Euhwa - daedaevibin@ik.me)
 .SH SEE ALSO
