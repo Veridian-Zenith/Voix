@@ -1,6 +1,10 @@
 - name: General
   description: Talk about anything and everything here.
+  template: |
+    Use this for general questions, community discussions, or topics that don't fit into other categories.
 - name: Ideas
   description: Share your ideas for new features or improvements.
+  template: |
+    Do you have an idea for a new feature? Share it here! Please provide a clear description of the problem it solves and how you envision it working.
 - name: Q&A
   description: Ask the community for help.
