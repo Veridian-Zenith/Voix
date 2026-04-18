@@ -14,47 +14,47 @@ Voix uses YAML for its configuration, creating a structured and mystical environ
 
 The configuration file (default: `/etc/voix.conf`) is composed of two main sections:
 
-### `globals`
+### `core`
 
 - `sanctuary`: The sacred path to the temporary directory where Voix performs its rites.
-- `path`: Trusted paths to seek out incantations (executables).
+- `paths`: Trusted paths to seek out incantations (executables).
 
 Example:
 
 ```yaml
-globals:
+core:
   sanctuary: /tmp
-  path:
+  paths:
     - /bin
     - /usr/bin
 ```
 
-### `rules`
+### `acl`
 
-A list of rules that govern who may ascend and how. Each rule must define the following:
+A mapping of users or groups to rules that govern who may ascend and how.
 
 - `action`: `permit` (ordain) to allow the action, or `deny` (shun) to block it.
-- `identity`: The soul (user) or group (prefixed with `:`) to which the rule applies.
-- `trust`: Boolean (`true` or `false`). If `true`, the ascension is permitted without a token of proof (password).
-- `mask`: (Optional) The identity to assume during the rite (defaults to `root`).
-- `rite`: (Optional) The specific incantation (full path to the command) being allowed.
+- `options`: List of options, e.g., `[trust]` to allow ascension without a token of proof.
+- `target`: (Optional) The identity to assume during the rite (defaults to `root`).
+- `command`: (Optional) The specific incantation (full path to the command) being allowed.
 - `args`: (Optional) A list of exact arguments that must be present for the rule to match.
 
 Example:
 
 ```yaml
-rules:
-  # Ordain members of the 'admin' group to perform any rite without a token of proof.
-  - action: permit
-    identity: :admin
-    trust: true
+acl:
+  group:
+    # Ordain members of the 'wheel' group to perform any rite with ritual trust.
+    wheel:
+      - action: permit
+        options: [trust]
 
-  # Shun user 'guest' from running 'rm' with the '-rf' flag.
-  - action: deny
-    identity: guest
-    rite: /bin/rm
-    args:
-      - -rf
+  user:
+    # Shun user 'guest' from running 'rm' with the '-rf' flag.
+    guest:
+      - action: deny
+        command: /bin/rm
+        args: [ -rf ]
 ```
 
 For a full example, see [`docs/voix.conf.example`](docs/voix.conf.example).
