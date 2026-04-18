@@ -13,7 +13,7 @@ The following table shows the versions of Voix that are currently supported with
 
 If you discover a security vulnerability, please report it to us as soon as possible. **Please do not report security vulnerabilities through public GitHub issues.**
 
-You may use the dedicated vunlerability reporting method in issues, or email **[daedaevibin@ik.me](mailto:daedaevibin@ik.me)
+You may use the dedicated vunlerability reporting method in issues, or email **[daedaevibin@ik.me](mailto:daedaevibin@ik.me)**
 
 Please include the following information in your report:
 
