@@ -26,8 +26,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev clang
+    - name: Install dependencies and LLVM 22
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev wget
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 22
+        sudo apt-get install -y clang-22 lld-22
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
@@ -38,7 +44,7 @@ jobs:
     - name: Run manual build steps
       shell: bash
       run: |
-        cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-22 -DCMAKE_CXX_COMPILER=clang++-22
         cmake --build build
 
     - name: Perform CodeQL Analysis
