@@ -37,6 +37,14 @@ jobs:
       - name: Build
         run: cmake --build build
 
+      - name: Create Tag for Workflow Dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag -f v4.1.${{ github.run_number }}
+          git push -f origin v4.1.${{ github.run_number }}
+
       - name: Prepare Package
         run: |
           mkdir -p voix-bin
@@ -44,6 +52,8 @@ jobs:
           cp pam.d/voix voix-bin/voix.pam
           cp config/voix.conf voix-bin/
           cp docs/voix.1 voix-bin/
+          cp README.md voix-bin/
+          cp LICENSE voix-bin/
           tar -czf voix-x86_64-bin.tar.gz voix-bin/
 
       - name: Upload Artifact
