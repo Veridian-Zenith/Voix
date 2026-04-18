@@ -1,8 +1,8 @@
-## Pull Request
+# Pull Request
 
 Thank you for contributing to Voix. Please ensure your submission meets the project's requirements before requesting a merge.
 
-### Description
+## Description
 <!-- Describe the changes in your pull request. What did you change, and why? -->
 
 ### Checklist
