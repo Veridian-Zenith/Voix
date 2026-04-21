@@ -105,7 +105,12 @@ int Voix::execute(std::string_view command,
   }
 
   if (authenticator_->openSession()) {
-    int res = command_->execute(command_str, args, *config_, options, user_str);
+    CommandOptions merged_options = options;
+    if (!merged_options.login_shell && config_->isLoginShellDefault()) {
+        merged_options.login_shell = true;
+    }
+
+    int res = command_->execute(command_str, args, *config_, merged_options, user_str);
     authenticator_->closeSession();
     return res;
   }

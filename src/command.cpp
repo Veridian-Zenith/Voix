@@ -182,7 +182,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
-    sec.applySeccompBlacklist();
+    if (config.isSeccompEnabled()) {
+        sec.applySeccompBlacklist();
+    }
 
     if (options.login_shell) {
       // Execute command in a login shell

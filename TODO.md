@@ -31,11 +31,12 @@ This document outlines the planned improvements, security hardening, and archite
 
 ### Enhancements
 
-- [ ] **Rule Options**: Update `src/config.cpp` to support all rule options (e.g., `keepenv`, `nolog`).
-- [ ] **Global Toggles**: Add `login_shell` and `seccomp` global toggles to the YAML configuration.
+- [ ] **Remote Management**: Exploration of remote configuration synchronization.
 
 ### Completed Configuration Items
 
+- [x] Update `src/config.cpp` to support all rule options (e.g., `keepenv`, `nolog`).
+- [x] Add `login_shell` and `seccomp` global toggles to the YAML configuration.
 - [x] Implement Command Aliases.
 - [x] Environment variable preservation during escalation.
 - [x] Fully implement `sanctuary:` and `path:` settings.
@@ -76,6 +77,7 @@ This document outlines the planned improvements, security hardening, and archite
 
 ### Completed Maintenance Items
 
+- [x] Adjust AUR packaging to track version tags (e.g., v4.1.2).
 - [x] Implement Resource Limiting (RLIMIT).
 - [x] Signal handling during fork-exec.
 - [x] Authenticator abstraction.

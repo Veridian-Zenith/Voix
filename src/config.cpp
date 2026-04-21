@@ -31,10 +31,23 @@ namespace {
         }
 
         if (rule_node["options"]) {
-            for (auto opt : rule_node["options"]) {
-                if (opt.as<std::string>() == "trust") {
+            for (auto opt_node : rule_node["options"]) {
+                std::string opt = opt_node.as<std::string>();
+                if (opt == "trust" || opt == "nopass") {
                     rule.options |= Voix::Rule::NOPASS;
+                } else if (opt == "keepenv") {
+                    rule.options |= Voix::Rule::KEEPENV;
+                } else if (opt == "persist") {
+                    rule.options |= Voix::Rule::PERSIST;
+                } else if (opt == "nolog") {
+                    rule.options |= Voix::Rule::NOLOG;
                 }
+            }
+        }
+
+        if (rule_node["env"]) {
+            for (auto env_entry : rule_node["env"]) {
+                rule.envlist.push_back(env_entry.as<std::string>());
             }
         }
 
@@ -84,6 +97,9 @@ bool Config::load(std::string_view config_path) {
                     path_list_.push_back(path_entry.as<std::string>());
                 }
             }
+            if (config["core"]["login_shell"]) {
+                login_shell_default_ = config["core"]["login_shell"].as<bool>();
+            }
         }
 
         if (config["acl"]) {
@@ -113,6 +129,9 @@ bool Config::load(std::string_view config_path) {
         }
 
         if (config["security"]) {
+            if (config["security"]["seccomp"]) {
+                seccomp_enabled_ = config["security"]["seccomp"].as<bool>();
+            }
             if (config["security"]["blocklist"]) {
                 for (auto block_item : config["security"]["blocklist"]) {
                     if (block_item.IsScalar()) {
