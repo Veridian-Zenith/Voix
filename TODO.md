@@ -1,90 +1,85 @@
-# The Voix Prophecy (TODO)
+# Voix Project Roadmap
 
-This scroll tracks upcoming rituals, bindings, and enchantments intended to perfect the Keeper of Realms.
+This document outlines the planned improvements, security hardening, and architectural evolution of Voix.
 
----
+## 🛡️ Security
 
-## RECENTLY DISCOVERED VULNERABILITIES
+### Hardening
 
-- [ ] **Critical**: Fix Environment Variable Leakage during `-E` preservation (sanitize `LD_*`, `BASH_ENV`, etc.).
-- [ ] **Critical**: Restrict Default Environment Whitelist to exclude compiler variables (`CC`, `CXX`, `CMAKE_*`).
-- [x] **High**: Implement Strict Capability Bounding in the child process before `execv` to prevent privilege inheritance.
-- [x] **High**: Adopt Command Allowlist model instead of relying on brittle `isCatastrophicCommand` string matching.
-- [x] **Critical**: Fix Privilege Escalation via `LD_LIBRARY_PATH` in environment whitelisting.
-- [x] **Critical**: Fix Command Injection in Login Shells (`-s` / `--login`) arguments concatenation.
-- [x] **High**: Enforce absolute paths for command resolution instead of relying on `execvp`.
-- [x] **Medium**: Fix TOCTOU in Path Sanitization by using `realpath` instead of string matching.
-- [x] **Medium**: Prevent File Descriptor leaks and reset inherited resource limits before `exec`.
+- [ ] **Environment Sanitization**: Fix Environment Variable Leakage during `-E` preservation (sanitize `LD_*`, `BASH_ENV`, etc.).
+- [ ] **Environment Whitelisting**: Restrict Default Environment Whitelist to exclude compiler variables (`CC`, `CXX`, `CMAKE_*`).
 
----
+### Completed Security Items
 
-## CRITICAL SECURITY FIXES
+- [x] Implement fail-closed logic in `dropCapabilities` to terminate process on failure.
+- [x] Integrate `applySeccompBlacklist` into the execution flow.
+- [x] Expand Seccomp blacklist to include more dangerous syscalls (e.g., `ptrace`, `bpf`).
+- [x] Implement Strict Capability Bounding in child processes.
+- [x] Adopt Command Allowlist model.
+- [x] Fix Privilege Escalation via `LD_LIBRARY_PATH`.
+- [x] Fix Command Injection in Login Shells.
+- [x] Enforce absolute paths for command resolution.
+- [x] Fix TOCTOU in Path Sanitization using `realpath`.
+- [x] Prevent File Descriptor leaks and reset resource limits.
+- [x] Correct logic in `Security::validateContext` (`geteuid` vs `getuid`).
+- [x] Resolve identities to UIDs/GIDs during configuration loading.
+- [x] Use `libcap` for necessary capabilities.
+- [x] Ensure `voix.conf` is immutable (root-owned, restricted permissions).
+- [x] Implement Binary Hardening (CFI, ThinLTO, Shadow Call Stack).
 
-- [x] **Bypass Fix (`geteuid` vs `getuid`)**: Correct logic in `Security::validateContext` to prevent bypasses.
-- [x] **Identity Resolution TOCTOU**: Resolve identities to UIDs/GIDs during configuration loading.
-- [x] **CI Build Stabilization**: Integrate `std::expected` for consistent builds.
-- [x] **Hardened Memory Allocation**: Investigate system allocators (scudo/mimalloc).
+## ⚙️ Configuration
 
----
+### Enhancements
 
-## ARCHITECTURAL IMPROVEMENTS
+- [ ] **Rule Options**: Update `src/config.cpp` to support all rule options (e.g., `keepenv`, `nolog`).
+- [ ] **Global Toggles**: Add `login_shell` and `seccomp` global toggles to the YAML configuration.
 
-- [x] **Resource Limiting (RLIMIT)**: Prevent resource exhaustion attacks.
-- [x] **Signal Handling**: Mask/handle signals during fork-exec.
-- [x] **Authenticator Abstraction**: Support diverse authentication realms.
-- [x] **Capability-Based Ascension**: Use `libcap` to grant only necessary capabilities.
-- [x] **Immutable Configuration**: Ensure `voix.conf` is owned by root and has proper permissions.
-- [x] **Seccomp Sandboxing**: Restrictive profile for sensitive processes.
+### Completed Configuration Items
 
----
+- [x] Implement Command Aliases.
+- [x] Environment variable preservation during escalation.
+- [x] Fully implement `sanctuary:` and `path:` settings.
+- [x] Rigorous configuration parameter validation.
+- [x] Zero-Copy Lexer using `std::string_view`.
 
-## CODE QUALITY & ROBUSTNESS
+## 🧪 Testing & Quality
 
-- [x] **PAM Memory Leaks**: Audit `PamUtils` and ensure proper freeing.
-- [x] **Thread-Safe System Calls**: Replace non-thread-safe calls with thread-safe alternatives.
-- [x] **Secure File Descriptor Handling**: Use `close_range` to close non-essential FDs.
-- [x] **Enhanced Config Validation**: Rigorous validation for configuration parameters.
+### Testing
+
+- [ ] **Custom Test Suite**: Complete the custom test suite (WIP), covering Authenticator, PermissionChecker, and Security modules.
 - [-] **Fuzzing Rituals**: `libFuzzer` harnesses for config parser (Deferred).
-- [x] **RAII for C-APIs**: RAII wrappers for `cap_t` and `pam_handle`.
-- [x] **Modernize String Handling**: Use `std::string` or `std::string_view` for safety.
-- [x] **Type-Safe Casts**: Replace C-style casts with C++ casts.
 
----
+### Quality & Robustness
 
-## MODERNIZATION (C++26)
+- [ ] **C++26 Reflection**: Explore reflection-based configuration parsing (Future).
 
-- [x] **`std::filesystem` Migration**: Safer file operations and path manipulation.
-- [x] **`std::expected` for Error Handling**: Descriptive error states.
-- [x] **`std::format` Integration**: Type-safe logging and string formatting.
-- [x] **`std::print` Standardized Migration**: Use `std::print` for all terminal output.
-- [ ] **Reflection-based Config Parsing**: (Future) Explore C++26 reflection.
+### Completed Quality Items
 
----
+- [x] Integrate `std::expected` for consistent error handling.
+- [x] Audit `PamUtils` for memory leaks.
+- [x] Replace non-thread-safe system calls.
+- [x] Use `close_range` for secure FD handling.
+- [x] RAII wrappers for C-APIs (`cap_t`, `pam_handle`).
+- [x] Modernize string handling with `std::string_view`.
+- [x] Use type-safe C++ casts.
+- [x] Migrate to `std::filesystem`.
+- [x] Standardize on `std::format` and `std::print`.
+- [x] Integrate Address and Undefined Behavior sanitizers.
+- [x] Clean codebase with Clang-Tidy (`bugprone`, `performance`).
 
-## THE HIGH RITUALS (Priority)
+## 🚀 Future & Maintenance
 
-- [x] **Strengthen the Runes (Clang-Tidy)**: Clean codebase of `bugprone` and `performance` spirits.
-- [x] **Contributor's Path (Tidy & Clean)**: Maintain codebase purity.
-- [x] **Sanitizer Orchestration**: Integrate Address and Undefined Behavior sanitizers.
-- [x] **Zero-Copy Lexer**: Use `std::string_view` for config parsing.
-- [x] **Binary Hardening Audit**: Implemented CFI, ThinLTO, Shadow Call Stack.
+### Deferred Features
 
----
+- [-] **Plugins of the Void**: Plugin system.
+- [-] **The Eternal Scribe**: Automated man page generation.
 
-## MIDSUMMER BINDINGS (Medium)
+### Completed Maintenance Items
 
-- [x] **Expand the Sanctuary (`voix.conf`)**:
-  - Implement Command Aliases.
-  - Preserve specific environment variables during ascension.
-- [x] **Deepen the Transmutation (-s Shell)**: Feature-rich shell experience.
-- [x] **Global Sanctum Settings**: Fully implement `sanctuary:` and `path:` settings.
-- [x] **Audit Sanctum**: Secure `/var/log/voix/` permissions.
-- [-] **Plugins of the Void**: Plugin system (Deferred).
-
----
-
-## WINTER'S REST (Low)
-
-- [x] **The Oracle's Sight (Advanced Logging)**: Dynamic log severities and multi-plane echoing.
-- [x] **The Great Expansion**: Test resilience on other Unix-like planes.
-- [-] **The Eternal Scribe**: Automated man page generation (Deferred).
+- [x] Implement Resource Limiting (RLIMIT).
+- [x] Signal handling during fork-exec.
+- [x] Authenticator abstraction.
+- [x] Feature-rich shell experience (`-s` / `--login`).
+- [x] Secure `/var/log/voix/` permissions.
+- [x] Dynamic log severities and multi-plane echoing.
+- [x] Test resilience on other Unix-like planes.

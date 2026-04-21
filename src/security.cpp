@@ -190,23 +190,26 @@ void Security::raiseCapabilities() {
 void Security::dropCapabilities(const std::vector<cap_value_t>& keep_caps) {
     UniqueCap caps(cap_get_proc());
     if (!caps) {
-        LOG_WARN("Failed to get capabilities before dropping");
-        return;
+        LOG_ERROR("Failed to get capabilities before dropping");
+        _exit(1);
     }
     if(cap_clear(caps.get()) == -1) {
-        LOG_WARN("Failed to clear capabilities");
-        return;
+        LOG_ERROR("Failed to clear capabilities");
+        _exit(1);
     }
     if (!keep_caps.empty()) {
         if (cap_set_flag(caps.get(), CAP_PERMITTED, keep_caps.size(), keep_caps.data(), CAP_SET) == -1) {
-            LOG_WARN("Failed to set permitted capabilities to keep");
+            LOG_ERROR("Failed to set permitted capabilities to keep");
+            _exit(1);
         }
         if (cap_set_flag(caps.get(), CAP_EFFECTIVE, keep_caps.size(), keep_caps.data(), CAP_SET) == -1) {
-            LOG_WARN("Failed to set effective capabilities to keep");
+            LOG_ERROR("Failed to set effective capabilities to keep");
+            _exit(1);
         }
     }
     if (cap_set_proc(caps.get()) == -1) {
-        LOG_WARN("Failed to set capabilities (drop)");
+        LOG_ERROR("Failed to set capabilities (drop)");
+        _exit(1);
     }
 }
 
@@ -223,16 +226,20 @@ void Security::applySeccompBlacklist() const {
         seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(finit_module), 0) < 0 ||
         seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(reboot), 0) < 0 ||
         seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapon), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapoff), 0) < 0) {
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapoff), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(ptrace), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(bpf), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(unshare), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(mount), 0) < 0 ||
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(umount2), 0) < 0) {
         LOG_WARN("Failed to add seccomp rules");
         _exit(1);
     }
 
     if (seccomp_load(ctx.get()) < 0) {
-        LOG_WARN("Failed to load seccomp");
+        LOG_ERROR("Failed to load seccomp");
         _exit(1);
     }
-    LOG_WARN("Seccomp rules applied successfully");
 }
 
 } // namespace Voix

@@ -92,17 +92,22 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     if (setuid(pw->pw_uid) != 0) _exit(1);
 
     Security sec;
+    bool is_privileged_user = (pw->pw_uid == 0 || user == "alpm");
+
     if (sec.isCatastrophicCommand(command, args, config)) {
         std::vector<cap_value_t> caps_to_keep;
-        if (user == "root") {
-            // Keep essential capabilities for root
-            caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN};
+        if (is_privileged_user) {
+            // Keep essential capabilities for privileged users but restrict the rest for safety
+            caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN, CAP_DAC_OVERRIDE, CAP_FOWNER};
         }
 
         sec.dropCapabilities(caps_to_keep);
 
         // Scrub the environment
         clearenv();
+    } else if (!is_privileged_user) {
+        // For non-privileged target users, always drop all capabilities
+        sec.dropCapabilities({});
     }
 
     // Restore whitelist & explicitly set target identity
@@ -176,6 +181,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       argv.push_back(arg.c_str());
     }
     argv.push_back(nullptr);
+
+    sec.applySeccompBlacklist();
 
     if (options.login_shell) {
       // Execute command in a login shell
