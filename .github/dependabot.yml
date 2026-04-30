@@ -22,16 +22,3 @@ updates:
       prefix: "deps"
       prefix-development: "deps-dev"
       include: "scope"
-    # Add labels to PRs
-    labels:
-      - "dependencies"
-      - "github-actions"
-    # Set milestone (uncomment and adjust as needed)
-    # milestone: "Dependencies"
-    # Assign reviewers (uncomment and adjust)
-    # reviewers:
-    #   - "your-github-username"
-    # Ignore specific updates if needed
-    # ignore:
-    #   - dependency-name: "some-package"
-    #     update-types: ["version-update:semver-major"]
