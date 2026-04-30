@@ -60,7 +60,7 @@ jobs:
       run: |
         export CCACHE_DIR=$HOME/.cache/ccache
         cmake -B build -G Ninja \
-          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_C_COMPILER=clang-22 \
           -DCMAKE_CXX_COMPILER=clang++-22 \
           -DENABLE_PERMISSIONS=OFF

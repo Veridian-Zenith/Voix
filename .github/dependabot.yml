@@ -1,0 +1,37 @@
+# Dependabot version updates configuration for Voix project
+# Documentation: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Enable version updates for GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    # Allow up to 10 open pull requests at a time for this ecosystem
+    open-pull-requests-limit: 10
+    # Group updates together to reduce PR noise
+    groups:
+      actions:
+        patterns:
+          - "*"
+    # Customize commit messages
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    # Add labels to PRs
+    labels:
+      - "dependencies"
+      - "github-actions"
+    # Set milestone (uncomment and adjust as needed)
+    # milestone: "Dependencies"
+    # Assign reviewers (uncomment and adjust)
+    # reviewers:
+    #   - "your-github-username"
+    # Ignore specific updates if needed
+    # ignore:
+    #   - dependency-name: "some-package"
+    #     update-types: ["version-update:semver-major"]
