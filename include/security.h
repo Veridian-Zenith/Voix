@@ -14,7 +14,9 @@
 #include <string_view>
 #include <vector>
 #include <optional>
+#ifdef VOIX_WITH_CAP
 #include <sys/capability.h>
+#endif
 #include "config.h"
 
 namespace Voix {
@@ -62,6 +64,7 @@ public:
      */
     bool isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const;
 
+#ifdef VOIX_WITH_CAP
     /**
      * @brief Raise capabilities to perform privileged operations.
      */
@@ -72,11 +75,14 @@ public:
      * @param keep_caps Vector of capabilities to keep.
      */
     void dropCapabilities(const std::vector<cap_value_t>& keep_caps = {});
+#endif
+#ifdef VOIX_WITH_SECCOMP
+/**
+ * @brief Apply Seccomp blacklist to restrict dangerous system calls.
+ */
+void applySeccompBlacklist() const;
+#endif
 
-    /**
-     * @brief Apply Seccomp blacklist to restrict dangerous system calls.
-     */
-    void applySeccompBlacklist() const;
 
 private:
 

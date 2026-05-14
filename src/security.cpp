@@ -10,7 +10,9 @@
 #include "security.h"
 #include "logger.h"
 #include <unistd.h>
+#ifdef VOIX_WITH_CAP
 #include <sys/capability.h>
+#endif
 #include <sys/types.h>
 #include <chrono>
 #include <format>
@@ -20,24 +22,30 @@
 #include <vector>
 #include <regex>
 #include <algorithm>
+#ifdef VOIX_WITH_SECCOMP
 #include <seccomp.h>
+#endif
 #include <memory>
 
 namespace Voix {
 
+#ifdef VOIX_WITH_CAP
 struct CapDeleter {
     void operator()(cap_t p) const {
         if (p) cap_free(p);
     }
 };
 using UniqueCap = std::unique_ptr<std::remove_pointer_t<cap_t>, CapDeleter>;
+#endif
 
+#ifdef VOIX_WITH_SECCOMP
 struct SeccompDeleter {
     void operator()(scmp_filter_ctx ctx) const {
         if (ctx) seccomp_release(ctx);
     }
 };
 using UniqueSeccomp = std::unique_ptr<std::remove_pointer_t<scmp_filter_ctx>, SeccompDeleter>;
+#endif
 
 Security::Security() = default;
 
@@ -171,6 +179,7 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
     return false;
 }
 
+#ifdef VOIX_WITH_CAP
 void Security::raiseCapabilities() {
     UniqueCap caps(cap_get_proc());
     if (!caps) {
@@ -212,7 +221,9 @@ void Security::dropCapabilities(const std::vector<cap_value_t>& keep_caps) {
         _exit(1);
     }
 }
+#endif
 
+#ifdef VOIX_WITH_SECCOMP
 void Security::applySeccompBlacklist() const {
     UniqueSeccomp ctx(seccomp_init(SCMP_ACT_ALLOW));
     if (!ctx) {
@@ -241,5 +252,6 @@ void Security::applySeccompBlacklist() const {
         _exit(1);
     }
 }
+#endif
 
 } // namespace Voix

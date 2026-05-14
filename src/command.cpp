@@ -95,6 +95,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     bool is_privileged_user = (pw->pw_uid == 0 || user == "alpm");
 
     if (sec.isCatastrophicCommand(command, args, config)) {
+#ifdef VOIX_WITH_CAP
         std::vector<cap_value_t> caps_to_keep;
         if (is_privileged_user) {
             // Keep essential capabilities for privileged users but restrict the rest for safety
@@ -102,12 +103,15 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         }
 
         sec.dropCapabilities(caps_to_keep);
+#endif
 
         // Scrub the environment
         clearenv();
     } else if (!is_privileged_user) {
         // For non-privileged target users, always drop all capabilities
+#ifdef VOIX_WITH_CAP
         sec.dropCapabilities({});
+#endif
     }
 
     // Restore whitelist & explicitly set target identity
@@ -183,7 +187,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     argv.push_back(nullptr);
 
     if (config.isSeccompEnabled()) {
+#ifdef VOIX_WITH_SECCOMP
         sec.applySeccompBlacklist();
+#endif
     }
 
     if (options.login_shell) {

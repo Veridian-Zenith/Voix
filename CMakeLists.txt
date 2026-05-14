@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.1.2 LANGUAGES CXX)
+project(Voix VERSION 4.1.3 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -28,10 +28,17 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ---- Options ----
+option(VOIX_USE_MOLD "Use MOLD linker instead of LLD" ON)
+option(VOIX_ENABLE_PAM "Enable PAM support" ON)
+option(VOIX_ENABLE_CAP "Enable Capability support" ON)
+option(VOIX_ENABLE_SECCOMP "Enable Seccomp support" ON)
+
 # ---- Architecture Selection ----
 # Allow overriding the architecture for generic binary builds (e.g., CI/CD)
 set(VOIX_ARCH "native" CACHE STRING "Target architecture for compilation (default: native)")
 message(STATUS "Targeting architecture: ${VOIX_ARCH}")
+message(STATUS "Build options: MOLD=${VOIX_USE_MOLD}, PAM=${VOIX_ENABLE_PAM}, CAP=${VOIX_ENABLE_CAP}, SECCOMP=${VOIX_ENABLE_SECCOMP}")
 
 # ---- Toolchain Validation ----
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -40,7 +47,7 @@ endif()
 
 # ---- Compiler & Feature Flags ----
 # Optimized for the chosen architecture and C++26 experimental features
-# Using LLVM toolchain (Clang + LLD + Oz optimization)
+# Using LLVM toolchain (Clang + LLD/MOLD + Oz optimization)
 set(COMMON_FLAGS "-march=${VOIX_ARCH} -Oz -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
 -fsanitize=cfi -fsanitize=shadow-call-stack \
@@ -51,16 +58,23 @@ set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
 set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}" CACHE STRING "" FORCE)
 
 # ---- Linker Flags ----
-# Utilizing LLD, ThinLTO caching, and Identical Code Folding (ICF)
-set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
+# Utilizing LLD/MOLD, ThinLTO caching, and Identical Code Folding (ICF)
+set(LINKER_FLAGS "-Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
 -Wl,-z,noexecstack -Wl,--icf=all \
--pie -flto=thin" CACHE STRING "" FORCE)
+-pie -flto=thin")
+
+if(VOIX_USE_MOLD)
+    set(LINKER_FLAGS "-fuse-ld=mold ${LINKER_FLAGS}")
+else()
+    set(LINKER_FLAGS "-fuse-ld=lld ${LINKER_FLAGS}")
+endif()
+
+set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}" CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-Wl,--strip-all ${LINKER_FLAGS}" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING "" FORCE)
 
 # ---- Dependencies ----
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(PAM REQUIRED pam)
-pkg_check_modules(LIBCAP REQUIRED libcap)
-pkg_check_modules(LIBSECCOMP REQUIRED libseccomp)
 find_package(yaml-cpp REQUIRED)
 
 # ---- Source & Executable ----
@@ -69,19 +83,29 @@ list(REMOVE_ITEM VOIX_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 add_library(voix_lib STATIC ${VOIX_SOURCES})
 add_executable(voix src/main.cpp)
 
-target_link_libraries(voix_lib PUBLIC
-    ${PAM_LIBRARIES}
-    ${LIBCAP_LIBRARIES}
-    ${LIBSECCOMP_LIBRARIES}
-    yaml-cpp::yaml-cpp
-)
+target_link_libraries(voix_lib PUBLIC yaml-cpp::yaml-cpp)
+target_include_directories(voix_lib PUBLIC include)
 
-target_include_directories(voix_lib PUBLIC
-    include
-    ${PAM_INCLUDE_DIRS}
-    ${LIBCAP_INCLUDE_DIRS}
-    ${LIBSECCOMP_INCLUDE_DIRS}
-)
+if(VOIX_ENABLE_PAM)
+    pkg_check_modules(PAM REQUIRED pam)
+    target_link_libraries(voix_lib PUBLIC ${PAM_LIBRARIES})
+    target_include_directories(voix_lib PUBLIC ${PAM_INCLUDE_DIRS})
+    target_compile_definitions(voix_lib PUBLIC VOIX_WITH_PAM)
+endif()
+
+if(VOIX_ENABLE_CAP)
+    pkg_check_modules(LIBCAP REQUIRED libcap)
+    target_link_libraries(voix_lib PUBLIC ${LIBCAP_LIBRARIES})
+    target_include_directories(voix_lib PUBLIC ${LIBCAP_INCLUDE_DIRS})
+    target_compile_definitions(voix_lib PUBLIC VOIX_WITH_CAP)
+endif()
+
+if(VOIX_ENABLE_SECCOMP)
+    pkg_check_modules(LIBSECCOMP REQUIRED libseccomp)
+    target_link_libraries(voix_lib PUBLIC ${LIBSECCOMP_LIBRARIES})
+    target_include_directories(voix_lib PUBLIC ${LIBSECCOMP_INCLUDE_DIRS})
+    target_compile_definitions(voix_lib PUBLIC VOIX_WITH_SECCOMP)
+endif()
 
 target_link_libraries(voix PRIVATE voix_lib)
 
