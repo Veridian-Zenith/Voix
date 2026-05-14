@@ -7,11 +7,10 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/.github/workflows"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "04:00"
     # Allow up to 10 open pull requests at a time for this ecosystem
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     # Group updates together to reduce PR noise
     groups:
       actions:

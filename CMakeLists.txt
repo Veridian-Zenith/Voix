@@ -54,8 +54,11 @@ set(COMMON_FLAGS "-march=${VOIX_ARCH} -Oz -pipe -fno-plt -fstack-protector-stron
 -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26")
 
 set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
+set(RELEASE_FLAGS "-O3 -DNDEBUG")
 
 set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}" CACHE STRING "" FORCE)
+string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${COMMON_FLAGS} ${DEBUG_FLAGS}")
+string(APPEND CMAKE_CXX_FLAGS_RELEASE " ${COMMON_FLAGS} ${RELEASE_FLAGS}")
 
 # ---- Linker Flags ----
 # Utilizing LLD/MOLD, ThinLTO caching, and Identical Code Folding (ICF)
@@ -69,9 +72,9 @@ else()
     set(LINKER_FLAGS "-fuse-ld=lld ${LINKER_FLAGS}")
 endif()
 
-set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}" CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${LINKER_FLAGS}" CACHE STRING "" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${LINKER_FLAGS} -Wl,--strip-all" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "${COMMON_FLAGS} -O3 -DNDEBUG" CACHE STRING "" FORCE)
 
 # ---- Dependencies ----
 find_package(PkgConfig REQUIRED)
