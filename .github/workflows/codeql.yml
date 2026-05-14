@@ -54,6 +54,8 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: manual
+        queries: security-extended
+        db-location: ./codeql-db
 
     - name: Run manual build steps
       shell: bash
@@ -70,3 +72,15 @@ jobs:
       uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
+        upload: true
+        checkout-path: .
+        wait-for-processing: true
+        output: sarif-results
+
+    - name: Upload SARIF to Code Scanning
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: sarif-results
+        category: codeql-analysis
+        wait-for-processing: true
