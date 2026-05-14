@@ -14,13 +14,18 @@ project(Voix VERSION 4.1.3 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
-find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
-    message(STATUS "ccache found: ${CCACHE_PROGRAM}")
-    set(CMAKE_C_COMPILER_LAUNCHER   "${CCACHE_PROGRAM}")
-    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+# (disabled during CodeQL analysis to allow proper build tracing)
+if(NOT DEFINED ENV{CCACHE_DISABLE})
+    find_program(CCACHE_PROGRAM ccache)
+    if(CCACHE_PROGRAM)
+        message(STATUS "ccache found: ${CCACHE_PROGRAM}")
+        set(CMAKE_C_COMPILER_LAUNCHER   "${CCACHE_PROGRAM}")
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    else()
+        message(WARNING "ccache not found. Proceeding with raw compilation.")
+    endif()
 else()
-    message(WARNING "ccache not found. Proceeding with raw compilation.")
+    message(STATUS "ccache disabled (likely CodeQL analysis)")
 endif()
 
 # ---- Project Standards ----

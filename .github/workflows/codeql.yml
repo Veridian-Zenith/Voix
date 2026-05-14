@@ -74,14 +74,28 @@ jobs:
 
       - name: Run manual build steps
         shell: bash
+        env:
+          CODEQL_EXTRACTOR_CPP_TRAP_CACHING: false
+          CCACHE_DISABLE: "1"
         run: |
-          export CCACHE_DIR=$HOME/.cache/ccache
+          echo "=== Starting CodeQL build ==="
+          echo "CMAKE version:"
+          cmake --version
+
+          echo "=== Configuring CMake with verbose output ==="
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER=clang-22 \
             -DCMAKE_CXX_COMPILER=clang++-22 \
-            -DENABLE_PERMISSIONS=OFF
-          cmake --build build
+            -DENABLE_PERMISSIONS=OFF \
+            --debug-output \
+            -DCMAKE_VERBOSE_MAKEFILE=ON
+
+          echo "=== Building with verbose output ==="
+          cmake --build build --verbose
+
+          echo "=== Build complete ==="
+          ls -la build/
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
