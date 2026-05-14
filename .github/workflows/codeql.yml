@@ -2,12 +2,12 @@ name: CodeQL Analysis
 
 on:
   push:
-    branches: [ master ]
-    tags: [ 'v*' ]
+    branches: [master]
+    tags: ["v*"]
   pull_request:
-    branches: [ master ]
+    branches: [master]
   schedule:
-    - cron: '33 21 * * 1'
+    - cron: "33 21 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,62 +25,62 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['c-cpp']
+        language: ["c-cpp"]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - name: Install dependencies and LLVM 22
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev wget ninja-build ccache
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 22
-        sudo apt-get install -y clang-22 lld-22
+      - name: Install dependencies and LLVM 22
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev wget ninja-build ccache
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          sudo apt-get install -y clang-22 lld-22
 
-    - name: Setup Cache
-      uses: actions/cache@v5
-      with:
-        path: ~/.cache/ccache
-        key: ${{ runner.os }}-ccache-${{ github.sha }}
-        restore-keys: ${{ runner.os }}-ccache-
+      - name: Setup Cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-ccache-
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: manual
-        queries: security-extended
-        db-location: ./codeql-db
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: manual
+          queries: security-extended
+          db-location: ./codeql-db
 
-    - name: Run manual build steps
-      shell: bash
-      run: |
-        export CCACHE_DIR=$HOME/.cache/ccache
-        cmake -B build -G Ninja \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_C_COMPILER=clang-22 \
-          -DCMAKE_CXX_COMPILER=clang++-22 \
-          -DENABLE_PERMISSIONS=OFF
-        cmake --build build
+      - name: Run manual build steps
+        shell: bash
+        run: |
+          export CCACHE_DIR=$HOME/.cache/ccache
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang-22 \
+            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DENABLE_PERMISSIONS=OFF
+          cmake --build build
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
-      with:
-        category: "/language:${{matrix.language}}"
-        upload: true
-        checkout-path: .
-        wait-for-processing: true
-        output: sarif-results
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{matrix.language}}"
+          upload: true
+          checkout-path: .
+          wait-for-processing: true
+          output: sarif-results
 
-    - name: Upload SARIF to Code Scanning
-      uses: github/codeql-action/upload-sarif@v4
-      if: always()
-      with:
-        sarif_file: sarif-results
-        category: codeql-analysis
-        wait-for-processing: true
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: sarif-results
+          category: codeql-analysis
+          wait-for-processing: true
