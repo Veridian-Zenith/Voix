@@ -33,6 +33,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache APT packages
+        uses: actions/cache@v5
+        with:
+          path: |
+            /var/cache/apt/archives
+            /var/lib/apt/lists
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: ${{ runner.os }}-apt-
+
       - name: Install dependencies and LLVM 22
         run: |
           sudo apt-get update
@@ -42,12 +51,19 @@ jobs:
           sudo ./llvm.sh 22
           sudo apt-get install -y clang-22 lld-22
 
-      - name: Setup Cache
+      - name: Cache compiler cache (ccache)
         uses: actions/cache@v5
         with:
           path: ~/.cache/ccache
           key: ${{ runner.os }}-ccache-${{ github.sha }}
           restore-keys: ${{ runner.os }}-ccache-
+
+      - name: Cache build directory
+        uses: actions/cache@v5
+        with:
+          path: build
+          key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt', '**/src/**', '**/include/**') }}
+          restore-keys: ${{ runner.os }}-build-
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
