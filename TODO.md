@@ -6,11 +6,10 @@ This document outlines the planned improvements, security hardening, and archite
 
 ### Hardening
 
-- [ ] **Environment Sanitization**: Fix Environment Variable Leakage during `-E` preservation (sanitize `LD_*`, `BASH_ENV`, etc.).
-- [ ] **Environment Whitelisting**: Restrict Default Environment Whitelist to exclude compiler variables (`CC`, `CXX`, `CMAKE_*`).
+- [x] **Environment Sanitization**: Fix Environment Variable Leakage during `-E` preservation (sanitize `LD_*`, `BASH_ENV`, etc.).
+- [x] **Environment Whitelisting**: Restrict Default Environment Whitelist to exclude compiler variables (`CC`, `CXX`, `CMAKE_*`).
 
 ### Completed Security Items
-
 - [x] Implement fail-closed logic in `dropCapabilities` to terminate process on failure.
 - [x] Integrate `applySeccompBlacklist` into the execution flow.
 - [x] Expand Seccomp blacklist to include more dangerous syscalls (e.g., `ptrace`, `bpf`).
@@ -26,6 +25,11 @@ This document outlines the planned improvements, security hardening, and archite
 - [x] Use `libcap` for necessary capabilities.
 - [x] Ensure `voix.conf` is immutable (root-owned, restricted permissions).
 - [x] Implement Binary Hardening (CFI, ThinLTO, Shadow Call Stack).
+
+### Potential Enhancements (Identified during Analysis)
+- [ ] **Optimize `isCatastrophicCommand`**: Consider pre-compilation or alternative data structures for command matching to reduce regex overhead during frequent calls.
+- [ ] **Asynchronous Logging**: Improve `logEvent` performance by buffering or using an asynchronous logger, especially if volume increases.
+
 
 ## ⚙️ Configuration
 

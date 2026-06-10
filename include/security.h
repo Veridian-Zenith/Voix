@@ -14,16 +14,18 @@
 #include <string_view>
 #include <vector>
 #include <optional>
+#include <memory>
 #ifdef VOIX_WITH_CAP
 #include <sys/capability.h>
 #endif
 #include "config.h"
+#include "system_identity.h"
 
 namespace Voix {
 
 class Security {
 public:
-    Security();
+    Security(std::shared_ptr<IIdentity> identity = std::make_shared<SystemIdentity>());
     ~Security() = default;
 
     /**
@@ -54,6 +56,7 @@ public:
      * @return Current user name
      */
     std::string getCurrentUser() const;
+    uid_t getCurrentUid() const;
 
     /**
      * @brief Prevent unequivocally destructive commands (e.g. rm -rf /)
@@ -84,7 +87,7 @@ void applySeccompBlacklist() const;
 #endif
 
 
-private:
+    std::shared_ptr<IIdentity> identity_;
 
 };
 

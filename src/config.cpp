@@ -69,7 +69,7 @@ namespace {
     }
 }
 
-bool Config::load(std::string_view config_path) {
+bool Config::load(std::string_view config_path, bool verify_security) {
     std::string path_str{config_path};
     FileUtils file_utils;
     Logger logger;
@@ -79,7 +79,7 @@ bool Config::load(std::string_view config_path) {
         return false;
     }
 
-    if (!file_utils.isSecurePath(path_str)) {
+    if (verify_security && !file_utils.isSecurePath(path_str)) {
         logger.log("ERROR", std::format("Config file security check failed: {}", path_str));
         return false;
     }

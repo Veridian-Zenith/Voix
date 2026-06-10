@@ -47,10 +47,10 @@ struct SeccompDeleter {
 using UniqueSeccomp = std::unique_ptr<std::remove_pointer_t<scmp_filter_ctx>, SeccompDeleter>;
 #endif
 
-Security::Security() = default;
+Security::Security(std::shared_ptr<IIdentity> identity)
+    : identity_(std::move(identity)) {}
 
 bool Security::validateUser(std::string_view username) const {
-    // Basic validation - ensure username is not empty and contains only safe characters
     if (username.empty() || username.length() > 32) {
         return false;
     }
@@ -61,17 +61,7 @@ bool Security::validateUser(std::string_view username) const {
         }
     }
 
-    // Check if user exists on the system
-    struct passwd pwd;
-    struct passwd* result = nullptr;
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = 16384;
-    std::vector<char> buffer(static_cast<size_t>(bufsize));
-
-    if (getpwnam_r(std::string(username).c_str(), &pwd, buffer.data(), buffer.size(), &result) != 0 || result == nullptr) {
-        return false;
-    }
-    return true;
+    return identity_->getUserByName(std::string(username)).has_value();
 }
 
 bool Security::isSafePath(std::string_view path) const {
@@ -112,18 +102,11 @@ void Security::logEvent(std::string_view event, std::string_view user) const {
 }
 
 std::string Security::getCurrentUser() const {
-    uid_t uid = getuid();
-    struct passwd pwd;
-    struct passwd* result = nullptr;
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = 16384;
-    std::vector<char> buffer(static_cast<size_t>(bufsize));
+    return identity_->getCurrentUsername();
+}
 
-    if (getpwuid_r(uid, &pwd, buffer.data(), buffer.size(), &result) == 0 && result != nullptr) {
-        return std::string(result->pw_name);
-    }
-
-    return "unknown";
+uid_t Security::getCurrentUid() const {
+    return identity_->getCurrentUid();
 }
 
 bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const {
@@ -170,7 +153,12 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
         }
     }
 
-    // Regex check
+    // Check for explicit blocked commands first (faster)
+    for (const auto& forbidden_cmd : config.get_blocklist()) {
+        if (command == forbidden_cmd) return true;
+    }
+
+    // Regex check (slower)
     for (const auto& regex : config.get_compiled_blocklist()) {
         if (std::regex_search(full_command, regex) || std::regex_search(normalized_command, regex)) {
             return true;

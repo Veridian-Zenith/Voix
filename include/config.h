@@ -26,7 +26,7 @@ public:
     Config();
     ~Config() = default;
 
-    bool load(std::string_view config_path);
+    bool load(std::string_view config_path, bool verify_security = true);
     std::vector<Rule> getRules() const;
     std::string getSanctuary() const;
     std::string getPath() const;

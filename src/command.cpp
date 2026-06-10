@@ -64,8 +64,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Preserve whitelist environment
-    std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
+    const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
     std::vector<std::pair<std::string, std::string>> saved_env;
+    
     if (options.preserve_env) {
       extern char **environ;
       for (char **env = ::environ; *env != nullptr; ++env) {
@@ -74,7 +75,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         if (pos != std::string::npos) {
           std::string key = entry.substr(0, pos);
           // Sanitize sensitive environment variables
-          if (key.starts_with("LD_") || key == "BASH_ENV" || key == "ENV") continue;
+          if (key.starts_with("LD_") || key == "BASH_ENV" || key == "ENV" || 
+              key.starts_with("CC") || key.starts_with("CXX") || key.starts_with("CMAKE_")) continue;
           saved_env.push_back({key, entry.substr(pos + 1)});
         }
       }

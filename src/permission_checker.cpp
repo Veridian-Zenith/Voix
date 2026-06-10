@@ -106,29 +106,21 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
 }
 
 std::optional<Rule> PermissionChecker::permit(std::string_view command,
-                                 const std::vector<std::string> &args,
-                                 uid_t target_uid) const {
+                                  const std::vector<std::string> &args,
+                                  uid_t target_uid) const {
   std::string current_user = security_->getCurrentUser();
-  struct passwd pwd;
-  struct passwd *result = nullptr;
-  long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-  if (bufsize == -1) bufsize = 16384;
-  std::vector<char> buffer(bufsize);
+  auto identity = security_->identity_->getUserByName(current_user);
+  if (!identity) return std::nullopt;
 
-  if (getpwnam_r(current_user.c_str(), &pwd, buffer.data(), bufsize, &result) != 0 || result == nullptr)
-    return std::nullopt;
-
-  uid_t uid = result->pw_uid;
-  gid_t groups[NGROUPS_MAX + 1];
-  int ngroups = getgroups(NGROUPS_MAX, groups);
-  if (ngroups == -1)
-    return std::nullopt;
-  groups[ngroups++] = getgid();
-
+  uid_t uid = identity->uid;
+  std::vector<gid_t> groups = identity->groups;
+  groups.push_back(identity->gid);
+  int ngroups = static_cast<int>(groups.size());
+  
   auto rules = config_->getRules();
-
+  
   for (const auto &rule : rules) {
-    if (matchRule(rule, uid, groups, ngroups, command, target_uid, args)) {
+    if (matchRule(rule, uid, groups.data(), ngroups, command, target_uid, args)) {
       if (rule.action == Rule::Action::PERMIT) {
         return rule;
       } else {
@@ -136,8 +128,9 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
       }
     }
   }
-
+  
   return std::nullopt;
 }
+
 
 } // namespace Voix

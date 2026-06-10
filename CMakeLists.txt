@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.1.3 LANGUAGES CXX)
+project(Voix VERSION 4.1.4 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -55,7 +55,6 @@ endif()
 # Using LLVM toolchain (Clang + LLD/MOLD + Oz optimization)
 set(COMMON_FLAGS "-march=${VOIX_ARCH} -Oz -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
--fsanitize=cfi -fsanitize=shadow-call-stack \
 -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26")
 
 set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
