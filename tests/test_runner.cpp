@@ -118,7 +118,7 @@ bool test_config_load_invalid_yaml() {
 
 bool test_config_load_nonexistent() {
     Voix::Config config;
-    ASSERT_TRUE(!config.load("this_file_does_not_exist.conf"));
+    ASSERT_TRUE(!config.load("this_file_does_not_exist.conf", false));
     return true;
 }
 
