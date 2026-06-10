@@ -151,8 +151,21 @@ bool test_security_validate_user_bad_chars() {
 
 bool test_file_exists() {
     Voix::FileUtils file_utils;
-    ASSERT_TRUE(file_utils.fileExists("CMakeLists.txt"));
-    ASSERT_TRUE(!file_utils.fileExists("non_existent_file_xyz"));
+
+    std::filesystem::path test_dir = std::filesystem::temp_directory_path() / "voix_test_file_exists";
+    std::filesystem::path existing_file = test_dir / "existing.txt";
+    std::filesystem::path missing_file = test_dir / "missing.txt";
+
+    std::filesystem::create_directories(test_dir);
+    {
+        std::ofstream out(existing_file);
+        out << "test";
+    }
+
+    ASSERT_TRUE(file_utils.fileExists(existing_file.string()));
+    ASSERT_TRUE(!file_utils.fileExists(missing_file.string()));
+
+    std::filesystem::remove_all(test_dir);
     return true;
 }
 
