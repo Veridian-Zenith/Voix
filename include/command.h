@@ -16,28 +16,59 @@
 
 namespace Voix {
 
+/**
+ * @brief Options for command execution.
+ */
 struct CommandOptions {
-    bool preserve_env = false;
-    bool login_shell = false;
-    bool list_commands = false;
+    bool preserve_env = false; /**< Whether to preserve the environment variables. */
+    bool login_shell = false;  /**< Whether to execute the command as a login shell. */
+    bool list_commands = false; /**< Whether to list available commands. */
 };
 
+/**
+ * @brief Handles the execution of commands with given options and configuration.
+ */
 class Command {
 public:
+    /**
+     * @brief Default constructor for Command.
+     */
     Command() = default;
+    /**
+     * @brief Default destructor for Command.
+     */
     ~Command() = default;
 
+    /**
+     * @brief Executes a command with given arguments and options.
+     * @param command The command to execute.
+     * @param args The arguments for the command.
+     * @param config The configuration to use.
+     * @param options The options for command execution.
+     * @param user The user to execute the command as.
+     * @return The return code of the command, or a non-zero value on failure.
+     */
     int execute(std::string_view command,
                 const std::vector<std::string>& args,
                 const Config& config,
                 const CommandOptions& options,
                 std::string_view user = "root") const;
 
+    /**
+     * @brief Builds a command string for logging or debugging.
+     * @param command The command.
+     * @param args The arguments.
+     * @param user The user.
+     * @return The built command string.
+     */
     std::string buildCommandString(std::string_view command,
-                                   const std::vector<std::string>& args,
-                                   std::string_view user) const;
+                                    const std::vector<std::string>& args,
+                                    std::string_view user) const;
 
 private:
+    /**
+     * @brief Sets resource limits for the executed command.
+     */
     void setResourceLimits() const;
 };
 

@@ -25,65 +25,76 @@ namespace Voix {
 
 class Security {
 public:
+    /**
+     * @brief Constructor for Security.
+     * @param identity An optional identity provider. Defaults to SystemIdentity.
+     */
     Security(std::shared_ptr<IIdentity> identity = std::make_shared<SystemIdentity>());
+    /**
+     * @brief Default destructor for Security.
+     */
     ~Security() = default;
 
     /**
-     * @brief Validate user exists and is safe
-     * @param username Username to validate
-     * @return true if valid, false otherwise
+     * @brief Validates that a user exists and is considered safe.
+     * @param username Username to validate.
+     * @return True if valid, false otherwise.
      */
     bool validateUser(std::string_view username) const;
 
 
 
     /**
-     * @brief Check if path is safe (no traversal, no sensitive locations)
-     * @param path Path to check
-     * @return true if safe, false otherwise
+     * @brief Checks if a path is safe (e.g., no directory traversal, no sensitive locations).
+     * @param path Path to check.
+     * @return True if safe, false otherwise.
      */
     bool isSafePath(std::string_view path) const;
 
     /**
-     * @brief Log security event
-     * @param event Event description
-     * @param user Username associated with event
+     * @brief Logs a security-related event.
+     * @param event Description of the event.
+     * @param user Username associated with the event.
      */
     void logEvent(std::string_view event, std::string_view user) const;
 
     /**
-     * @brief Get current user name
-     * @return Current user name
+     * @brief Gets the current username.
+     * @return The current username.
      */
     std::string getCurrentUser() const;
+    /**
+     * @brief Gets the current user ID.
+     * @return The current UID.
+     */
     uid_t getCurrentUid() const;
 
     /**
-     * @brief Prevent unequivocally destructive commands (e.g. rm -rf /)
-     * @param command Command to check
-     * @param args Command arguments
-     * @param config Configuration instance for blocklist
-     * @return true if catastrophic, false otherwise
+     * @brief Prevents unequivocally destructive commands (e.g., 'rm -rf /').
+     * @param command Command to check.
+     * @param args Command arguments.
+     * @param config Configuration instance for the blocklist.
+     * @return True if the command is catastrophic, false otherwise.
      */
     bool isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const;
 
 #ifdef VOIX_WITH_CAP
     /**
-     * @brief Raise capabilities to perform privileged operations.
+     * @brief Raises capabilities to perform privileged operations.
      */
     void raiseCapabilities();
 
     /**
-     * @brief Drop all capabilities, optionally keeping some.
-     * @param keep_caps Vector of capabilities to keep.
+     * @brief Drops all capabilities, optionally keeping some.
+     * @param keep_caps Vector of capabilities to retain.
      */
     void dropCapabilities(const std::vector<cap_value_t>& keep_caps = {});
 #endif
 #ifdef VOIX_WITH_SECCOMP
-/**
- * @brief Apply Seccomp blacklist to restrict dangerous system calls.
- */
-void applySeccompBlacklist() const;
+    /**
+     * @brief Applies a Seccomp blacklist to restrict dangerous system calls.
+     */
+    void applySeccompBlacklist() const;
 #endif
 
 

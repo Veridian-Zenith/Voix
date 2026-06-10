@@ -27,6 +27,9 @@
 #include "tests/test_main.h"
 #endif
 
+/**
+ * @brief Prints the usage information for the voix command.
+ */
 void printUsage() {
     std::print("Usage: voix [options] <incantation> [args...]\n\n"
                "Options:\n"
@@ -42,6 +45,9 @@ void printUsage() {
                "  voix -s          # Start interactive shell ascension\n");
 }
 
+/**
+ * @brief Prints the version information of the voix command.
+ */
 void printVersion() {
     std::print("Voix version 4.1.4 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
