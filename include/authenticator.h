@@ -21,17 +21,43 @@ namespace Voix {
 class Security;
 class Rule;
 
+/**
+ * @brief Interface for user authentication.
+ */
 class IAuthenticator {
 public:
     virtual ~IAuthenticator() = default;
+    /**
+     * @brief Authenticates the user.
+     * @param rule Optional rule to consider during authentication.
+     * @return True if authentication succeeded, false otherwise.
+     */
     virtual bool authenticate(const std::optional<Rule>& rule) = 0;
+    /**
+     * @brief Opens a session for the authenticated user.
+     * @return True if session was opened successfully, false otherwise.
+     */
     virtual bool openSession() = 0;
+    /**
+     * @brief Closes the current session.
+     */
     virtual void closeSession() = 0;
 };
 
+/**
+ * @brief PAM-based authentication implementation.
+ */
 class PamAuthenticator : public IAuthenticator {
 public:
+    /**
+     * @brief Constructor for PamAuthenticator.
+     * @param security Pointer to the security manager.
+     * @param non_interactive Whether authentication should be non-interactive.
+     */
     PamAuthenticator(std::shared_ptr<Security> security, bool non_interactive);
+    /**
+     * @brief Destructor for PamAuthenticator.
+     */
     ~PamAuthenticator() override;
 
     bool authenticate(const std::optional<Rule>& rule) override;

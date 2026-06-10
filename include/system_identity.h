@@ -17,25 +17,56 @@
 
 namespace Voix {
 
+/**
+ * @brief Represents identity information for a system user.
+ */
 struct UserIdentity {
-    std::string username;
-    uid_t uid;
-    gid_t gid;
-    std::vector<gid_t> groups;
-    std::string home_dir;
-    std::string shell;
+    std::string username;      /**< The username. */
+    uid_t uid;                 /**< The user ID. */
+    gid_t gid;                 /**< The primary group ID. */
+    std::vector<gid_t> groups; /**< The list of supplementary group IDs. */
+    std::string home_dir;      /**< The user's home directory. */
+    std::string shell;         /**< The user's login shell. */
 };
 
+/**
+ * @brief Interface for system identity operations to allow mocking in tests.
+ */
 class IIdentity {
 public:
     virtual ~IIdentity() = default;
+    /**
+     * @brief Retrieves user identity information by username.
+     * @param username The username to look up.
+     * @return The UserIdentity if found, otherwise std::nullopt.
+     */
     virtual std::optional<UserIdentity> getUserByName(const std::string& username) const = 0;
+    /**
+     * @brief Retrieves user identity information by UID.
+     * @param uid The user ID to look up.
+     * @return The UserIdentity if found, otherwise std::nullopt.
+     */
     virtual std::optional<UserIdentity> getUserByUid(uid_t uid) const = 0;
+    /**
+     * @brief Retrieves the current username.
+     * @return The current username.
+     */
     virtual std::string getCurrentUsername() const = 0;
+    /**
+     * @brief Retrieves the current UID.
+     * @return The current user ID.
+     */
     virtual uid_t getCurrentUid() const = 0;
+    /**
+     * @brief Retrieves the current user's groups.
+     * @return A vector of group IDs.
+     */
     virtual std::vector<gid_t> getCurrentGroups() const = 0;
 };
 
+/**
+ * @brief Concrete implementation of IIdentity using system calls.
+ */
 class SystemIdentity : public IIdentity {
 public:
     std::optional<UserIdentity> getUserByName(const std::string& username) const override;
