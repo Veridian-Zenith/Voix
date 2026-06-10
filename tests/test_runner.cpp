@@ -123,8 +123,11 @@ bool test_config_load_nonexistent() {
 }
 
 bool test_security_validate_user_valid() {
-    Voix::Security security;
-    // We know 'root' always exists on Linux
+    auto identity = std::make_shared<MockIdentity>();
+    identity->users.push_back({"root", 0, 0, {0}});
+    identity->current_user = "root";
+
+    Voix::Security security(identity);
     ASSERT_TRUE(security.validateUser("root"));
     return true;
 }
