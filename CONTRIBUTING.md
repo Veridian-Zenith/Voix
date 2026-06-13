@@ -14,7 +14,7 @@ We welcome all who wish to help forge the future of Voix. To maintain the artifa
 ### 1. Preparing the Forge
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DVOIX_HARDEN=ON
+cmake -B build-dbg -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && cmake --build build-dbg
 ```
 
 ### 2. Cleansing the Code (Tidy)
@@ -28,8 +28,8 @@ A `.clang-tidy` configuration file has been provided in the root directory to st
 ```bash
 # Correct syntax: Specify checks and build path before the compiler arguments
 clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' \
-           -p build \
-           src/*.cpp include/*.h \
+           -p build-dbg \
+           src/*.cpp include/*.hpp \
            -- -Iinclude -std=c++26 2>&1 | tee tidy.log
 ```
 
@@ -37,7 +37,7 @@ clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' 
 
 ```bash
 # The configuration from .clang-tidy is used automatically
-clang-tidy -p build src/*.cpp include/*.h -- -Iinclude -std=c++26 2>&1 | tee tidy.log
+clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26 2>&1 | tee tidy.log
 ```
 
 **Fish Ritual (Manual):**
@@ -45,8 +45,8 @@ clang-tidy -p build src/*.cpp include/*.h -- -Iinclude -std=c++26 2>&1 | tee tid
 ```fish
 # In fish, specifying checks and build path before compiler arguments
 clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' \
-           -p build \
-           src/*.cpp include/*.h \
+           -p build-dbg \
+           src/*.cpp include/*.hpp \
            -- -Iinclude -std=c++26 2>&1 | tee tidy.log
 ```
 
@@ -54,17 +54,17 @@ clang-tidy --checks='-*,bugprone-*,performance-*,readability-identifier-naming' 
 
 ```fish
 # Automated ritual using the provided .clang-tidy configuration
-clang-tidy -p build src/*.cpp include/*.h -- -Iinclude -std=c++26 2>&1 | tee tidy.log
+clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26 2>&1 | tee tidy.log
 ```
 
 *Note: The `--` separates file list and `clang-tidy` options from compiler arguments like `-Iinclude` and `-std=c++26`. If you place `clang-tidy` options like `--checks` after the `--`, they will be passed to the compiler and ignored by `clang-tidy`, often resulting in an "Error: no checks enabled" message.*
 
 ### 3. Testing the Artifact
 
-Ensure all tests pass before proposing your changes:
+Ensure all tests pass before proposing your changes. Tests are run automatically during the build process when compiling a Debug build:
 
 ```bash
-cmake --build build --target test
+cmake --build build-dbg
 ```
 
 ## Proposing Changes

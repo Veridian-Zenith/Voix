@@ -42,10 +42,10 @@ The Elders command strict adherence to modern crafting:
 
 3. **Test the Artifact (Debug Builds Only)**:
 
+    Tests are built and executed automatically *during* the debug build process. If any tests fail, the build itself will fail.
+
     ```bash
-    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-    cmake --build build
-    cd build && ctest
+    cmake -B build-dbg -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && cmake --build build-dbg
     ```
 
 4. **Install the Artifact**:

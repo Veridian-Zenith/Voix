@@ -1,6 +1,12 @@
 # Testing
 
-Voix uses a compile-time testing system.
+Voix features automated test execution directly integrated into the build process.
+
+## How it Works
+
+When `BUILD_TESTING` is enabled (default for Debug builds), a custom target `run_tests` is created. The main `voix` target is configured to depend on `run_tests`. 
+
+This means **tests are run automatically during the build process**. If any test fails, the build itself is marked as failed, preventing broken binaries from being accidentally compiled or packaged.
 
 ## Configuration
 
@@ -11,7 +17,15 @@ You can explicitly enable or disable the build of tests using the `-DBUILD_TESTI
 - To enable tests: `-DBUILD_TESTING=ON`
 - To disable tests: `-DBUILD_TESTING=OFF`
 
-Example:
+### Building and Running Tests (Debug Mode)
+
+To configure and compile a Debug build (which automatically runs tests):
+
+```bash
+cmake -B build-dbg -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && cmake --build build-dbg
+```
+
+### Force-enabling Tests (Release Mode)
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -G Ninja

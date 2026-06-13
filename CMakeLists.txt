@@ -132,6 +132,7 @@ endif()
 if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)
+    add_dependencies(voix run_tests)
 endif()
 
 # ---- Installation ----
