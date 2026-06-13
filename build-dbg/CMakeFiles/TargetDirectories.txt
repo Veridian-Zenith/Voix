@@ -8,6 +8,7 @@
 /home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/install/local.dir
 /home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/install/strip.dir
 /home/dae/VZ_Dev/work/Voix/build-dbg/tests/CMakeFiles/test_runner.dir
+/home/dae/VZ_Dev/work/Voix/build-dbg/tests/CMakeFiles/run_tests.dir
 /home/dae/VZ_Dev/work/Voix/build-dbg/tests/CMakeFiles/test.dir
 /home/dae/VZ_Dev/work/Voix/build-dbg/tests/CMakeFiles/edit_cache.dir
 /home/dae/VZ_Dev/work/Voix/build-dbg/tests/CMakeFiles/rebuild_cache.dir

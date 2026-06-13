@@ -23,6 +23,11 @@ namespace Voix {
 class Logger {
 public:
     /**
+     * @brief Flag to suppress printing to stderr (e.g., during tests).
+     */
+    static bool suppress_stderr;
+
+    /**
      * @brief Default constructor for Logger.
      */
     Logger() = default;

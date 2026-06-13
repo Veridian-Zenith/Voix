@@ -1,5 +1,6 @@
 #include "test_assert.hpp"
 #include "../include/file_utils.hpp"
+#include "../include/logger.hpp"
 #include "../include/security.hpp"
 #include "../include/config.hpp"
 #include "../include/permission_checker.hpp"
@@ -192,6 +193,7 @@ bool test_security_catastrophic_command() {
 }
 
 int main() {
+    Voix::Logger::suppress_stderr = true;
     TestRunner runner;
     runner.add_test("test_permission_checker_permit_allowed", test_permission_checker_permit_allowed);
     runner.add_test("test_permission_checker_permit_denied", test_permission_checker_permit_denied);
