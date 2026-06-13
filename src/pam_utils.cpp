@@ -6,7 +6,7 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "pam_utils.h"
+#include "pam_utils.hpp"
 #include <iostream>
 #include <string>
 #include <print>

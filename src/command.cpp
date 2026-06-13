@@ -6,10 +6,10 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "command.h"
-#include "logger.h"
-#include "file_utils.h"
-#include "security.h"
+#include "command.hpp"
+#include "logger.hpp"
+#include "file_utils.hpp"
+#include "security.hpp"
 #include <csignal>
 #include <pwd.h>
 #include <grp.h>

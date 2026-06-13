@@ -6,7 +6,7 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "logger.h"
+#include "logger.hpp"
 #include <chrono>
 #include <format>
 #include <fstream>

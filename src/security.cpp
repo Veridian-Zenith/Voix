@@ -7,8 +7,8 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "security.h"
-#include "logger.h"
+#include "security.hpp"
+#include "logger.hpp"
 #include <unistd.h>
 #ifdef VOIX_WITH_CAP
 #include <sys/capability.h>

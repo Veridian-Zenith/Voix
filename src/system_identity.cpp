@@ -7,7 +7,7 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "system_identity.h"
+#include "system_identity.hpp"
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>

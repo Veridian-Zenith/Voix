@@ -6,8 +6,8 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "file_utils.h"
-#include "logger.h"
+#include "file_utils.hpp"
+#include "logger.hpp"
 #include <fstream>
 #include <system_error>
 #include <sys/stat.h>

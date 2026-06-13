@@ -7,11 +7,11 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "config.h"
-#include "rule.h"
-#include "system_utils.h"
-#include "file_utils.h"
-#include "logger.h"
+#include "config.hpp"
+#include "rule.hpp"
+#include "system_utils.hpp"
+#include "file_utils.hpp"
+#include "logger.hpp"
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <numeric>
@@ -62,7 +62,11 @@ namespace {
 
         if (rule_node["args"]) {
             for (auto arg : rule_node["args"]) {
-                rule.cmdargs.push_back(arg.as<std::string>());
+                std::string arg_val = arg.as<std::string>();
+                rule.cmdargs.push_back(arg_val);
+                if (arg_val.find('*') != std::string::npos || arg_val.find('?') != std::string::npos) {
+                    rule.options |= Voix::Rule::PATTERN;
+                }
             }
         }
         return rule;
@@ -102,28 +106,66 @@ bool Config::load(std::string_view config_path, bool verify_security) {
             }
         }
 
+        if (config["profiles"]) {
+            profiles_.clear();
+            for (auto it = config["profiles"].begin(); it != config["profiles"].end(); ++it) {
+                std::string profile_name = it->first.as<std::string>();
+                std::vector<Rule> profile_rules;
+                for (auto rule_node : it->second) {
+                    profile_rules.push_back(parseRule(rule_node));
+                }
+                profiles_[profile_name] = std::move(profile_rules);
+            }
+        }
+
         if (config["acl"]) {
             rules_.clear();
             if (config["acl"]["user"]) {
                 for (auto it = config["acl"]["user"].begin(); it != config["acl"]["user"].end(); ++it) {
                     std::string username = it->first.as<std::string>();
-                    for (auto rule_node : it->second) {
+                for (auto rule_node : it->second) {
+                    if (rule_node["profile"]) {
+                        std::string profile_name = rule_node["profile"].as<std::string>();
+                        if (profiles_.count(profile_name)) {
+                            for (const auto& p_rule : profiles_.at(profile_name)) {
+                                Rule rule = p_rule;
+                                rule.ident = username;
+                                rule.ident_uid = SystemUtils::getUidByName(username);
+                                rules_.push_back(std::move(rule));
+                            }
+                        }
+                    } else {
                         Rule rule = parseRule(rule_node);
                         rule.ident = username;
                         rule.ident_uid = SystemUtils::getUidByName(username);
                         rules_.push_back(std::move(rule));
                     }
                 }
+
+                }
             }
             if (config["acl"]["group"]) {
                 for (auto it = config["acl"]["group"].begin(); it != config["acl"]["group"].end(); ++it) {
                     std::string groupname = it->first.as<std::string>();
-                    for (auto rule_node : it->second) {
+                for (auto rule_node : it->second) {
+                    if (rule_node["profile"]) {
+                        std::string profile_name = rule_node["profile"].as<std::string>();
+                        if (profiles_.count(profile_name)) {
+                            for (const auto& p_rule : profiles_.at(profile_name)) {
+                                Rule rule = p_rule;
+                                rule.ident = ":" + groupname;
+                                rule.ident_gid = SystemUtils::getGidByName(groupname);
+                                rules_.push_back(std::move(rule));
+                            }
+                        }
+                    } else {
                         Rule rule = parseRule(rule_node);
                         rule.ident = ":" + groupname;
                         rule.ident_gid = SystemUtils::getGidByName(groupname);
                         rules_.push_back(std::move(rule));
                     }
+                }
+
                 }
             }
         }

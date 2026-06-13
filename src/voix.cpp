@@ -7,12 +7,12 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "voix.h"
-#include "authenticator.h"
-#include "permission_checker.h"
-#include "command.h"
-#include "security.h"
-#include "config.h"
+#include "voix.hpp"
+#include "authenticator.hpp"
+#include "permission_checker.hpp"
+#include "command.hpp"
+#include "security.hpp"
+#include "config.hpp"
 #include <syslog.h>
 #include <pwd.h>
 #include <stdexcept>
@@ -25,7 +25,7 @@
 #include <print>
 #include <vector>
 #include <format>
-#include "pam_utils.h"
+#include "pam_utils.hpp"
 
 namespace Voix {
 

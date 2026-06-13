@@ -6,9 +6,9 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "permission_checker.h"
-#include "security.h"
-#include "config.h"
+#include "permission_checker.hpp"
+#include "security.hpp"
+#include "config.hpp"
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
@@ -17,6 +17,7 @@
 #include <vector>
 #include <algorithm>
 #include <ranges>
+#include <regex>
 #include <span>
 
 #ifndef NGROUPS_MAX
@@ -42,6 +43,33 @@ bool PermissionChecker::isAllowed() const {
     return rule.action == Rule::Action::PERMIT && rule.ident == current_user;
   });
 }
+bool PermissionChecker::matchPattern(const std::string& pattern, const std::string& text) const {
+  std::string regex_pattern = "^";
+  for (char c : pattern) {
+    if (c == '*') regex_pattern += ".*";
+    else if (c == '?') regex_pattern += ".";
+    else if (std::string(".+^$|()[]{}").find(c) != std::string::npos) {
+      regex_pattern += "\\";
+      regex_pattern += c;
+    } else {
+      regex_pattern += c;
+    }
+  }
+  regex_pattern += "$";
+  return std::regex_match(text, std::regex(regex_pattern));
+}
+
+std::string PermissionChecker::resolveVariables(const std::string& text) const {
+  std::string resolved = text;
+  std::string user = security_->getCurrentUser();
+  size_t pos = 0;
+  while ((pos = resolved.find("%u", pos)) != std::string::npos) {
+    resolved.replace(pos, 2, user);
+    pos += user.length();
+  }
+  return resolved;
+}
+
 bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, int ngroups,
                                     std::string_view command, uid_t target_uid,
                                     const std::vector<std::string> &args) const {
@@ -90,15 +118,25 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
   }
 
   if (!rule.cmd.empty()) {
-    if (rule.cmd != command)
+    std::string resolved_cmd = resolveVariables(rule.cmd);
+    if (resolved_cmd != command)
       return false;
 
     if (!rule.cmdargs.empty()) {
       if (args.size() != rule.cmdargs.size())
         return false;
 
-      if (!std::ranges::equal(args, rule.cmdargs))
-        return false;
+      if (rule.options & Rule::PATTERN) {
+        for (size_t i = 0; i < args.size(); ++i) {
+          if (!matchPattern(resolveVariables(rule.cmdargs[i]), args[i]))
+            return false;
+        }
+      } else {
+        for (size_t i = 0; i < args.size(); ++i) {
+          if (resolveVariables(rule.cmdargs[i]) != args[i])
+            return false;
+        }
+      }
     }
   }
 

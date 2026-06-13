@@ -1,0 +1,17 @@
+# ninja log v7
+11	1628	1781326632038101995	CMakeFiles/voix_lib.dir/src/system_identity.cpp.o	fc55eb83b2927909
+14	1653	1781326632041101922	CMakeFiles/voix_lib.dir/src/system_utils.cpp.o	cde2f062e8e832e1
+3	4876	1781326632031716817	CMakeFiles/voix_lib.dir/src/pam_utils.cpp.o	c646e99b03e59e3b
+2	5622	1781326632030557102	CMakeFiles/voix_lib.dir/src/file_utils.cpp.o	fa7c3e43a2574bff
+3	7006	1781326632031189767	CMakeFiles/voix_lib.dir/src/logger.cpp.o	da5f8c1f13f0ee23
+1	7156	1781326632028102237	CMakeFiles/voix_lib.dir/src/authenticator.cpp.o	3f899192f801afcf
+2	8131	1781326632029102213	CMakeFiles/voix_lib.dir/src/command.cpp.o	e28ecc861b3fcd24
+1628	8519	1781326633656425740	CMakeFiles/voix_lib.dir/src/voix.cpp.o	33daf03475cd1080
+4	8746	1781326632032216446	CMakeFiles/voix_lib.dir/src/permission_checker.cpp.o	d8f5ec25aee232ed
+1653	8824	1781326633680062198	CMakeFiles/voix.dir/src/main.cpp.o	2d0be948e9179bd0
+4	9261	1781326632033029492	CMakeFiles/voix_lib.dir/src/security.cpp.o	73e292a3a2e88d7a
+2	9839	1781326632030254439	CMakeFiles/voix_lib.dir/src/config.cpp.o	20f945965b4fe1f2
+9839	9887	1781326641866865516	libvoix_lib.a	a8425ce16bd8e283
+4876	10345	1781326636902984418	tests/CMakeFiles/test_runner.dir/test_runner.cpp.o	40e74685d111063a
+9887	12882	1781326641914864371	voix	cb51b51df55cfa73
+10345	13972	1781326642372853459	tests/test_runner	85928a4ccfbacd7c

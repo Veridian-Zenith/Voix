@@ -6,7 +6,7 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "system_utils.h"
+#include "system_utils.hpp"
 #include <string>
 #include <string_view>
 #include <unistd.h>

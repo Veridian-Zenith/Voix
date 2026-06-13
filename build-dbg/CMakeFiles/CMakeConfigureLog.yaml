@@ -1,0 +1,2494 @@
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineSystem.cmake:12 (find_program)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_UNAME"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "uname"
+    candidate_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+      - "/bin/"
+    searched_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/uname"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/uname"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/uname"
+      - "/opt/android-sdk/platform-tools/uname"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/uname"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/uname"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/uname"
+      - "/home/dae/.opencode/bin/uname"
+      - "/home/dae/.local/bin/uname"
+      - "/usr/lib/ccache/bin/uname"
+      - "/home/dae/.spicetify/uname"
+      - "/usr/local/sbin/uname"
+      - "/usr/local/bin/uname"
+    found: "/usr/bin/uname"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineSystem.cmake:212 (message)"
+      - "CMakeLists.txt:13 (project)"
+    message: |
+      The system is: Linux - 7.0.11-1-cachyos-eevdf-lto - x86_64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeNinjaFindMake.cmake:5 (find_program)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_MAKE_PROGRAM"
+    description: "Program used to build from build.ninja files."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ninja-build"
+      - "ninja"
+      - "samu"
+    candidate_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/ninja-build"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/ninja"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/samu"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/ninja-build"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/ninja"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/samu"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/ninja-build"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/ninja"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/samu"
+      - "/opt/android-sdk/platform-tools/ninja-build"
+      - "/opt/android-sdk/platform-tools/ninja"
+      - "/opt/android-sdk/platform-tools/samu"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/ninja-build"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/ninja"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/samu"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/ninja-build"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/ninja"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/samu"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/ninja-build"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/ninja"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/samu"
+      - "/home/dae/.opencode/bin/ninja-build"
+      - "/home/dae/.opencode/bin/ninja"
+      - "/home/dae/.opencode/bin/samu"
+      - "/home/dae/.local/bin/ninja-build"
+      - "/home/dae/.local/bin/ninja"
+      - "/home/dae/.local/bin/samu"
+      - "/usr/lib/ccache/bin/ninja-build"
+      - "/usr/lib/ccache/bin/ninja"
+      - "/usr/lib/ccache/bin/samu"
+      - "/home/dae/.spicetify/ninja-build"
+      - "/home/dae/.spicetify/ninja"
+      - "/home/dae/.spicetify/samu"
+      - "/usr/local/sbin/ninja-build"
+      - "/usr/local/sbin/ninja"
+      - "/usr/local/sbin/samu"
+      - "/usr/local/bin/ninja-build"
+      - "/usr/local/bin/ninja"
+      - "/usr/local/bin/samu"
+      - "/usr/bin/ninja-build"
+    found: "/usr/bin/ninja"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompiler.cmake:73 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:69 (_cmake_find_compiler)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER"
+    description: "CXX compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "/usr/lib/ccache/bin/clang++"
+    candidate_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    found: "/usr/lib/ccache/bin/clang++"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:468 (find_file)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:506 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCXXCompilerId.cpp.in"
+    candidate_directories:
+      - "/usr/share/cmake/Modules/"
+    found: "/usr/share/cmake/Modules/CMakeCXXCompilerId.cpp.in"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:13 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/lib/ccache/bin/clang++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is Clang, found in:
+        /home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/4.3.3/CompilerIdCXX/a.out
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ar"
+      - "ar"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-ar"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ar"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ar"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ar"
+      - "/opt/android-sdk/platform-tools/llvm-ar"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ar"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ar"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ar"
+      - "/home/dae/.opencode/bin/llvm-ar"
+      - "/home/dae/.local/bin/llvm-ar"
+      - "/home/dae/.spicetify/llvm-ar"
+      - "/usr/local/sbin/llvm-ar"
+      - "/usr/local/bin/llvm-ar"
+    found: "/usr/bin/llvm-ar"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_RANLIB"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ranlib"
+      - "ranlib"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-ranlib"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ranlib"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ranlib"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib"
+      - "/opt/android-sdk/platform-tools/llvm-ranlib"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ranlib"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ranlib"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib"
+      - "/home/dae/.opencode/bin/llvm-ranlib"
+      - "/home/dae/.local/bin/llvm-ranlib"
+      - "/home/dae/.spicetify/llvm-ranlib"
+      - "/usr/local/sbin/llvm-ranlib"
+      - "/usr/local/bin/llvm-ranlib"
+    found: "/usr/bin/llvm-ranlib"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_STRIP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-strip"
+      - "strip"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-strip"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-strip"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-strip"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-strip"
+      - "/opt/android-sdk/platform-tools/llvm-strip"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-strip"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-strip"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-strip"
+      - "/home/dae/.opencode/bin/llvm-strip"
+      - "/home/dae/.local/bin/llvm-strip"
+      - "/home/dae/.spicetify/llvm-strip"
+      - "/usr/local/sbin/llvm-strip"
+      - "/usr/local/bin/llvm-strip"
+    found: "/usr/bin/llvm-strip"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ld.lld"
+      - "ld"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/ld.lld"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/ld.lld"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/ld.lld"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/ld.lld"
+      - "/opt/android-sdk/platform-tools/ld.lld"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/ld.lld"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/ld.lld"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/ld.lld"
+      - "/home/dae/.opencode/bin/ld.lld"
+      - "/home/dae/.local/bin/ld.lld"
+      - "/home/dae/.spicetify/ld.lld"
+      - "/usr/local/sbin/ld.lld"
+      - "/usr/local/bin/ld.lld"
+    found: "/usr/bin/ld.lld"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_NM"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-nm"
+      - "nm"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-nm"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-nm"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-nm"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-nm"
+      - "/opt/android-sdk/platform-tools/llvm-nm"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-nm"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-nm"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-nm"
+      - "/home/dae/.opencode/bin/llvm-nm"
+      - "/home/dae/.local/bin/llvm-nm"
+      - "/home/dae/.spicetify/llvm-nm"
+      - "/usr/local/sbin/llvm-nm"
+      - "/usr/local/bin/llvm-nm"
+    found: "/usr/bin/llvm-nm"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJDUMP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-objdump"
+      - "objdump"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-objdump"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-objdump"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-objdump"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-objdump"
+      - "/opt/android-sdk/platform-tools/llvm-objdump"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-objdump"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-objdump"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-objdump"
+      - "/home/dae/.opencode/bin/llvm-objdump"
+      - "/home/dae/.local/bin/llvm-objdump"
+      - "/home/dae/.spicetify/llvm-objdump"
+      - "/usr/local/sbin/llvm-objdump"
+      - "/usr/local/bin/llvm-objdump"
+    found: "/usr/bin/llvm-objdump"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJCOPY"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-objcopy"
+      - "objcopy"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-objcopy"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-objcopy"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-objcopy"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-objcopy"
+      - "/opt/android-sdk/platform-tools/llvm-objcopy"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-objcopy"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-objcopy"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-objcopy"
+      - "/home/dae/.opencode/bin/llvm-objcopy"
+      - "/home/dae/.local/bin/llvm-objcopy"
+      - "/home/dae/.spicetify/llvm-objcopy"
+      - "/usr/local/sbin/llvm-objcopy"
+      - "/usr/local/bin/llvm-objcopy"
+    found: "/usr/bin/llvm-objcopy"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_READELF"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-readelf"
+      - "readelf"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-readelf"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-readelf"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-readelf"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-readelf"
+      - "/opt/android-sdk/platform-tools/llvm-readelf"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-readelf"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-readelf"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-readelf"
+      - "/home/dae/.opencode/bin/llvm-readelf"
+      - "/home/dae/.local/bin/llvm-readelf"
+      - "/home/dae/.spicetify/llvm-readelf"
+      - "/usr/local/sbin/llvm-readelf"
+      - "/usr/local/bin/llvm-readelf"
+    found: "/usr/bin/llvm-readelf"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_DLLTOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-dlltool"
+      - "dlltool"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-dlltool"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-dlltool"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-dlltool"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-dlltool"
+      - "/opt/android-sdk/platform-tools/llvm-dlltool"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-dlltool"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-dlltool"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-dlltool"
+      - "/home/dae/.opencode/bin/llvm-dlltool"
+      - "/home/dae/.local/bin/llvm-dlltool"
+      - "/home/dae/.spicetify/llvm-dlltool"
+      - "/usr/local/sbin/llvm-dlltool"
+      - "/usr/local/bin/llvm-dlltool"
+    found: "/usr/bin/llvm-dlltool"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_ADDR2LINE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-addr2line"
+      - "addr2line"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/llvm-addr2line"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-addr2line"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-addr2line"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-addr2line"
+      - "/opt/android-sdk/platform-tools/llvm-addr2line"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-addr2line"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-addr2line"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-addr2line"
+      - "/home/dae/.opencode/bin/llvm-addr2line"
+      - "/home/dae/.local/bin/llvm-addr2line"
+      - "/home/dae/.spicetify/llvm-addr2line"
+      - "/usr/local/sbin/llvm-addr2line"
+      - "/usr/local/bin/llvm-addr2line"
+    found: "/usr/bin/llvm-addr2line"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_TAPI"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "tapi"
+    candidate_directories:
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/lib/ccache/bin/tapi"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/tapi"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/tapi"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/tapi"
+      - "/opt/android-sdk/platform-tools/tapi"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/tapi"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/tapi"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/tapi"
+      - "/home/dae/.opencode/bin/tapi"
+      - "/home/dae/.local/bin/tapi"
+      - "/home/dae/.spicetify/tapi"
+      - "/usr/local/sbin/tapi"
+      - "/usr/local/bin/tapi"
+      - "/usr/bin/tapi"
+      - "/var/lib/flatpak/exports/bin/tapi"
+      - "/usr/lib/jvm/default/bin/tapi"
+      - "/opt/llvm-mingw/bin/tapi"
+      - "/usr/bin/site_perl/tapi"
+      - "/usr/bin/vendor_perl/tapi"
+      - "/usr/bin/core_perl/tapi"
+      - "/usr/lib/rustup/bin/tapi"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Compiler/Clang-FindBinUtils.cmake:26 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:207 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER_AR"
+    description: "LLVM archiver"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ar-22.1"
+      - "llvm-ar-22"
+      - "llvm-ar22"
+      - "llvm-ar"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/bin/llvm-ar-22.1"
+      - "/usr/lib/ccache/bin/llvm-ar-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ar-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ar-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ar-22.1"
+      - "/opt/android-sdk/platform-tools/llvm-ar-22.1"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ar-22.1"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ar-22.1"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ar-22.1"
+      - "/home/dae/.opencode/bin/llvm-ar-22.1"
+      - "/home/dae/.local/bin/llvm-ar-22.1"
+      - "/home/dae/.spicetify/llvm-ar-22.1"
+      - "/usr/local/sbin/llvm-ar-22.1"
+      - "/usr/local/bin/llvm-ar-22.1"
+      - "/var/lib/flatpak/exports/bin/llvm-ar-22.1"
+      - "/usr/lib/jvm/default/bin/llvm-ar-22.1"
+      - "/opt/llvm-mingw/bin/llvm-ar-22.1"
+      - "/usr/bin/site_perl/llvm-ar-22.1"
+      - "/usr/bin/vendor_perl/llvm-ar-22.1"
+      - "/usr/bin/core_perl/llvm-ar-22.1"
+      - "/usr/lib/rustup/bin/llvm-ar-22.1"
+      - "/usr/bin/llvm-ar-22"
+      - "/usr/lib/ccache/bin/llvm-ar-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ar-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ar-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ar-22"
+      - "/opt/android-sdk/platform-tools/llvm-ar-22"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ar-22"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ar-22"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ar-22"
+      - "/home/dae/.opencode/bin/llvm-ar-22"
+      - "/home/dae/.local/bin/llvm-ar-22"
+      - "/home/dae/.spicetify/llvm-ar-22"
+      - "/usr/local/sbin/llvm-ar-22"
+      - "/usr/local/bin/llvm-ar-22"
+      - "/var/lib/flatpak/exports/bin/llvm-ar-22"
+      - "/usr/lib/jvm/default/bin/llvm-ar-22"
+      - "/opt/llvm-mingw/bin/llvm-ar-22"
+      - "/usr/bin/site_perl/llvm-ar-22"
+      - "/usr/bin/vendor_perl/llvm-ar-22"
+      - "/usr/bin/core_perl/llvm-ar-22"
+      - "/usr/lib/rustup/bin/llvm-ar-22"
+      - "/usr/bin/llvm-ar22"
+      - "/usr/lib/ccache/bin/llvm-ar22"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ar22"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ar22"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ar22"
+      - "/opt/android-sdk/platform-tools/llvm-ar22"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ar22"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ar22"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ar22"
+      - "/home/dae/.opencode/bin/llvm-ar22"
+      - "/home/dae/.local/bin/llvm-ar22"
+      - "/home/dae/.spicetify/llvm-ar22"
+      - "/usr/local/sbin/llvm-ar22"
+      - "/usr/local/bin/llvm-ar22"
+      - "/var/lib/flatpak/exports/bin/llvm-ar22"
+      - "/usr/lib/jvm/default/bin/llvm-ar22"
+      - "/opt/llvm-mingw/bin/llvm-ar22"
+      - "/usr/bin/site_perl/llvm-ar22"
+      - "/usr/bin/vendor_perl/llvm-ar22"
+      - "/usr/bin/core_perl/llvm-ar22"
+      - "/usr/lib/rustup/bin/llvm-ar22"
+    found: "/usr/bin/llvm-ar"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Compiler/Clang-FindBinUtils.cmake:38 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:207 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER_RANLIB"
+    description: "Generate index for LLVM archive"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ranlib-22.1"
+      - "llvm-ranlib-22"
+      - "llvm-ranlib22"
+      - "llvm-ranlib"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/bin/llvm-ranlib-22.1"
+      - "/usr/lib/ccache/bin/llvm-ranlib-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ranlib-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ranlib-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib-22.1"
+      - "/opt/android-sdk/platform-tools/llvm-ranlib-22.1"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ranlib-22.1"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ranlib-22.1"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib-22.1"
+      - "/home/dae/.opencode/bin/llvm-ranlib-22.1"
+      - "/home/dae/.local/bin/llvm-ranlib-22.1"
+      - "/home/dae/.spicetify/llvm-ranlib-22.1"
+      - "/usr/local/sbin/llvm-ranlib-22.1"
+      - "/usr/local/bin/llvm-ranlib-22.1"
+      - "/var/lib/flatpak/exports/bin/llvm-ranlib-22.1"
+      - "/usr/lib/jvm/default/bin/llvm-ranlib-22.1"
+      - "/opt/llvm-mingw/bin/llvm-ranlib-22.1"
+      - "/usr/bin/site_perl/llvm-ranlib-22.1"
+      - "/usr/bin/vendor_perl/llvm-ranlib-22.1"
+      - "/usr/bin/core_perl/llvm-ranlib-22.1"
+      - "/usr/lib/rustup/bin/llvm-ranlib-22.1"
+      - "/usr/bin/llvm-ranlib-22"
+      - "/usr/lib/ccache/bin/llvm-ranlib-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ranlib-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ranlib-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib-22"
+      - "/opt/android-sdk/platform-tools/llvm-ranlib-22"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ranlib-22"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ranlib-22"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib-22"
+      - "/home/dae/.opencode/bin/llvm-ranlib-22"
+      - "/home/dae/.local/bin/llvm-ranlib-22"
+      - "/home/dae/.spicetify/llvm-ranlib-22"
+      - "/usr/local/sbin/llvm-ranlib-22"
+      - "/usr/local/bin/llvm-ranlib-22"
+      - "/var/lib/flatpak/exports/bin/llvm-ranlib-22"
+      - "/usr/lib/jvm/default/bin/llvm-ranlib-22"
+      - "/opt/llvm-mingw/bin/llvm-ranlib-22"
+      - "/usr/bin/site_perl/llvm-ranlib-22"
+      - "/usr/bin/vendor_perl/llvm-ranlib-22"
+      - "/usr/bin/core_perl/llvm-ranlib-22"
+      - "/usr/lib/rustup/bin/llvm-ranlib-22"
+      - "/usr/bin/llvm-ranlib22"
+      - "/usr/lib/ccache/bin/llvm-ranlib22"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/llvm-ranlib22"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/llvm-ranlib22"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib22"
+      - "/opt/android-sdk/platform-tools/llvm-ranlib22"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/llvm-ranlib22"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/llvm-ranlib22"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/llvm-ranlib22"
+      - "/home/dae/.opencode/bin/llvm-ranlib22"
+      - "/home/dae/.local/bin/llvm-ranlib22"
+      - "/home/dae/.spicetify/llvm-ranlib22"
+      - "/usr/local/sbin/llvm-ranlib22"
+      - "/usr/local/bin/llvm-ranlib22"
+      - "/var/lib/flatpak/exports/bin/llvm-ranlib22"
+      - "/usr/lib/jvm/default/bin/llvm-ranlib22"
+      - "/opt/llvm-mingw/bin/llvm-ranlib22"
+      - "/usr/bin/site_perl/llvm-ranlib22"
+      - "/usr/bin/vendor_perl/llvm-ranlib22"
+      - "/usr/bin/core_perl/llvm-ranlib22"
+      - "/usr/lib/rustup/bin/llvm-ranlib22"
+    found: "/usr/bin/llvm-ranlib"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Compiler/Clang-FindBinUtils.cmake:50 (find_program)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:207 (include)"
+      - "CMakeLists.txt:13 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS"
+    description: "`clang-scan-deps` dependency scanner"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "clang-scan-deps-22.1"
+      - "clang-scan-deps-22"
+      - "clang-scan-deps22"
+      - "clang-scan-deps"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+    searched_directories:
+      - "/usr/bin/clang-scan-deps-22.1"
+      - "/usr/lib/ccache/bin/clang-scan-deps-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/clang-scan-deps-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/clang-scan-deps-22.1"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/clang-scan-deps-22.1"
+      - "/opt/android-sdk/platform-tools/clang-scan-deps-22.1"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/clang-scan-deps-22.1"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/clang-scan-deps-22.1"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/clang-scan-deps-22.1"
+      - "/home/dae/.opencode/bin/clang-scan-deps-22.1"
+      - "/home/dae/.local/bin/clang-scan-deps-22.1"
+      - "/home/dae/.spicetify/clang-scan-deps-22.1"
+      - "/usr/local/sbin/clang-scan-deps-22.1"
+      - "/usr/local/bin/clang-scan-deps-22.1"
+      - "/var/lib/flatpak/exports/bin/clang-scan-deps-22.1"
+      - "/usr/lib/jvm/default/bin/clang-scan-deps-22.1"
+      - "/opt/llvm-mingw/bin/clang-scan-deps-22.1"
+      - "/usr/bin/site_perl/clang-scan-deps-22.1"
+      - "/usr/bin/vendor_perl/clang-scan-deps-22.1"
+      - "/usr/bin/core_perl/clang-scan-deps-22.1"
+      - "/usr/lib/rustup/bin/clang-scan-deps-22.1"
+      - "/usr/bin/clang-scan-deps-22"
+      - "/usr/lib/ccache/bin/clang-scan-deps-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/clang-scan-deps-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/clang-scan-deps-22"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/clang-scan-deps-22"
+      - "/opt/android-sdk/platform-tools/clang-scan-deps-22"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/clang-scan-deps-22"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/clang-scan-deps-22"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/clang-scan-deps-22"
+      - "/home/dae/.opencode/bin/clang-scan-deps-22"
+      - "/home/dae/.local/bin/clang-scan-deps-22"
+      - "/home/dae/.spicetify/clang-scan-deps-22"
+      - "/usr/local/sbin/clang-scan-deps-22"
+      - "/usr/local/bin/clang-scan-deps-22"
+      - "/var/lib/flatpak/exports/bin/clang-scan-deps-22"
+      - "/usr/lib/jvm/default/bin/clang-scan-deps-22"
+      - "/opt/llvm-mingw/bin/clang-scan-deps-22"
+      - "/usr/bin/site_perl/clang-scan-deps-22"
+      - "/usr/bin/vendor_perl/clang-scan-deps-22"
+      - "/usr/bin/core_perl/clang-scan-deps-22"
+      - "/usr/lib/rustup/bin/clang-scan-deps-22"
+      - "/usr/bin/clang-scan-deps22"
+      - "/usr/lib/ccache/bin/clang-scan-deps22"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/clang-scan-deps22"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/clang-scan-deps22"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/clang-scan-deps22"
+      - "/opt/android-sdk/platform-tools/clang-scan-deps22"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/clang-scan-deps22"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/clang-scan-deps22"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/clang-scan-deps22"
+      - "/home/dae/.opencode/bin/clang-scan-deps22"
+      - "/home/dae/.local/bin/clang-scan-deps22"
+      - "/home/dae/.spicetify/clang-scan-deps22"
+      - "/usr/local/sbin/clang-scan-deps22"
+      - "/usr/local/bin/clang-scan-deps22"
+      - "/var/lib/flatpak/exports/bin/clang-scan-deps22"
+      - "/usr/lib/jvm/default/bin/clang-scan-deps22"
+      - "/opt/llvm-mingw/bin/clang-scan-deps22"
+      - "/usr/bin/site_perl/clang-scan-deps22"
+      - "/usr/bin/vendor_perl/clang-scan-deps22"
+      - "/usr/bin/core_perl/clang-scan-deps22"
+      - "/usr/lib/rustup/bin/clang-scan-deps22"
+    found: "/usr/bin/clang-scan-deps"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/usr/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:13 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/CMakeScratch/TryCompile-xNEDII"
+      binary: "/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/CMakeScratch/TryCompile-xNEDII"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/usr/bin/clang-scan-deps"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: ""
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_CXX_STDLIB_MODULES_JSON: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/CMakeScratch/TryCompile-xNEDII'
+        
+        Run Build Command(s): /usr/bin/ninja -v cmTC_6decb
+        [1/2] /usr/lib/ccache/bin/clang++   -v -MD -MT CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        clang version 22.1.6
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-pc-linux-gnu/16.1.1
+        Found candidate GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1
+        Selected GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1
+        Candidate multilib: .;@m64
+        Candidate multilib: 32;@m32
+        Selected multilib: .;@m64
+         (in-process)
+         "/usr/bin/clang++" -cc1 -triple x86_64-pc-linux-gnu -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=all -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -target-cpu x86-64 -tune-cpu generic -debugger-tuning=gdb -fdebug-compilation-dir=/home/dae/VZ_Dev/work/Voix/build/CMakeFiles/CMakeScratch/TryCompile-JEGF4L -v -fcoverage-compilation-dir=/home/dae/VZ_Dev/work/Voix/build/CMakeFiles/CMakeScratch/TryCompile-JEGF4L -resource-dir /usr/lib/clang/22 -dependency-file CMakeFiles/cmTC_8f713.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_8f713.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1 -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/x86_64-pc-linux-gnu -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/backward -internal-isystem /usr/lib/clang/22/include -internal-isystem /usr/local/include -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../x86_64-pc-linux-gnu/include -internal-externc-isystem /include -internal-externc-isystem /usr/include -fdeprecated-macro -ferror-limit 19 -stack-protector 2 -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fcolor-diagnostics -faddrsig -fdwarf2-cfi-asm -o CMakeFiles/cmTC_8f713.dir/CMakeCXXCompilerABI.cpp.o -x c++ /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        clang -cc1 version 22.1.6 based upon LLVM 22.1.6 default target x86_64-pc-linux-gnu
+        ignoring nonexistent directory "/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../x86_64-pc-linux-gnu/include"
+        ignoring nonexistent directory "/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1
+         /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/x86_64-pc-linux-gnu
+         /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/backward
+         /usr/lib/clang/22/include
+         /usr/local/include
+         /usr/include
+        End of search list.
+        [2/2] : && /usr/lib/ccache/bin/clang++  -v -Wl,-v CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_6decb   && :
+        clang version 22.1.6
+        Target: x86_64-pc-linux-gnu
+        Thread model: posix
+        InstalledDir: /usr/bin
+        Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-pc-linux-gnu/16.1.1
+        Found candidate GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1
+        Selected GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1
+        Candidate multilib: .;@m64
+        Candidate multilib: 32;@m32
+        Selected multilib: .;@m64
+         "/usr/bin/ld" --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -pie -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_6decb /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/Scrt1.o /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crti.o /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o -L/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1 -L/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64 -L/lib/../lib64 -L/usr/lib64 -L/lib -L/usr/lib -v CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crtn.o
+        GNU ld (GNU Binutils) 2.46.0
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:217 (message)"
+      - "/usr/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:13 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1]
+          add: [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/x86_64-pc-linux-gnu]
+          add: [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/backward]
+          add: [/usr/lib/clang/22/include]
+          add: [/usr/local/include]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1] ==> [/usr/include/c++/16.1.1]
+        collapse include dir [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/x86_64-pc-linux-gnu] ==> [/usr/include/c++/16.1.1/x86_64-pc-linux-gnu]
+        collapse include dir [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/backward] ==> [/usr/include/c++/16.1.1/backward]
+        collapse include dir [/usr/lib/clang/22/include] ==> [/usr/lib/clang/22/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/include/c++/16.1.1;/usr/include/c++/16.1.1/x86_64-pc-linux-gnu;/usr/include/c++/16.1.1/backward;/usr/lib/clang/22/include;/usr/local/include;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "/usr/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:13 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|"|[0-9]+>[ 	-]*Build:[ 	0-9]+ ms[ 	]*)?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/CMakeScratch/TryCompile-xNEDII']
+        ignore line: []
+        ignore line: [Run Build Command(s): /usr/bin/ninja -v cmTC_6decb]
+        ignore line: [[1/2] /usr/lib/ccache/bin/clang++   -v -MD -MT CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang version 22.1.6]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-pc-linux-gnu/16.1.1]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1]
+        ignore line: [Selected GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Candidate multilib: 32]
+        ignore line: [@m32]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        ignore line: [ (in-process)]
+        ignore line: [ "/usr/bin/clang++" -cc1 -triple x86_64-pc-linux-gnu -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=all -fmath-errno -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -target-cpu x86-64 -tune-cpu generic -debugger-tuning=gdb -fdebug-compilation-dir=/home/dae/VZ_Dev/work/Voix/build/CMakeFiles/CMakeScratch/TryCompile-JEGF4L -v -fcoverage-compilation-dir=/home/dae/VZ_Dev/work/Voix/build/CMakeFiles/CMakeScratch/TryCompile-JEGF4L -resource-dir /usr/lib/clang/22 -dependency-file CMakeFiles/cmTC_8f713.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_8f713.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1 -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/x86_64-pc-linux-gnu -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/backward -internal-isystem /usr/lib/clang/22/include -internal-isystem /usr/local/include -internal-isystem /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../x86_64-pc-linux-gnu/include -internal-externc-isystem /include -internal-externc-isystem /usr/include -fdeprecated-macro -ferror-limit 19 -stack-protector 2 -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fcolor-diagnostics -faddrsig -fdwarf2-cfi-asm -o CMakeFiles/cmTC_8f713.dir/CMakeCXXCompilerABI.cpp.o -x c++ /usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang -cc1 version 22.1.6 based upon LLVM 22.1.6 default target x86_64-pc-linux-gnu]
+        ignore line: [ignoring nonexistent directory "/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../x86_64-pc-linux-gnu/include"]
+        ignore line: [ignoring nonexistent directory "/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1]
+        ignore line: [ /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/x86_64-pc-linux-gnu]
+        ignore line: [ /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../include/c++/16.1.1/backward]
+        ignore line: [ /usr/lib/clang/22/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [[2/2] : && /usr/lib/ccache/bin/clang++  -v -Wl -v CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_6decb   && :]
+        ignore line: [clang version 22.1.6]
+        ignore line: [Target: x86_64-pc-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/bin]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib/gcc/x86_64-pc-linux-gnu/16.1.1]
+        ignore line: [Found candidate GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1]
+        ignore line: [Selected GCC installation: /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1]
+        ignore line: [Candidate multilib: .]
+        ignore line: [@m64]
+        ignore line: [Candidate multilib: 32]
+        ignore line: [@m32]
+        ignore line: [Selected multilib: .]
+        ignore line: [@m64]
+        link line: [ "/usr/bin/ld" --hash-style=gnu --build-id --eh-frame-hdr -m elf_x86_64 -pie -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_6decb /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/Scrt1.o /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crti.o /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o -L/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1 -L/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64 -L/lib/../lib64 -L/usr/lib64 -L/lib -L/usr/lib -v CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crtn.o]
+          arg [/usr/bin/ld] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_6decb] ==> ignore
+          arg [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/Scrt1.o] ==> obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/Scrt1.o]
+          arg [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crti.o] ==> obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crti.o]
+          arg [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o] ==> obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o]
+          arg [-L/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1] ==> dir [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1]
+          arg [-L/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64] ==> dir [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib64] ==> dir [/usr/lib64]
+          arg [-L/lib] ==> dir [/lib]
+          arg [-L/usr/lib] ==> dir [/usr/lib]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_6decb.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o] ==> obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o]
+          arg [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crtn.o] ==> obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crtn.o]
+        linker tool for 'CXX': /usr/bin/ld
+        collapse obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/Scrt1.o] ==> [/usr/lib64/Scrt1.o]
+        collapse obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crti.o] ==> [/usr/lib64/crti.o]
+        collapse obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o] ==> [/usr/lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o]
+        collapse obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o] ==> [/usr/lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o]
+        collapse obj [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64/crtn.o] ==> [/usr/lib64/crtn.o]
+        collapse library dir [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1] ==> [/usr/lib64/gcc/x86_64-pc-linux-gnu/16.1.1]
+        collapse library dir [/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16.1.1/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib64] ==> [/usr/lib64]
+        collapse library dir [/lib] ==> [/lib]
+        collapse library dir [/usr/lib] ==> [/usr/lib]
+        implicit libs: [stdc++;m;gcc_s;gcc;c;gcc_s;gcc]
+        implicit objs: [/usr/lib64/Scrt1.o;/usr/lib64/crti.o;/usr/lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtbeginS.o;/usr/lib64/gcc/x86_64-pc-linux-gnu/16.1.1/crtendS.o;/usr/lib64/crtn.o]
+        implicit dirs: [/usr/lib64/gcc/x86_64-pc-linux-gnu/16.1.1;/usr/lib64;/lib64;/lib;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Internal/CMakeDetermineLinkerId.cmake:38 (message)"
+      - "/usr/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "/usr/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:13 (project)"
+    message: |
+      Running the CXX compiler's linker: "/usr/bin/ld" "-v"
+      GNU ld (GNU Binutils) 2.46.0
+  -
+    kind: "find-v1"
+    backtrace:
+      - "CMakeLists.txt:19 (find_program)"
+    mode: "program"
+    variable: "CCACHE_PROGRAM"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ccache"
+    candidate_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+    searched_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/ccache"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/ccache"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/ccache"
+      - "/opt/android-sdk/platform-tools/ccache"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/ccache"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/ccache"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/ccache"
+      - "/home/dae/.opencode/bin/ccache"
+      - "/home/dae/.local/bin/ccache"
+      - "/usr/lib/ccache/bin/ccache"
+      - "/home/dae/.spicetify/ccache"
+      - "/usr/local/sbin/ccache"
+      - "/usr/local/bin/ccache"
+    found: "/usr/bin/ccache"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/usr"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:517 (find_program)"
+      - "CMakeLists.txt:84 (find_package)"
+    mode: "program"
+    variable: "PKG_CONFIG_EXECUTABLE"
+    description: "pkg-config executable"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "pkg-config"
+      - "pkgconf"
+    candidate_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/opt/android-sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/"
+      - "/home/dae/.opencode/bin/"
+      - "/home/dae/.local/bin/"
+      - "/usr/lib/ccache/bin/"
+      - "/home/dae/.spicetify/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/bin/"
+      - "/var/lib/flatpak/exports/bin/"
+      - "/usr/lib/jvm/default/bin/"
+      - "/opt/llvm-mingw/bin/"
+      - "/usr/bin/site_perl/"
+      - "/usr/bin/vendor_perl/"
+      - "/usr/bin/core_perl/"
+      - "/usr/lib/rustup/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+    searched_directories:
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/pkg-config"
+      - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/pkgconf"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/pkg-config"
+      - "/home/dae/VZ_Dev/Android/Sdk/platform-tools/pkgconf"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/pkg-config"
+      - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin/pkgconf"
+      - "/opt/android-sdk/platform-tools/pkg-config"
+      - "/opt/android-sdk/platform-tools/pkgconf"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/pkg-config"
+      - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0/pkgconf"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/pkg-config"
+      - "/run/media/dae/Music/Android/Sdk/platform-tools/pkgconf"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/pkg-config"
+      - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin/pkgconf"
+      - "/home/dae/.opencode/bin/pkg-config"
+      - "/home/dae/.opencode/bin/pkgconf"
+      - "/home/dae/.local/bin/pkg-config"
+      - "/home/dae/.local/bin/pkgconf"
+      - "/usr/lib/ccache/bin/pkg-config"
+      - "/usr/lib/ccache/bin/pkgconf"
+      - "/home/dae/.spicetify/pkg-config"
+      - "/home/dae/.spicetify/pkgconf"
+      - "/usr/local/sbin/pkg-config"
+      - "/usr/local/sbin/pkgconf"
+      - "/usr/local/bin/pkg-config"
+      - "/usr/local/bin/pkgconf"
+    found: "/usr/bin/pkg-config"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/usr"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+  -
+    kind: "find_package-v1"
+    backtrace:
+      - "CMakeLists.txt:85 (find_package)"
+    name: "yaml-cpp"
+    configs:
+      -
+        filename: "yaml-cpp.cps"
+        kind: "cps"
+      -
+        filename: "yaml-cppConfig.cmake"
+        kind: "cmake"
+      -
+        filename: "yaml-cpp-config.cmake"
+        kind: "cmake"
+    version_request:
+      exact: false
+    settings:
+      required: "required_explicit"
+      quiet: false
+      global: false
+      policy_scope: true
+      bypass_provider: false
+      names:
+        - "yaml-cpp"
+      path_suffixes:
+        - ""
+      paths:
+        CMAKE_FIND_USE_CMAKE_PATH: true
+        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+        CMAKE_FIND_USE_INSTALL_PREFIX: true
+        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
+        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
+        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
+        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
+    candidates:
+      -
+        path: "/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/pkgRedirects/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/pkgRedirects/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/pkgRedirects/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/work/Voix/build-dbg/CMakeFiles/pkgRedirects/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/platform-tools/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/platform-tools/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/platform-tools/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/platform-tools/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/opt/android-sdk/platform-tools/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/opt/android-sdk/platform-tools/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/opt/android-sdk/platform-tools/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/opt/android-sdk/platform-tools/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.opencode/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.opencode/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.opencode/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.opencode/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.local/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.local/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.local/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.local/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/usr/lib/ccache/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/usr/lib/ccache/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/usr/lib/ccache/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/usr/lib/ccache/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.spicetify/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.spicetify/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.spicetify/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/home/dae/.spicetify/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/usr/local/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/usr/local/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/usr/local/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/usr/local/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/usr/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/usr/yaml-cpp-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/usr/lib/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/usr/share/cps/yaml-cpp.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/usr/lib/cmake/yaml-cpp/yaml-cppConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+    found:
+      path: "/usr/lib/cmake/yaml-cpp/yaml-cpp-config.cmake"
+      mode: "config"
+      version: "0.9.0"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/usr"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:761 (find_library)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:811 (_pkg_find_libs)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1149 (_pkg_recalculate)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1166 (_pkg_check_modules_internal)"
+      - "CMakeLists.txt:97 (pkg_check_modules)"
+    mode: "library"
+    variable: "pkgcfg_lib_PAM_pam"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "pam"
+    candidate_directories:
+      - "/usr/lib/"
+    found: "/usr/lib/libpam.so"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/usr"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:761 (find_library)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:811 (_pkg_find_libs)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1149 (_pkg_recalculate)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1166 (_pkg_check_modules_internal)"
+      - "CMakeLists.txt:104 (pkg_check_modules)"
+    mode: "library"
+    variable: "pkgcfg_lib_LIBCAP_cap"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "cap"
+    candidate_directories:
+      - "/usr/lib/"
+    found: "/usr/lib/libcap.so"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/usr"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:761 (find_library)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:811 (_pkg_find_libs)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1149 (_pkg_recalculate)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1166 (_pkg_check_modules_internal)"
+      - "CMakeLists.txt:111 (pkg_check_modules)"
+    mode: "library"
+    variable: "pkgcfg_lib_LIBSECCOMP_seccomp"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "seccomp"
+    candidate_directories:
+      - "/usr/lib/"
+    found: "/usr/lib/libseccomp.so"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/usr"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+...

@@ -1,9 +1,9 @@
-#include "test_assert.h"
-#include "../include/file_utils.h"
-#include "../include/security.h"
-#include "../include/config.h"
-#include "../include/permission_checker.h"
-#include "../include/system_identity.h"
+#include "test_assert.hpp"
+#include "../include/file_utils.hpp"
+#include "../include/security.hpp"
+#include "../include/config.hpp"
+#include "../include/permission_checker.hpp"
+#include "../include/system_identity.hpp"
 #include <fstream>
 #include <filesystem>
 #include <memory>

@@ -6,10 +6,10 @@
  * All code in this repository is licensed under OSL v3.
  */
 
-#include "authenticator.h"
-#include "security.h"
-#include "rule.h"
-#include "pam_utils.h"
+#include "authenticator.hpp"
+#include "security.hpp"
+#include "rule.hpp"
+#include "pam_utils.hpp"
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
