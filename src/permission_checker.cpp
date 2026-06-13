@@ -147,7 +147,7 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
                                   const std::vector<std::string> &args,
                                   uid_t target_uid) const {
   std::string current_user = security_->getCurrentUser();
-  auto identity = security_->identity_->getUserByName(current_user);
+  auto identity = security_->identity->getUserByName(current_user);
   if (!identity) return std::nullopt;
 
   uid_t uid = identity->uid;

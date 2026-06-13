@@ -48,7 +48,7 @@ using UniqueSeccomp = std::unique_ptr<std::remove_pointer_t<scmp_filter_ctx>, Se
 #endif
 
 Security::Security(std::shared_ptr<IIdentity> identity)
-    : identity_(std::move(identity)) {}
+    : identity(std::move(identity)) {}
 
 bool Security::validateUser(std::string_view username) const {
     if (username.empty() || username.length() > 32) {
@@ -61,7 +61,7 @@ bool Security::validateUser(std::string_view username) const {
         }
     }
 
-    return identity_->getUserByName(std::string(username)).has_value();
+    return identity->getUserByName(std::string(username)).has_value();
 }
 
 bool Security::isSafePath(std::string_view path) const {
@@ -102,11 +102,11 @@ void Security::logEvent(std::string_view event, std::string_view user) const {
 }
 
 std::string Security::getCurrentUser() const {
-    return identity_->getCurrentUsername();
+    return identity->getCurrentUsername();
 }
 
-uid_t Security::getCurrentUid() const {
-    return identity_->getCurrentUid();
+uid_t Security::get_current_uid() const {
+    return identity->getCurrentUid();
 }
 
 bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const {
