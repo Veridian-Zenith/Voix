@@ -102,17 +102,17 @@ bool test_permission_checker_permit_denied() {
 }
 
 bool test_config_load_valid() {
-    std::string config_path = "test_voix.conf";
+    std::filesystem::path config_path = "test_voix.conf";
+    ScopedTempFile cleanup_guard(config_path);
     std::ofstream outfile(config_path);
     outfile << "core:\n  paths: [/bin, /usr/bin]\n  sanctuary: /tmp/voix_test\n";
     outfile.close();
 
     Voix::Config config;
-    ASSERT_TRUE(config.load(config_path, false));
+    ASSERT_TRUE(config.load(config_path.string(), false));
     ASSERT_EQUAL(config.getSanctuary(), "/tmp/voix_test");
     ASSERT_EQUAL(config.getPath(), "/bin:/usr/bin");
 
-    std::filesystem::remove(config_path);
     return true;
 }
 
