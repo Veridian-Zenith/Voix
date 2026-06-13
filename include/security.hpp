@@ -67,7 +67,7 @@ public:
      * @brief Gets the current user ID.
      * @return The current UID.
      */
-    uid_t getCurrentUid() const;
+    uid_t get_current_uid() const;
 
     /**
      * @brief Prevents unequivocally destructive commands (e.g., 'rm -rf /').
@@ -98,7 +98,7 @@ public:
 #endif
 
 
-    std::shared_ptr<IIdentity> identity_;
+    std::shared_ptr<IIdentity> identity;
 
 };
 

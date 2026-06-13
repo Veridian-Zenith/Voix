@@ -59,12 +59,12 @@ public:
      * @brief Checks if seccomp is enabled.
      * @return True if enabled, false otherwise.
      */
-    bool isSeccompEnabled() const { return seccomp_enabled_; }
+    bool is_seccomp_enabled() const { return seccomp_enabled_; }
     /**
      * @brief Checks if login shell is default.
      * @return True if default, false otherwise.
      */
-    bool isLoginShellDefault() const { return login_shell_default_; }
+    bool is_login_shell_default() const { return login_shell_default_; }
     /**
      * @brief Gets the blocklist of commands.
      * @return A reference to the blocklist vector.

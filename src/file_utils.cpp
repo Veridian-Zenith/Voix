@@ -122,12 +122,12 @@ std::expected<void, FileError> FileUtils::writeFile(const fs::path& path, std::s
   return {};
 }
 
-std::string FileUtils::resolveCommand(const std::string& command, const std::string& path_env) const {
-    if (command.empty()) return "";
+std::string FileUtils::resolve_command(const std::string& cmd, const std::string& paths) const {
+    if (cmd.empty()) return "";
 
     // 1. If command contains '/', it's an explicit path.
-    if (command.find('/') != std::string::npos) {
-        fs::path p = fs::absolute(command);
+    if (cmd.find('/') != std::string::npos) {
+        fs::path p = fs::absolute(cmd);
         if (access(p.c_str(), X_OK) == 0) {
             return p.string();
         }
@@ -135,10 +135,10 @@ std::string FileUtils::resolveCommand(const std::string& command, const std::str
     }
 
     // 2. Otherwise, look up in $PATH.
-    std::stringstream ss(path_env);
+    std::stringstream ss(paths);
     std::string item;
     while (std::getline(ss, item, ':')) {
-        fs::path p = fs::path(item) / command;
+        fs::path p = fs::path(item) / cmd;
         if (access(p.c_str(), X_OK) == 0) {
             return p.string();
         }

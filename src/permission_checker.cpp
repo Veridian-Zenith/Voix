@@ -43,7 +43,7 @@ bool PermissionChecker::isAllowed() const {
     return rule.action == Rule::Action::PERMIT && rule.ident == current_user;
   });
 }
-bool PermissionChecker::matchPattern(const std::string& pattern, const std::string& text) const {
+bool PermissionChecker::match_pattern(const std::string& pattern, const std::string& text) const {
   std::string regex_pattern = "^";
   for (char c : pattern) {
     if (c == '*') regex_pattern += ".*";
@@ -59,7 +59,7 @@ bool PermissionChecker::matchPattern(const std::string& pattern, const std::stri
   return std::regex_match(text, std::regex(regex_pattern));
 }
 
-std::string PermissionChecker::resolveVariables(const std::string& text) const {
+std::string PermissionChecker::resolve_variables(const std::string& text) const {
   std::string resolved = text;
   std::string user = security_->getCurrentUser();
   size_t pos = 0;
@@ -118,7 +118,7 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
   }
 
   if (!rule.cmd.empty()) {
-    std::string resolved_cmd = resolveVariables(rule.cmd);
+    std::string resolved_cmd = resolve_variables(rule.cmd);
     if (resolved_cmd != command)
       return false;
 
@@ -128,12 +128,12 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
 
       if (rule.options & Rule::PATTERN) {
         for (size_t i = 0; i < args.size(); ++i) {
-          if (!matchPattern(resolveVariables(rule.cmdargs[i]), args[i]))
+          if (!match_pattern(resolve_variables(rule.cmdargs[i]), args[i]))
             return false;
         }
       } else {
         for (size_t i = 0; i < args.size(); ++i) {
-          if (resolveVariables(rule.cmdargs[i]) != args[i])
+          if (resolve_variables(rule.cmdargs[i]) != args[i])
             return false;
         }
       }

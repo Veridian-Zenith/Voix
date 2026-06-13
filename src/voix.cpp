@@ -106,7 +106,7 @@ int Voix::execute(std::string_view command,
 
   if (authenticator_->openSession()) {
     CommandOptions merged_options = options;
-    if (!merged_options.login_shell && config_->isLoginShellDefault()) {
+    if (!merged_options.login_shell && config_->is_login_shell_default()) {
         merged_options.login_shell = true;
     }
 

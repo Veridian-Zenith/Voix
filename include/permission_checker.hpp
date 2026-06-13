@@ -64,14 +64,14 @@ private:
      * @param text The string to check.
      * @return True if matches, false otherwise.
      */
-    bool matchPattern(const std::string& pattern, const std::string& text) const;
+    bool match_pattern(const std::string& pattern, const std::string& text) const;
 
     /**
      * @brief Resolves contextual variables (e.g., %u) in a string.
      * @param text The string to resolve.
      * @return The resolved string.
      */
-    std::string resolveVariables(const std::string& text) const;
+    std::string resolve_variables(const std::string& text) const;
 
     /**
      * @brief Internal method to check if a specific rule matches the given context.

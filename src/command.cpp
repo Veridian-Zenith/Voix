@@ -168,7 +168,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     // Resolve non-absolute paths
     if (!cmd_str.empty() && cmd_str[0] != '/') {
         FileUtils fileUtils;
-        std::string resolved = fileUtils.resolveCommand(cmd_str, config.getPath());
+        std::string resolved = fileUtils.resolve_command(cmd_str, config.getPath());
         if (resolved.empty()) {
             LOG_ERROR(std::format("Command not found: {}", cmd_str));
             _exit(127);
@@ -188,7 +188,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
-    if (config.isSeccompEnabled()) {
+    if (config.is_seccomp_enabled()) {
 #ifdef VOIX_WITH_SECCOMP
         sec.applySeccompBlacklist();
 #endif
