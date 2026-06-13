@@ -9,6 +9,18 @@
 #include <filesystem>
 #include <memory>
 
+class ScopedTempFile {
+public:
+    explicit ScopedTempFile(std::filesystem::path path) : path_(std::move(path)) {}
+    ~ScopedTempFile() {
+        std::error_code ec;
+        std::filesystem::remove(path_, ec);
+    }
+    std::filesystem::path path() const { return path_; }
+private:
+    std::filesystem::path path_;
+};
+
 class MockIdentity : public Voix::IIdentity {
 public:
     struct MockUser {
@@ -50,18 +62,18 @@ bool test_permission_checker_permit_allowed() {
     auto config = std::make_shared<Voix::Config>();
     
     // Create a dummy config file for testing
-    std::string config_path = "test_perm.conf";
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_perm.conf";
+    ScopedTempFile cleanup_guard(config_path);
     std::ofstream outfile(config_path);
     outfile << "acl:\n  user:\n    1000:\n      - action: permit\n        command: ls\n";
     outfile.close();
-    config->load(config_path, false);
+    config->load(config_path.string(), false);
 
     Voix::PermissionChecker checker(security, config);
     auto rule = checker.permit("ls", {}, 0);
     ASSERT_TRUE(rule.has_value());
     ASSERT_EQUAL(static_cast<int>(rule->action), static_cast<int>(Voix::Rule::Action::PERMIT));
 
-    std::filesystem::remove(config_path);
     return true;
 }
 
@@ -75,17 +87,17 @@ bool test_permission_checker_permit_denied() {
     auto security = std::make_shared<Voix::Security>(mock_id);
     auto config = std::make_shared<Voix::Config>();
     
-    std::string config_path = "test_perm_denied.conf";
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_perm_denied.conf";
+    ScopedTempFile cleanup_guard(config_path);
     std::ofstream outfile(config_path);
     outfile << "acl:\n  user:\n    alice:\n      - action: permit\n        command: ls\n";
     outfile.close();
-    config->load(config_path, false);
+    config->load(config_path.string(), false);
 
     Voix::PermissionChecker checker(security, config);
     auto rule = checker.permit("ls", {}, 0);
     ASSERT_TRUE(!rule.has_value());
 
-    std::filesystem::remove(config_path);
     return true;
 }
 
