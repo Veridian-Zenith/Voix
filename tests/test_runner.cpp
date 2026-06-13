@@ -173,6 +173,8 @@ bool test_file_exists() {
     std::filesystem::path missing_file = test_dir / "missing.txt";
 
     std::filesystem::create_directories(test_dir);
+    ASSERT_TRUE(std::filesystem::exists(test_dir));
+    ASSERT_TRUE(std::filesystem::is_directory(test_dir));
     {
         std::ofstream out(existing_file);
         out << "test";
