@@ -119,7 +119,7 @@ bool test_config_load_valid() {
 bool test_config_load_invalid_yaml() {
     std::string config_path = "invalid_voix.conf";
     std::ofstream outfile(config_path);
-    outfile << "core: [this is not valid yaml for the expected structure"; 
+    outfile << "core:\n  paths: [/bin, /usr/bin\n  sanctuary: /tmp/voix_test";
     outfile.close();
 
     Voix::Config config;
