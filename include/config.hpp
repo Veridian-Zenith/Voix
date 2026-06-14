@@ -95,7 +95,7 @@ private:
     std::vector<std::regex> compiled_blocklist_;
     bool seccomp_enabled_ = true;
     bool login_shell_default_ = false;
-    bool suppress_stderr_ = false;
+    bool suppress_stderr_ = true;
 };
 
 } // namespace Voix

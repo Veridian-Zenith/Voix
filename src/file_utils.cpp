@@ -8,6 +8,7 @@
 
 #include "file_utils.hpp"
 #include "logger.hpp"
+#include <limits.h>
 #include <fstream>
 #include <system_error>
 #include <sys/stat.h>
@@ -38,6 +39,19 @@ static bool is_file_safe(int fd) {
     if (st.st_mode & (S_IWOTH | S_IWGRP)) return false;
     
     return true;
+}
+
+static bool check_path_safe(const fs::path& p) {
+    char resolved_path[PATH_MAX];
+    if (realpath(p.c_str(), resolved_path) == nullptr) {
+        return false;
+    }
+
+    int fd = open_no_follow(resolved_path);
+    if (fd == -1) return false;
+    bool safe = is_file_safe(fd);
+    close(fd);
+    return safe;
 }
 
 bool FileUtils::fileExists(const fs::path& path) const {
@@ -153,13 +167,7 @@ std::string FileUtils::resolve_command(const ResolveCommandParams& params) const
     // 1. If command contains '/', it's an explicit path.
     if (cmd.find('/') != std::string::npos) {
         fs::path p = fs::absolute(cmd);
-        int fd = open_no_follow(p.c_str());
-        if (fd == -1) return "";
-        
-        bool safe = is_file_safe(fd);
-        close(fd);
-        
-        return safe ? p.string() : "";
+        return check_path_safe(p) ? p.string() : "";
     }
 
     // 2. Otherwise, look up in $PATH.
@@ -167,14 +175,9 @@ std::string FileUtils::resolve_command(const ResolveCommandParams& params) const
     std::string item;
     while (std::getline(ss, item, ':')) {
         fs::path p = fs::path(item) / cmd;
-        int fd = open_no_follow(p.c_str());
-        if (fd == -1) continue;
-        
-        if (is_file_safe(fd)) {
-            close(fd);
+        if (check_path_safe(p)) {
             return p.string();
         }
-        close(fd);
     }
     return "";
 }
