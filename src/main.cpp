@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) noexcept {
             {nullptr, 0, nullptr, 0}
         };
 
-        while ((ch = getopt_long(argc, argv, "+C:Eilnsu:vhc", long_options, nullptr)) != -1) {
+        while ((ch = getopt_long(argc, argv, "+C:Eilnsu:vhck", long_options, nullptr)) != -1) {
             switch (ch) {
                 case 'C':
                     config_path = optarg;
@@ -122,6 +122,9 @@ int main(int argc, char* argv[]) noexcept {
                     return 0;
                 case 'c':
                     options.check_config = true;
+                    break;
+                case 'k':
+                    // sudo -k: invalidate timestamp. No-op for voix.
                     break;
                 default:
                     std::println(stderr, "Error: Unknown option: {}", static_cast<char>(ch));
