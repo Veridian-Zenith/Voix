@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies and LLVM 22
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev wget ninja-build ccache mold audit
+          sudo apt-get install -y libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev wget ninja-build ccache mold libaudit-dev
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 22
