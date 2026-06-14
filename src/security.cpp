@@ -68,24 +68,39 @@ bool Security::isSafePath(std::string_view path) const {
     // Canonicalize path to prevent traversal bypasses
     try {
         std::filesystem::path p(path);
+        
+        // Check for path traversal attempts before canonicalization
+        for (const auto& part : p) {
+            if (part == "..") {
+                return false;
+            }
+        }
+        
         // Use weakly_canonical to handle paths that may not exist yet
         std::filesystem::path canonical = std::filesystem::weakly_canonical(p);
-        std::string canonical_str = canonical.string();
-
-        // Check for path traversal attempts
-        if (canonical_str.find("..") != std::string::npos) {
-            return false;
-        }
-
+        
         // Check for absolute paths to sensitive locations
         static const std::vector<std::string_view> forbidden = {
             "/etc/shadow", "/etc/sudoers", "/root", "/etc/voix.conf"
         };
-
+        
+        const auto isSameOrDescendant = [](const std::filesystem::path& candidate,
+                                           const std::filesystem::path& base) -> bool {
+            auto cIt = candidate.begin();
+            auto bIt = base.begin();
+            for (; bIt != base.end(); ++bIt, ++cIt) {
+                if (cIt == candidate.end() || *cIt != *bIt) {
+                    return false;
+                }
+            }
+            return true; // same path or candidate is within base
+        };
+        
         for (auto target : forbidden) {
-            if (canonical_str.find(target) != std::string::npos) return false;
+            std::filesystem::path forbiddenPath = std::filesystem::weakly_canonical(std::filesystem::path(target));
+            if (isSameOrDescendant(canonical, forbiddenPath)) return false;
         }
-
+        
         return true;
     } catch (...) {
         return false;

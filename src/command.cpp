@@ -10,6 +10,7 @@
 #include "logger.hpp"
 #include "file_utils.hpp"
 #include "security.hpp"
+#include "system_utils.hpp"
 #include <csignal>
 #include <pwd.h>
 #include <grp.h>
@@ -56,7 +57,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     struct passwd pwd;
     struct passwd *pw = nullptr;
     long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = 16384;
+    if (bufsize == -1) bufsize = Voix::kGetPwBufferFallbackSize;
     std::vector<char> buffer(bufsize);
 
     if (getpwnam_r(user.empty() ? "root" : user_str.c_str(), &pwd, buffer.data(), bufsize, &pw) != 0 || !pw) {
@@ -65,6 +66,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     // Preserve whitelist environment
     const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
+    const std::array<std::string_view, 2> dangerous_env_names = {"BASH_ENV", "ENV"};
+    const std::array<std::string_view, 4> dangerous_env_prefixes = {"LD_", "CC", "CXX", "CMAKE_"};
     std::vector<std::pair<std::string, std::string>> saved_env;
     
     if (options.preserve_env) {
@@ -75,8 +78,13 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         if (pos != std::string::npos) {
           std::string key = entry.substr(0, pos);
           // Sanitize sensitive environment variables
-          if (key.starts_with("LD_") || key == "BASH_ENV" || key == "ENV" || 
-              key.starts_with("CC") || key.starts_with("CXX") || key.starts_with("CMAKE_")) continue;
+          const bool is_dangerous_name =
+              std::ranges::find(dangerous_env_names, std::string_view{key}) != dangerous_env_names.end();
+          const bool is_dangerous_prefix =
+              std::ranges::any_of(dangerous_env_prefixes, [&](std::string_view prefix) {
+                return key.starts_with(prefix);
+              });
+          if (is_dangerous_name || is_dangerous_prefix) continue;
           saved_env.push_back({key, entry.substr(pos + 1)});
         }
       }
@@ -94,26 +102,32 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     if (setuid(pw->pw_uid) != 0) _exit(1);
 
     Security sec;
-    bool is_privileged_user = (pw->pw_uid == 0 || user == "alpm");
-
+    bool is_privileged_user = (pw->pw_uid == 0 || user == Voix::PRIVILEGED_PACKAGE_MANAGER);
+    
     if (sec.isCatastrophicCommand(command, args, config)) {
-#ifdef VOIX_WITH_CAP
+        #ifdef VOIX_WITH_CAP
         std::vector<cap_value_t> caps_to_keep;
         if (is_privileged_user) {
-            // Keep essential capabilities for privileged users but restrict the rest for safety
+            // Privileged users may still need a narrowly scoped capability subset:
+            // - CAP_AUDIT_WRITE: allow writing audit records.
+            // - CAP_DAC_READ_SEARCH: allow read/search over restricted paths needed by admin tooling.
+            // - CAP_CHOWN: allow ownership adjustments required by package/system maintenance.
+            // - CAP_DAC_OVERRIDE and CAP_FOWNER are intentionally retained for root/admin compatibility;
+            //   these are powerful and bypass normal permission checks, so keep this list minimal and
+            //   review periodically to further reduce or remove them where possible.
             caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN, CAP_DAC_OVERRIDE, CAP_FOWNER};
         }
-
+        
         sec.dropCapabilities(caps_to_keep);
-#endif
-
+        #endif
+        
         // Scrub the environment
         clearenv();
     } else if (!is_privileged_user) {
         // For non-privileged target users, always drop all capabilities
-#ifdef VOIX_WITH_CAP
+        #ifdef VOIX_WITH_CAP
         sec.dropCapabilities({});
-#endif
+        #endif
     }
 
     // Restore whitelist & explicitly set target identity
@@ -142,10 +156,13 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
         if (!closed) {
           struct rlimit rl;
-          if (getrlimit(RLIMIT_NOFILE, &rl) != 0) {
-              rl.rlim_cur = 4096; // Fallback
+          constexpr rlim_t kFallbackMaxFd = 4096;
+          constexpr rlim_t kCloseLoopCap = 65536;
+          rlim_t max_fd_limit = kFallbackMaxFd;
+          if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
+              max_fd_limit = std::min(rl.rlim_cur, kCloseLoopCap);
           }
-          int max_fd = static_cast<int>(rl.rlim_cur);
+          int max_fd = static_cast<int>(max_fd_limit);
           for (int i : std::views::iota(3, max_fd)) {
             close(i);
           }

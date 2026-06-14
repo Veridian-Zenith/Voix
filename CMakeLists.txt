@@ -56,7 +56,7 @@ endif()
 # Using LLVM toolchain (Clang + LLD/MOLD + Oz optimization)
 set(COMMON_FLAGS "-march=${VOIX_ARCH} -Oz -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
--Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26")
+-fexperimental-library -std=c++26")
 
 set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
 set(RELEASE_FLAGS "-O3 -DNDEBUG")

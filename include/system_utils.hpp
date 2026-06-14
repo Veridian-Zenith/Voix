@@ -15,9 +15,12 @@
 #include <sys/types.h>
 
 namespace Voix {
-
+ 
+constexpr long kGetPwBufferFallbackSize = 16384;
+constexpr std::string_view PRIVILEGED_PACKAGE_MANAGER = "alpm";
+ 
 /**
- * @brief Utility class for system-level operations.
+  * @brief Utility class for system-level operations.
  */
 class SystemUtils {
 public:

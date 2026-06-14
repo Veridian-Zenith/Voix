@@ -22,6 +22,7 @@
 #include "voix.hpp"
 #include "config.hpp"
 #include "security.hpp"
+#include "system_utils.hpp"
 
 #if BUILD_TESTING
 #include "tests/test_main.hpp"
@@ -139,7 +140,7 @@ int main(int argc, char* argv[]) noexcept {
                 struct passwd pwd;
                 struct passwd* pw = nullptr;
                 long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-                if (bufsize == -1) bufsize = 16384;
+                if (bufsize == -1) bufsize = Voix::kGetPwBufferFallbackSize;
                 std::vector<char> buffer(static_cast<size_t>(bufsize));
 
                 if (getpwuid_r(getuid(), &pwd, buffer.data(), buffer.size(), &pw) == 0 && pw) {
