@@ -2492,3 +2492,66 @@ events:
       CMAKE_SYSTEM_LIBRARY_PATH:
         - "/usr/lib/X11"
 ...
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:761 (find_library)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:811 (_pkg_find_libs)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1149 (_pkg_recalculate)"
+      - "/usr/share/cmake/Modules/FindPkgConfig.cmake:1166 (_pkg_check_modules_internal)"
+      - "CMakeLists.txt:119 (pkg_check_modules)"
+    mode: "library"
+    variable: "pkgcfg_lib_LIBAUDIT_audit"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "audit"
+    candidate_directories:
+      - "/usr/lib/"
+    found: "/usr/lib/libaudit.so"
+    search_context:
+      ENV{PATH}:
+        - "/home/dae/VZ_Dev/Android/Sdk/build-tools/37.0.0"
+        - "/home/dae/VZ_Dev/Android/Sdk/platform-tools"
+        - "/home/dae/VZ_Dev/Android/Sdk/cmdline-tools/latest/bin"
+        - "/opt/android-sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/build-tools/37.0.0"
+        - "/run/media/dae/Music/Android/Sdk/platform-tools"
+        - "/run/media/dae/Music/Android/Sdk/cmdline-tools/latest/bin"
+        - "/home/dae/.opencode/bin"
+        - "/home/dae/.local/bin"
+        - "/usr/lib/ccache/bin"
+        - "/home/dae/.spicetify"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/var/lib/flatpak/exports/bin"
+        - "/usr/lib/jvm/default/bin"
+        - "/opt/llvm-mingw/bin"
+        - "/usr/bin/site_perl"
+        - "/usr/bin/vendor_perl"
+        - "/usr/bin/core_perl"
+        - "/usr/lib/rustup/bin"
+      CMAKE_INSTALL_PREFIX: "/usr"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr"
+        - "/usr"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+...

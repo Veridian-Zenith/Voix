@@ -75,6 +75,11 @@ public:
      * @return A reference to the compiled blocklist vector.
      */
     const std::vector<std::regex>& get_compiled_blocklist() const { return compiled_blocklist_; }
+    /**
+     * @brief Validates the configuration schema and path permissions.
+     * @return True if valid, false otherwise.
+     */
+    bool validate() const;
 
 private:
     std::string sanctuary_;

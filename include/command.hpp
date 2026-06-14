@@ -23,6 +23,7 @@ struct CommandOptions {
     bool preserve_env = false; /**< Whether to preserve the environment variables. */
     bool login_shell = false;  /**< Whether to execute the command as a login shell. */
     bool list_commands = false; /**< Whether to list available commands. */
+    bool check_config = false; /**< Whether to check configuration. */
 };
 
 /**

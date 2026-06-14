@@ -93,12 +93,7 @@ bool Security::isSafePath(std::string_view path) const {
 }
 
 void Security::logEvent(std::string_view event, std::string_view user) const {
-    std::ofstream log_file("/var/log/voix.log", std::ios::app);
-    if (log_file.is_open()) {
-        auto now = std::chrono::system_clock::now();
-        log_file << std::format("{:%Y-%m-%d %H:%M:%S} [{}] {}\n", now, user, event);
-        log_file.close();
-    }
+    Logger().log("SECURITY", std::format("[{}] {}", user, event));
 }
 
 std::string Security::getCurrentUser() const {

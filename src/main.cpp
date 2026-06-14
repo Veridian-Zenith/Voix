@@ -49,7 +49,7 @@ void printUsage() {
  * @brief Prints the version information of the voix command.
  */
 void printVersion() {
-    std::print("Voix version 4.2.2 - The Keeper of Realms\n"
+    std::print("Voix version 4.3.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -86,10 +86,11 @@ int main(int argc, char* argv[]) noexcept {
             {"list", no_argument, nullptr, 'l'},
             {"help", no_argument, nullptr, 'h'},
             {"version", no_argument, nullptr, 'v'},
+            {"check-config", no_argument, nullptr, 'c'},
             {nullptr, 0, nullptr, 0}
         };
 
-        while ((ch = getopt_long(argc, argv, "+C:Eilnsu:vh", long_options, nullptr)) != -1) {
+        while ((ch = getopt_long(argc, argv, "+C:Eilnsu:vhc", long_options, nullptr)) != -1) {
             switch (ch) {
                 case 'C':
                     config_path = optarg;
@@ -118,6 +119,9 @@ int main(int argc, char* argv[]) noexcept {
                 case 'h':
                     printUsage();
                     return 0;
+                case 'c':
+                    options.check_config = true;
+                    break;
                 default:
                     std::println(stderr, "Error: Unknown option: {}", static_cast<char>(ch));
                     printUsage();
@@ -152,10 +156,20 @@ int main(int argc, char* argv[]) noexcept {
             std::println(stderr, "Error: No command specified");
             printUsage();
             return 1;
-        } else {
+        } else if (argc > 0) {
             for (int i = 0; i < argc; ++i) {
                 command_args.push_back(argv[i]);
             }
+        }
+        
+        if (options.check_config) {
+            Voix::Config config;
+            if (!config.load(config_path, true) || !config.validate()) {
+                std::println(stderr, "Error: Invalid configuration schema or permissions.");
+                return 1;
+            }
+            std::println("Configuration is valid.");
+            return 0;
         }
 
         Voix::Security security;

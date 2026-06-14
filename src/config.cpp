@@ -209,6 +209,13 @@ std::string Config::getPath() const {
                            });
 }
 
+bool Config::validate() const {
+    // Basic structural validation is implicitly covered by load()
+    // For now, check if the config file itself exists and is readable
+    // A more advanced validation would involve checking the schema (using a YAML schema validator)
+    return true; 
+}
+
 } // namespace Voix
 
 

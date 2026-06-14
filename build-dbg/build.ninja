@@ -51,7 +51,7 @@ build cmake_object_order_depends_target_voix_lib: phony || .
 
 build CMakeFiles/voix_lib.dir/src/authenticator.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/authenticator.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/authenticator.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -62,7 +62,7 @@ build CMakeFiles/voix_lib.dir/src/authenticator.cpp.o: CXX_COMPILER__voix_lib_un
 
 build CMakeFiles/voix_lib.dir/src/command.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/command.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/command.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -73,7 +73,7 @@ build CMakeFiles/voix_lib.dir/src/command.cpp.o: CXX_COMPILER__voix_lib_unscanne
 
 build CMakeFiles/voix_lib.dir/src/config.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/config.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/config.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -84,7 +84,7 @@ build CMakeFiles/voix_lib.dir/src/config.cpp.o: CXX_COMPILER__voix_lib_unscanned
 
 build CMakeFiles/voix_lib.dir/src/file_utils.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/file_utils.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/file_utils.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -95,7 +95,7 @@ build CMakeFiles/voix_lib.dir/src/file_utils.cpp.o: CXX_COMPILER__voix_lib_unsca
 
 build CMakeFiles/voix_lib.dir/src/logger.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/logger.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/logger.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -106,7 +106,7 @@ build CMakeFiles/voix_lib.dir/src/logger.cpp.o: CXX_COMPILER__voix_lib_unscanned
 
 build CMakeFiles/voix_lib.dir/src/pam_utils.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/pam_utils.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/pam_utils.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -117,7 +117,7 @@ build CMakeFiles/voix_lib.dir/src/pam_utils.cpp.o: CXX_COMPILER__voix_lib_unscan
 
 build CMakeFiles/voix_lib.dir/src/permission_checker.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/permission_checker.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/permission_checker.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -128,7 +128,7 @@ build CMakeFiles/voix_lib.dir/src/permission_checker.cpp.o: CXX_COMPILER__voix_l
 
 build CMakeFiles/voix_lib.dir/src/security.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/security.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/security.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -139,7 +139,7 @@ build CMakeFiles/voix_lib.dir/src/security.cpp.o: CXX_COMPILER__voix_lib_unscann
 
 build CMakeFiles/voix_lib.dir/src/system_identity.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/system_identity.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/system_identity.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -150,7 +150,7 @@ build CMakeFiles/voix_lib.dir/src/system_identity.cpp.o: CXX_COMPILER__voix_lib_
 
 build CMakeFiles/voix_lib.dir/src/system_utils.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/system_utils.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/system_utils.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -161,7 +161,7 @@ build CMakeFiles/voix_lib.dir/src/system_utils.cpp.o: CXX_COMPILER__voix_lib_uns
 
 build CMakeFiles/voix_lib.dir/src/voix.cpp.o: CXX_COMPILER__voix_lib_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/voix.cpp || cmake_object_order_depends_target_voix_lib
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix_lib.dir/src/voix.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -199,7 +199,7 @@ build cmake_object_order_depends_target_voix: phony || cmake_object_order_depend
 
 build CMakeFiles/voix.dir/src/main.cpp.o: CXX_COMPILER__voix_unscanned_Debug /home/dae/VZ_Dev/work/Voix/src/main.cpp || cmake_object_order_depends_target_voix
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = CMakeFiles/voix.dir/src/main.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26 -Wall -Wextra
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -221,7 +221,7 @@ build voix: CXX_EXECUTABLE_LINKER__voix_Debug CMakeFiles/voix.dir/src/main.cpp.o
   DEP_FILE = CMakeFiles/voix.dir/link.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer
   LINK_FLAGS = -fuse-ld=mold -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,--icf=all -pie -flto=thin -Xlinker --dependency-file=CMakeFiles/voix.dir/link.d
-  LINK_LIBRARIES = libvoix_lib.a  /usr/lib/libyaml-cpp.so.0.9.0  -lpam  -lcap  -lseccomp
+  LINK_LIBRARIES = libvoix_lib.a  /usr/lib/libyaml-cpp.so.0.9.0  -lpam  -lcap  -lseccomp  -laudit
   OBJECT_DIR = CMakeFiles/voix.dir
   POST_BUILD = :
   PRE_LINK = :
@@ -323,7 +323,7 @@ build cmake_object_order_depends_target_test_runner: phony || cmake_object_order
 
 build tests/CMakeFiles/test_runner.dir/test_runner.cpp.o: CXX_COMPILER__test_runner_unscanned_Debug /home/dae/VZ_Dev/work/Voix/tests/test_runner.cpp || cmake_object_order_depends_target_test_runner
   CONFIG = Debug
-  DEFINES = -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
+  DEFINES = -DVOIX_WITH_AUDIT -DVOIX_WITH_CAP -DVOIX_WITH_PAM -DVOIX_WITH_SECCOMP
   DEP_FILE = tests/CMakeFiles/test_runner.dir/test_runner.cpp.o.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer -std=c++26
   INCLUDES = -I/home/dae/VZ_Dev/work/Voix/include
@@ -345,7 +345,7 @@ build tests/test_runner: CXX_EXECUTABLE_LINKER__test_runner_Debug tests/CMakeFil
   DEP_FILE = tests/CMakeFiles/test_runner.dir/link.d
   FLAGS = -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer  -march=native -Oz -pipe -fno-plt -fstack-protector-strong -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fexperimental-library -std=c++26 -g -fstandalone-debug -fno-omit-frame-pointer
   LINK_FLAGS = -fuse-ld=mold -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,--icf=all -pie -flto=thin -Xlinker --dependency-file=tests/CMakeFiles/test_runner.dir/link.d
-  LINK_LIBRARIES = libvoix_lib.a  /usr/lib/libyaml-cpp.so.0.9.0  -lpam  -lcap  -lseccomp
+  LINK_LIBRARIES = libvoix_lib.a  /usr/lib/libyaml-cpp.so.0.9.0  -lpam  -lcap  -lseccomp  -laudit
   OBJECT_DIR = tests/CMakeFiles/test_runner.dir
   POST_BUILD = :
   PRE_LINK = :

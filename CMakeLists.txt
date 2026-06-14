@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.2.2 LANGUAGES CXX)
+project(Voix VERSION 4.3.0 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -38,6 +38,7 @@ option(VOIX_USE_MOLD "Use MOLD linker instead of LLD" ON)
 option(VOIX_ENABLE_PAM "Enable PAM support" ON)
 option(VOIX_ENABLE_CAP "Enable Capability support" ON)
 option(VOIX_ENABLE_SECCOMP "Enable Seccomp support" ON)
+option(VOIX_ENABLE_AUDIT "Enable Auditd support" ON)
 
 # ---- Architecture Selection ----
 # Allow overriding the architecture for generic binary builds (e.g., CI/CD)
@@ -112,6 +113,13 @@ if(VOIX_ENABLE_SECCOMP)
     target_link_libraries(voix_lib PUBLIC ${LIBSECCOMP_LIBRARIES})
     target_include_directories(voix_lib PUBLIC ${LIBSECCOMP_INCLUDE_DIRS})
     target_compile_definitions(voix_lib PUBLIC VOIX_WITH_SECCOMP)
+endif()
+
+if(VOIX_ENABLE_AUDIT)
+    pkg_check_modules(LIBAUDIT REQUIRED audit)
+    target_link_libraries(voix_lib PUBLIC ${LIBAUDIT_LIBRARIES})
+    target_include_directories(voix_lib PUBLIC ${LIBAUDIT_INCLUDE_DIRS})
+    target_compile_definitions(voix_lib PUBLIC VOIX_WITH_AUDIT)
 endif()
 
 target_link_libraries(voix PRIVATE voix_lib)

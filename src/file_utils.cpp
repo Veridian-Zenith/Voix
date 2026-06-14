@@ -14,8 +14,31 @@
 #include <unistd.h>
 #include <format>
 #include <sstream>
+#include <fcntl.h>
 
 namespace Voix {
+
+// Helper to open a file safely without following symlinks
+static int open_no_follow(const char* path) {
+    return open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+}
+
+// Check if a file is safe (not a symlink, and proper permissions)
+static bool is_file_safe(int fd) {
+    struct stat st;
+    if (fstat(fd, &st) != 0) return false;
+    
+    // Must be a regular file
+    if (!S_ISREG(st.st_mode)) return false;
+    
+    // Must be owned by root
+    if (st.st_uid != 0) return false;
+    
+    // Should not be world or group writable
+    if (st.st_mode & (S_IWOTH | S_IWGRP)) return false;
+    
+    return true;
+}
 
 bool FileUtils::fileExists(const fs::path& path) const {
   std::error_code ec;
@@ -128,10 +151,13 @@ std::string FileUtils::resolve_command(const std::string& cmd, const std::string
     // 1. If command contains '/', it's an explicit path.
     if (cmd.find('/') != std::string::npos) {
         fs::path p = fs::absolute(cmd);
-        if (access(p.c_str(), X_OK) == 0) {
-            return p.string();
-        }
-        return "";
+        int fd = open_no_follow(p.c_str());
+        if (fd == -1) return "";
+        
+        bool safe = is_file_safe(fd);
+        close(fd);
+        
+        return safe ? p.string() : "";
     }
 
     // 2. Otherwise, look up in $PATH.
@@ -139,9 +165,14 @@ std::string FileUtils::resolve_command(const std::string& cmd, const std::string
     std::string item;
     while (std::getline(ss, item, ':')) {
         fs::path p = fs::path(item) / cmd;
-        if (access(p.c_str(), X_OK) == 0) {
+        int fd = open_no_follow(p.c_str());
+        if (fd == -1) continue;
+        
+        if (is_file_safe(fd)) {
+            close(fd);
             return p.string();
         }
+        close(fd);
     }
     return "";
 }
