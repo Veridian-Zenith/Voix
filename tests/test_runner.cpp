@@ -34,21 +34,21 @@ public:
     uid_t current_uid;
     std::vector<gid_t> current_groups;
 
-    std::optional<Voix::UserIdentity> getUserByName(const std::string& username) const override {
+    std::optional<Voix::UserIdentity> get_user_by_name(const std::string& username) const override {
         for (const auto& u : users) {
             if (u.name == username) return Voix::UserIdentity{u.name, u.uid, u.gid, u.groups, "/home/" + u.name, "/bin/bash"};
         }
         return std::nullopt;
     }
-    std::optional<Voix::UserIdentity> getUserByUid(uid_t uid) const override {
+    std::optional<Voix::UserIdentity> get_user_by_uid(uid_t uid) const override {
         for (const auto& u : users) {
             if (u.uid == uid) return Voix::UserIdentity{u.name, u.uid, u.gid, u.groups, "/home/" + u.name, "/bin/bash"};
         }
         return std::nullopt;
     }
-    std::string getCurrentUsername() const override { return current_user; }
-    uid_t getCurrentUid() const override { return current_uid; }
-    std::vector<gid_t> getCurrentGroups() const override { return current_groups; }
+    std::string get_current_username() const override { return current_user; }
+    uid_t get_current_uid() const override { return current_uid; }
+    std::vector<gid_t> get_current_groups() const override { return current_groups; }
 };
 
 bool test_permission_checker_permit_allowed() {

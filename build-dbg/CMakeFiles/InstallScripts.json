@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/dae/VZ_Dev/work/Voix/build-dbg/cmake_install.cmake",
-		"/home/dae/VZ_Dev/work/Voix/build-dbg/tests/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
