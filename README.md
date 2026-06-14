@@ -83,28 +83,31 @@ The heart of Voix is defined in `/etc/voix.conf` using a structured YAML format.
 
 **An Offering to the Config:**
 
-```yaml
-core:
-  paths: [/bin, /usr/bin]
+For the most up-to-date and complete configuration example, please refer to the `[config/voix.conf](config/voix.conf)` file within this repository:
 
+```yaml
+# Voix configuration
+
+# Core system settings
+core:
+  sanctuary: /tmp
+  paths:
+    - /bin
+    - /sbin
+    - /usr/bin
+    - /usr/sbin
+
+# Access Control List
 acl:
   group:
-    # The High Circle may invoke anything with ritual trust
     wheel:
       - action: permit
         options: [trust]
 
-  user:
-    # The Initiate may restart a service as 'root' without a token of proof
-    initiate:
-      - action: permit
-        target: root
-        command: /usr/bin/systemctl
-        args: [restart, nginx]
-
-    # Exiled souls shall remain shunned
-    exiled:
-      - action: deny
+# Security Policies
+security:
+  blocklist:
+    - /bin/sh
 ```
 
 ## Invoking the Power
