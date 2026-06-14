@@ -20,10 +20,10 @@ Born from the ancient runes of OpenDoas, Voix is a modern, secure invocation des
 
 The Elders command strict adherence to modern crafting:
 
-- **LLVM Clang Toolchain** (Only Clang 22+ is accepted by the forge)
+- **LLVM Clang Toolchain** (Only Clang is accepted by the forge)
 - A **C++26** compliant arcane environment
 - **CMake** (v3.18+) and **Ninja**
-- Core dependencies: PAM libraries (`libpam0g-dev` / `pam-devel`), `pkg-config`.
+- Core dependencies: `yaml-cpp`, `pam` (`libpam0g-dev` / `pam-devel`), `libcap`, `libseccomp`, `audit` (`libaudit-dev` / `audit-libs-devel`), `pkg-config`.
 
 ### Bringing Forth the Binary
 
