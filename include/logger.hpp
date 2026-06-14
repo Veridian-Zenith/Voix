@@ -15,17 +15,13 @@
 #define LOG_ERROR(msg) Voix::Logger().log("ERROR", msg)
 #define LOG_WARN(msg) Voix::Logger().log("WARN", msg)
 
-#ifdef VOIX_WITH_AUDIT
-#include <libaudit.h>
-#endif
-
 namespace Voix {
 
 class Logger {
 public:
-#ifdef VOIX_WITH_AUDIT
-    static int audit_fd;
-#endif
+    /**
+     * @brief Flag to suppress printing to stderr (e.g., during tests).
+     */
     static bool suppress_stderr;
 
     /**

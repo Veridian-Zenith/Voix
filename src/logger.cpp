@@ -17,9 +17,6 @@
 namespace Voix {
 
 bool Logger::suppress_stderr = false;
-#ifdef VOIX_WITH_AUDIT
-int Logger::audit_fd = audit_open();
-#endif
 
 std::string Logger::getTimestamp() const {
   auto now = std::chrono::system_clock::now();
@@ -27,11 +24,6 @@ std::string Logger::getTimestamp() const {
 }
 
 void Logger::log(std::string_view level, std::string_view message) const {
-#ifdef VOIX_WITH_AUDIT
-  if (audit_fd >= 0) {
-    (void)audit_log_user_message(audit_fd, AUDIT_USYS_CONFIG, message.data(), nullptr, nullptr, nullptr, 1);
-  }
-#endif
   std::ofstream log_file("/var/log/voix.log", std::ios::app);
   if (log_file.is_open()) {
     log_file << std::format("[{}] [{}] {}\n", getTimestamp(), level, message);

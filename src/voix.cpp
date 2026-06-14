@@ -13,6 +13,7 @@
 #include "command.hpp"
 #include "security.hpp"
 #include "config.hpp"
+#include "logger.hpp"
 #include "system_utils.hpp"
 #include <syslog.h>
 #include <pwd.h>
@@ -47,6 +48,8 @@ Voix::Voix(std::string_view config_path, bool non_interactive,
     security_->logEvent("Timestamp cleared (persist authentication reset)",
                         "system");
   }
+
+  ::Voix::Logger::suppress_stderr = config_->should_suppress_stderr();
 }
 
 Voix::~Voix() = default;

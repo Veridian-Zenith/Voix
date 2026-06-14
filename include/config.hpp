@@ -66,6 +66,11 @@ public:
      */
     bool is_login_shell_default() const { return login_shell_default_; }
     /**
+     * @brief Checks if stderr logging should be suppressed.
+     * @return True if suppressed, false otherwise.
+     */
+    bool should_suppress_stderr() const { return suppress_stderr_; }
+    /**
      * @brief Gets the blocklist of commands.
      * @return A reference to the blocklist vector.
      */
@@ -90,6 +95,7 @@ private:
     std::vector<std::regex> compiled_blocklist_;
     bool seccomp_enabled_ = true;
     bool login_shell_default_ = false;
+    bool suppress_stderr_ = false;
 };
 
 } // namespace Voix

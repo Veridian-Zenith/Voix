@@ -101,10 +101,14 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                     path_list_.push_back(path_entry.as<std::string>());
                 }
             }
-            if (config["core"]["login_shell"]) {
-                login_shell_default_ = config["core"]["login_shell"].as<bool>();
+                if (config["core"]["login_shell"]) {
+                    login_shell_default_ = config["core"]["login_shell"].as<bool>();
+                }
+                if (config["core"]["suppress_stderr"]) {
+                    suppress_stderr_ = config["core"]["suppress_stderr"].as<bool>();
+                }
             }
-        }
+
 
         if (config["profiles"]) {
             profiles_.clear();
