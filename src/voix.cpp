@@ -78,7 +78,7 @@ int Voix::execute(std::string_view command,
   struct passwd pwd;
   struct passwd *pw = nullptr;
   long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-  if (bufsize == -1) bufsize = kGetPwBufferFallbackSize;
+  if (bufsize == -1) bufsize = k_get_pw_buffer_fallback_size;
   std::vector<char> buffer(bufsize);
 
   if (getpwnam_r(user_str.c_str(), &pwd, buffer.data(), bufsize, &pw) != 0 || !pw) {

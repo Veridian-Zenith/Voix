@@ -64,13 +64,16 @@ public:
      * @return A std::expected containing void on success, or a FileError on failure.
      */
     std::expected<void, FileError> writeFile(const fs::path& path, std::string_view content) const;
+    struct ResolveCommandParams {
+        std::string command;
+        std::string path_env;
+    };
     /**
      * @brief Resolves the absolute path of a command.
-     * @param command The command to resolve.
-     * @param path_env The PATH environment string to search.
+     * @param params Parameters containing the command and the PATH environment string to search.
      * @return The absolute path to the command, or an empty string if not found.
      */
-    std::string resolve_command(const std::string& command, const std::string& path_env) const;
+    std::string resolve_command(const ResolveCommandParams& params) const;
 
 };
 

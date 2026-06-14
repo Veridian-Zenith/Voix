@@ -24,7 +24,7 @@ Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", 
 
 
 namespace {
-    Voix::Rule parseRule(const YAML::Node& rule_node) {
+    Voix::Rule parse_rule(const YAML::Node& rule_node) {
         Voix::Rule rule;
         if (rule_node["action"]) {
             rule.action = (rule_node["action"].as<std::string>() == "permit") ? Voix::Rule::Action::PERMIT : Voix::Rule::Action::DENY;
@@ -112,7 +112,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                 std::string profile_name = it->first.as<std::string>();
                 std::vector<Rule> profile_rules;
                 for (auto rule_node : it->second) {
-                    profile_rules.push_back(parseRule(rule_node));
+                     profile_rules.push_back(parse_rule(rule_node));
                 }
                 profiles_[profile_name] = std::move(profile_rules);
             }
@@ -134,8 +134,8 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                                 rules_.push_back(std::move(rule));
                             }
                         }
-                    } else {
-                        Rule rule = parseRule(rule_node);
+                     } else {
+                         Rule rule = parse_rule(rule_node);
                         rule.ident = username;
                         rule.ident_uid = SystemUtils::getUidByName(username);
                         rules_.push_back(std::move(rule));
@@ -158,8 +158,8 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                                 rules_.push_back(std::move(rule));
                             }
                         }
-                    } else {
-                        Rule rule = parseRule(rule_node);
+                     } else {
+                         Rule rule = parse_rule(rule_node);
                         rule.ident = ":" + groupname;
                         rule.ident_gid = SystemUtils::getGidByName(groupname);
                         rules_.push_back(std::move(rule));

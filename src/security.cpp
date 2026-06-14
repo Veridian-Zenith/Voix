@@ -61,7 +61,7 @@ bool Security::validateUser(std::string_view username) const {
         }
     }
 
-    return identity->getUserByName(std::string(username)).has_value();
+    return identity->get_user_by_name(std::string(username)).has_value();
 }
 
 bool Security::isSafePath(std::string_view path) const {
@@ -84,12 +84,12 @@ bool Security::isSafePath(std::string_view path) const {
             "/etc/shadow", "/etc/sudoers", "/root", "/etc/voix.conf"
         };
         
-        const auto isSameOrDescendant = [](const std::filesystem::path& candidate,
+        const auto is_same_or_descendant = [](const std::filesystem::path& candidate,
                                            const std::filesystem::path& base) -> bool {
-            auto cIt = candidate.begin();
-            auto bIt = base.begin();
-            for (; bIt != base.end(); ++bIt, ++cIt) {
-                if (cIt == candidate.end() || *cIt != *bIt) {
+            auto c_it = candidate.begin();
+            auto b_it = base.begin();
+            for (; b_it != base.end(); ++b_it, ++c_it) {
+                if (c_it == candidate.end() || *c_it != *b_it) {
                     return false;
                 }
             }
@@ -97,8 +97,8 @@ bool Security::isSafePath(std::string_view path) const {
         };
         
         for (auto target : forbidden) {
-            std::filesystem::path forbiddenPath = std::filesystem::weakly_canonical(std::filesystem::path(target));
-            if (isSameOrDescendant(canonical, forbiddenPath)) return false;
+            std::filesystem::path forbidden_path = std::filesystem::weakly_canonical(std::filesystem::path(target));
+            if (is_same_or_descendant(canonical, forbidden_path)) return false;
         }
         
         return true;
@@ -112,11 +112,11 @@ void Security::logEvent(std::string_view event, std::string_view user) const {
 }
 
 std::string Security::getCurrentUser() const {
-    return identity->getCurrentUsername();
+    return identity->get_current_username();
 }
 
 uid_t Security::get_current_uid() const {
-    return identity->getCurrentUid();
+    return identity->get_current_uid();
 }
 
 bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const {

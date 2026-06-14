@@ -58,13 +58,16 @@ private:
     std::shared_ptr<Security> security_;
     std::shared_ptr<Config> config_;
 
+    struct MatchPatternParams {
+        std::string pattern;
+        std::string text;
+    };
     /**
      * @brief Internal method to check if a pattern matches a string.
-     * @param pattern The glob-style pattern.
-     * @param text The string to check.
+     * @param params Parameters containing the glob-style pattern and the string to check.
      * @return True if matches, false otherwise.
      */
-    bool match_pattern(const std::string& pattern, const std::string& text) const;
+    bool match_pattern(const MatchPatternParams& params) const;
 
     /**
      * @brief Resolves contextual variables (e.g., %u) in a string.

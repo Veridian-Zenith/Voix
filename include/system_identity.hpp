@@ -40,28 +40,28 @@ public:
      * @param username The username to look up.
      * @return The UserIdentity if found, otherwise std::nullopt.
      */
-    virtual std::optional<UserIdentity> getUserByName(const std::string& username) const = 0;
+    virtual std::optional<UserIdentity> get_user_by_name(const std::string& username) const = 0;
     /**
      * @brief Retrieves user identity information by UID.
      * @param uid The user ID to look up.
      * @return The UserIdentity if found, otherwise std::nullopt.
      */
-    virtual std::optional<UserIdentity> getUserByUid(uid_t uid) const = 0;
+    virtual std::optional<UserIdentity> get_user_by_uid(uid_t uid) const = 0;
     /**
      * @brief Retrieves the current username.
      * @return The current username.
      */
-    virtual std::string getCurrentUsername() const = 0;
+    virtual std::string get_current_username() const = 0;
     /**
      * @brief Retrieves the current UID.
      * @return The current user ID.
      */
-    virtual uid_t getCurrentUid() const = 0;
+    virtual uid_t get_current_uid() const = 0;
     /**
      * @brief Retrieves the current user's groups.
      * @return A vector of group IDs.
      */
-    virtual std::vector<gid_t> getCurrentGroups() const = 0;
+    virtual std::vector<gid_t> get_current_groups() const = 0;
 };
 
 /**
@@ -69,11 +69,11 @@ public:
  */
 class SystemIdentity : public IIdentity {
 public:
-    std::optional<UserIdentity> getUserByName(const std::string& username) const override;
-    std::optional<UserIdentity> getUserByUid(uid_t uid) const override;
-    std::string getCurrentUsername() const override;
-    uid_t getCurrentUid() const override;
-    std::vector<gid_t> getCurrentGroups() const override;
+    std::optional<UserIdentity> get_user_by_name(const std::string& username) const override;
+    std::optional<UserIdentity> get_user_by_uid(uid_t uid) const override;
+    std::string get_current_username() const override;
+    uid_t get_current_uid() const override;
+    std::vector<gid_t> get_current_groups() const override;
 };
 
 } // namespace Voix

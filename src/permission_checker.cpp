@@ -43,7 +43,9 @@ bool PermissionChecker::isAllowed() const {
     return rule.action == Rule::Action::PERMIT && rule.ident == current_user;
   });
 }
-bool PermissionChecker::match_pattern(const std::string& pattern, const std::string& text) const {
+bool PermissionChecker::match_pattern(const MatchPatternParams& params) const {
+  const std::string& pattern = params.pattern;
+  const std::string& text = params.text;
   std::string regex_pattern = "^";
   for (char c : pattern) {
     if (c == '*') regex_pattern += ".*";
@@ -128,7 +130,7 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
 
       if (rule.options & Rule::PATTERN) {
         for (size_t i = 0; i < args.size(); ++i) {
-          if (!match_pattern(resolve_variables(rule.cmdargs[i]), args[i]))
+            if (!match_pattern({resolve_variables(rule.cmdargs[i]), args[i]}))
             return false;
         }
       } else {
@@ -147,7 +149,7 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
                                   const std::vector<std::string> &args,
                                   uid_t target_uid) const {
   std::string current_user = security_->getCurrentUser();
-  auto identity = security_->identity->getUserByName(current_user);
+    auto identity = security_->identity->get_user_by_name(current_user);
   if (!identity) return std::nullopt;
 
   uid_t uid = identity->uid;

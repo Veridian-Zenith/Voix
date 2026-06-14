@@ -145,7 +145,9 @@ std::expected<void, FileError> FileUtils::writeFile(const fs::path& path, std::s
   return {};
 }
 
-std::string FileUtils::resolve_command(const std::string& cmd, const std::string& paths) const {
+std::string FileUtils::resolve_command(const ResolveCommandParams& params) const {
+    const std::string& cmd = params.command;
+    const std::string& paths = params.path_env;
     if (cmd.empty()) return "";
 
     // 1. If command contains '/', it's an explicit path.

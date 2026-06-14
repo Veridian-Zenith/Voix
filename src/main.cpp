@@ -50,7 +50,7 @@ void printUsage() {
  * @brief Prints the version information of the voix command.
  */
 void printVersion() {
-    std::print("Voix version 4.3.0 - The Keeper of Realms\n"
+    std::print("Voix version 4.3.1 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) noexcept {
                 struct passwd pwd;
                 struct passwd* pw = nullptr;
                 long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-                if (bufsize == -1) bufsize = Voix::kGetPwBufferFallbackSize;
+                 if (bufsize == -1) bufsize = Voix::k_get_pw_buffer_fallback_size;
                 std::vector<char> buffer(static_cast<size_t>(bufsize));
 
                 if (getpwuid_r(getuid(), &pwd, buffer.data(), buffer.size(), &pw) == 0 && pw) {
@@ -176,7 +176,9 @@ int main(int argc, char* argv[]) noexcept {
         Voix::Security security;
 
         try {
+#ifdef VOIX_WITH_CAP
             security.raiseCapabilities();
+#endif
             // Initialize Voix with enhanced configuration
             Voix::Voix voix(config_path, nflag, options.list_commands);
 
@@ -200,12 +202,16 @@ int main(int argc, char* argv[]) noexcept {
                       command.c_str(), target_user.c_str());
             }
 
+#ifdef VOIX_WITH_CAP
             security.dropCapabilities();
+#endif
             return result;
         } catch (const std::exception& e) {
             std::println(stderr, "Error: {}", e.what());
             syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: %s", e.what());
+#ifdef VOIX_WITH_CAP
             security.dropCapabilities();
+#endif
             return 1;
         }
     } catch (const std::exception& e) {

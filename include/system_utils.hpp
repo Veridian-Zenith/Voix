@@ -16,8 +16,8 @@
 
 namespace Voix {
  
-constexpr long kGetPwBufferFallbackSize = 16384;
-constexpr std::string_view PRIVILEGED_PACKAGE_MANAGER = "alpm";
+constexpr long k_get_pw_buffer_fallback_size = 16384;
+constexpr std::string_view privileged_package_manager = "alpm";
  
 /**
   * @brief Utility class for system-level operations.

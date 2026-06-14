@@ -57,7 +57,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     struct passwd pwd;
     struct passwd *pw = nullptr;
     long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = Voix::kGetPwBufferFallbackSize;
+    if (bufsize == -1) bufsize = Voix::k_get_pw_buffer_fallback_size;
     std::vector<char> buffer(bufsize);
 
     if (getpwnam_r(user.empty() ? "root" : user_str.c_str(), &pwd, buffer.data(), bufsize, &pw) != 0 || !pw) {
@@ -102,7 +102,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     if (setuid(pw->pw_uid) != 0) _exit(1);
 
     Security sec;
-    bool is_privileged_user = (pw->pw_uid == 0 || user == Voix::PRIVILEGED_PACKAGE_MANAGER);
+    bool is_privileged_user = (pw->pw_uid == 0 || user == Voix::privileged_package_manager);
     
     if (sec.isCatastrophicCommand(command, args, config)) {
         #ifdef VOIX_WITH_CAP
@@ -156,11 +156,11 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
         if (!closed) {
           struct rlimit rl;
-          constexpr rlim_t kFallbackMaxFd = 4096;
-          constexpr rlim_t kCloseLoopCap = 65536;
-          rlim_t max_fd_limit = kFallbackMaxFd;
+           constexpr rlim_t k_fallback_max_fd = 4096;
+           constexpr rlim_t k_close_loop_cap = 65536;
+           rlim_t max_fd_limit = k_fallback_max_fd;
           if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
-              max_fd_limit = std::min(rl.rlim_cur, kCloseLoopCap);
+               max_fd_limit = std::min(rl.rlim_cur, k_close_loop_cap);
           }
           int max_fd = static_cast<int>(max_fd_limit);
           for (int i : std::views::iota(3, max_fd)) {
@@ -184,8 +184,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     // Resolve non-absolute paths
     if (!cmd_str.empty() && cmd_str[0] != '/') {
-        FileUtils fileUtils;
-        std::string resolved = fileUtils.resolve_command(cmd_str, config.getPath());
+        FileUtils file_utils;
+        std::string resolved = file_utils.resolve_command({cmd_str, config.getPath()});
         if (resolved.empty()) {
             LOG_ERROR(std::format("Command not found: {}", cmd_str));
             _exit(127);

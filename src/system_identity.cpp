@@ -16,7 +16,7 @@
 
 namespace Voix {
 
-std::optional<UserIdentity> SystemIdentity::getUserByName(const std::string& username) const {
+std::optional<UserIdentity> SystemIdentity::get_user_by_name(const std::string& username) const {
     struct passwd pwd;
     struct passwd* result = nullptr;
     long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -45,7 +45,7 @@ std::optional<UserIdentity> SystemIdentity::getUserByName(const std::string& use
     };
 }
 
-std::optional<UserIdentity> SystemIdentity::getUserByUid(uid_t uid) const {
+std::optional<UserIdentity> SystemIdentity::get_user_by_uid(uid_t uid) const {
     struct passwd pwd;
     struct passwd* result = nullptr;
     long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -66,7 +66,7 @@ std::optional<UserIdentity> SystemIdentity::getUserByUid(uid_t uid) const {
     };
 }
 
-std::string SystemIdentity::getCurrentUsername() const {
+std::string SystemIdentity::get_current_username() const {
     uid_t uid = getuid();
     struct passwd pwd;
     struct passwd* result = nullptr;
@@ -80,11 +80,11 @@ std::string SystemIdentity::getCurrentUsername() const {
     return "unknown";
 }
 
-uid_t SystemIdentity::getCurrentUid() const {
+uid_t SystemIdentity::get_current_uid() const {
     return getuid();
 }
 
-std::vector<gid_t> SystemIdentity::getCurrentGroups() const {
+std::vector<gid_t> SystemIdentity::get_current_groups() const {
     int ngroups = getgroups(0, nullptr);
     if (ngroups == -1) ngroups = 32;
     std::vector<gid_t> groups(ngroups);
