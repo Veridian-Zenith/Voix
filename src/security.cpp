@@ -242,10 +242,7 @@ void Security::applySeccompBlacklist() const {
         seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapon), 0) < 0 ||
         seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapoff), 0) < 0 ||
         seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(ptrace), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(bpf), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(unshare), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(mount), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(umount2), 0) < 0) {
+        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(bpf), 0) < 0) {
         LOG_WARN("Failed to add seccomp rules");
         _exit(1);
     }
