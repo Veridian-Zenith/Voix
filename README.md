@@ -23,7 +23,10 @@ The Elders command strict adherence to modern crafting:
 - **LLVM Clang Toolchain** (Only Clang is accepted by the forge)
 - A **C++26** compliant arcane environment
 - **CMake** (v3.18+) and **Ninja**
-- Core dependencies: `yaml-cpp`, `pam` (`libpam0g-dev` / `pam-devel`), `libcap`, `libseccomp`, `audit` (`libaudit-dev` / `audit-libs-devel`), `pkg-config`.
+- Core dependencies: 
+  - `yaml-cpp`, `pam`, `libcap`, `libseccomp`, `pkg-config`.
+  - On Debian/Ubuntu: `libyaml-cpp-dev`, `libpam0g-dev`, `libcap-dev`, `libseccomp-dev`.
+  - On Fedora/RHEL: `yaml-cpp-devel`, `pam-devel`, `libcap-devel`, `libseccomp-devel`.
 
 ### Bringing Forth the Binary
 
@@ -40,27 +43,21 @@ The Elders command strict adherence to modern crafting:
     cmake --build build
     ```
 
-3. **Test the Artifact (Debug Builds Only)**:
-
-    Tests are built and executed automatically *during* the debug build process. If any tests fail, the build itself will fail.
-
-    ```bash
-    cmake -B build-dbg -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && cmake --build build-dbg
-    ```
-
-4. **Install the Artifact**:
+3. **Install the Artifact**:
 
     ```bash
     sudo cmake --install build
     ```
 
-    *Arch Linux users are encouraged to install via AUR using `paru` or `yay` for automatic management of permissions and capabilities:*
+4. **Distribution Specifics**:
 
-    ```bash
-    paru -S voix
-    # OR
-    yay -S voix
-    ```
+    - **Arch Linux**: Users are encouraged to install via AUR using `paru` or `yay`:
+      ```bash
+      paru -S voix
+      # OR
+      yay -S voix
+      ```
+    - **Other Distributions**: Please refer to the [packaging directory](packaging/) for guidance on creating packages for your specific system.
 
 ## First Invocation (Getting Started)
 
