@@ -4,7 +4,7 @@ This guide explains how to configure `voix` as a modern, secure, and performant 
 
 ## 1. Configuring Voix for Privilege Escalation
 
-Voix manages privileges using configuration rules defined in `/etc/voix.conf`. For detailed information on configuring these rules, refer to [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
+Voix manages privileges using configuration rules defined in `/etc/voix.conf`. For detailed information on configuring these rules, refer to [`docs/CONFIG.md`](docs/CONFIG.md).
 
 To grant specific users or groups the ability to escalate privileges, you must define YAML rules in your `/etc/voix.conf`.
 
@@ -26,7 +26,7 @@ Ensure that the soul or group is configured to be able to use `voix` in `/etc/vo
 
 ## 3. Supported Flags
 
-Voix includes several flags to support `sudo`-like behavior. See [`docs/CLI_REFERENCE.md`](docs/CLI_REFERENCE.md) for a full list of options.
+Voix includes several flags to support `sudo`-like behavior. See [`docs/CLI.md`](docs/CLI.md) for a full list of options.
 
 Important flags include:
 

@@ -59,6 +59,17 @@ The Elders command strict adherence to modern crafting:
       ```
     - **Other Distributions**: Please refer to the [packaging directory](packaging/) for guidance on creating packages for your specific system.
 
+## The Great Archives (Documentation)
+
+For those who wish to delve deeper into the mysteries of Voix, consult the following scrolls in the `[docs/](docs/)` sanctuary:
+
+- **[The Book of Threats](THREATS.md)**: A technical breakdown of the attack surface and the wards protecting the realm.
+- **[The Lexicon of Command](docs/CLI.md)**: A guide to the incantations and flags of the artifact.
+- **[The Runes of Law](docs/CONFIG.md)**: Detailed guidance on scribing the `/etc/voix.conf` sanctuary.
+- **[The Rite of Replacement](docs/SUDO.md)**: How to use Voix as a successor to the ancient `sudo`.
+- **[The Seccomp Seals](docs/SECCOMP.md)**: An analysis of the syscall filters that bind the power.
+- **[The Trial of Truth](docs/TESTING.md)**: How to verify the artifact's integrity through rigorous testing.
+
 ## First Invocation (Getting Started)
 
 With the forge and installation complete, ensure your PAM configuration at `/etc/pam.d/voix` is aligned with your security policy, and you may now invoke Voix.

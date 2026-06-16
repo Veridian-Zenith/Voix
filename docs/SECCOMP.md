@@ -41,6 +41,8 @@ The following syscalls are identified for the initial blacklist:
 - `reboot`
 - `swapon`
 - `swapoff`
+- `ptrace`
+- `bpf`
 
 These syscalls are often targets for privilege escalation or system disruption.
 

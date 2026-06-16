@@ -12,5 +12,6 @@ Usage: `voix [options] <incantation> [args...]`
 - `-s`: Execute the user's shell (ascend to shell).
 - `-i, --login`: Execute the incantation in a login shell environment.
 - `-E, --preserve-env`: Preserve the user's environment variables.
-- `-l, --list`: List the rites permitted for the user.
+- `-l, --list`: List the rites permitted for the user (Pending implementation).
 - `-c, --check-config`: Validate the configuration file.
+- `-k`: Invalidate timestamp (Compatibility no-op).
