@@ -210,14 +210,15 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
-    // Prevent gaining new privileges via execve (required for seccomp to be
-    // effective and a general defense-in-depth measure)
-    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
-        LOG_ERROR("Failed to set PR_SET_NO_NEW_PRIVS");
-        _exit(1);
-    }
-
     if (config.is_seccomp_enabled()) {
+        // PR_SET_NO_NEW_PRIVS is required for seccomp to be effective —
+        // only set it when seccomp is actually being applied. Setting it
+        // unconditionally breaks legitimate child processes that need to
+        // switch users (e.g. pacman's alpm sandbox, transaction hooks).
+        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
+            LOG_ERROR("Failed to set PR_SET_NO_NEW_PRIVS");
+            _exit(1);
+        }
 #ifdef VOIX_WITH_SECCOMP
         sec.applySeccompBlacklist();
 #endif
