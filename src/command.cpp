@@ -131,13 +131,17 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     #endif
 
-    // Always scrub the environment before restoring the whitelist
-    clearenv();
+    // Scrub environment only for non-privileged users to maintain security.
+    // Privileged users (root, alpm) need a full environment to perform hooks
+    // and system operations without breaking D-Bus or other services.
+    if (!is_privileged_user) {
+        clearenv();
+        // Restore only approved environment variables
+        std::ranges::for_each(saved_env, [](const auto& env) {
+          setenv(env.first.c_str(), env.second.c_str(), 1);
+        });
+    }
 
-    // Restore only approved environment variables & set target identity
-    std::ranges::for_each(saved_env, [](const auto& env) {
-      setenv(env.first.c_str(), env.second.c_str(), 1);
-    });
     setenv("PATH", config.getPath().c_str(), 1);
     setenv("USER", pw_entry->name.c_str(), 1);
     setenv("LOGNAME", pw_entry->name.c_str(), 1);
