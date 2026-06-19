@@ -55,6 +55,12 @@ public:
                 const CommandOptions& options,
                 std::string_view user = "root");
 
+    /**
+     * @brief Lists all permitted commands for the current user.
+     * @return 0 on success, non-zero on failure.
+     */
+    int listCommands() const;
+
 private:
     std::shared_ptr<Config> config_;
     std::shared_ptr<Security> security_;

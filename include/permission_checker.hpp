@@ -54,6 +54,12 @@ public:
     std::optional<Rule> permit(std::string_view command, const std::vector<std::string>& args,
                 uid_t target_uid) const;
 
+    /**
+     * @brief Returns all rules that permit actions for the current user.
+     * @return Vector of permitted rules for the current user.
+     */
+    std::vector<Rule> listPermittedRules() const;
+
 private:
     std::shared_ptr<Security> security_;
     std::shared_ptr<Config> config_;

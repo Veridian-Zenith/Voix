@@ -19,13 +19,20 @@ std::optional<UserIdentity> SystemIdentity::get_user_by_name(const std::string& 
     auto entry = lookupPasswdByName(username);
     if (!entry) return std::nullopt;
 
+    // Use getgrouplist() to resolve the target user's supplementary groups
+    // (not the calling process's groups, which getgroups() would return)
     std::vector<gid_t> groups;
-    int ngroups = getgroups(0, nullptr);
-    if (ngroups == -1) ngroups = 32;
+    int ngroups = 32;
     groups.resize(ngroups);
-    if (getgroups(ngroups, groups.data()) == -1) {
-        groups.clear();
+    if (getgrouplist(username.c_str(), entry->gid, groups.data(), &ngroups) == -1) {
+        // Buffer too small, retry with the updated ngroups count
+        groups.resize(ngroups);
+        if (getgrouplist(username.c_str(), entry->gid, groups.data(), &ngroups) == -1) {
+            groups.clear();
+            ngroups = 0;
+        }
     }
+    groups.resize(ngroups);
 
     return UserIdentity{
         entry->name, entry->uid, entry->gid,

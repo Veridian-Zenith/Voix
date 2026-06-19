@@ -13,6 +13,7 @@
 #include "file_utils.hpp"
 #include "logger.hpp"
 #include <yaml-cpp/yaml.h>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <numeric>
@@ -116,9 +117,18 @@ bool Config::load(std::string_view config_path, bool verify_security) {
         return false;
     }
 
-    if (verify_security && !file_utils.isSecurePath(path_str)) {
-        logger.log("ERROR", std::format("Config file security check failed: {}", path_str));
-        return false;
+    if (verify_security) {
+        // Reject symlinks to prevent TOCTOU attacks on config file
+        std::error_code ec;
+        if (std::filesystem::is_symlink(path_str, ec)) {
+            logger.log("ERROR", std::format("Config file is a symlink (rejected): {}", path_str));
+            return false;
+        }
+
+        if (!file_utils.isSecurePath(path_str)) {
+            logger.log("ERROR", std::format("Config file security check failed: {}", path_str));
+            return false;
+        }
     }
 
     try {
@@ -213,10 +223,52 @@ std::string Config::getPath() const {
 }
 
 bool Config::validate() const {
-    // Basic structural validation is implicitly covered by load()
-    // For now, check if the config file itself exists and is readable
-    // A more advanced validation would involve checking the schema (using a YAML schema validator)
-    return true; 
+    // Validate sanctuary path exists and is a directory
+    if (sanctuary_.empty()) {
+        return false;
+    }
+    std::error_code ec;
+    bool is_dir = std::filesystem::is_directory(sanctuary_, ec);
+    if (ec) {
+        // Filesystem error (e.g., permission denied, path does not exist)
+        return false;
+    }
+    if (!is_dir) {
+        // Path exists but is not a directory
+        return false;
+    }
+
+    // Validate path_list entries are absolute paths
+    for (const auto& p : path_list_) {
+        if (p.empty() || p[0] != '/') {
+            return false;
+        }
+    }
+
+    // Validate rules have consistent structure
+    for (const auto& rule : rules_) {
+        // Each rule must have an identity (user or group)
+        if (rule.ident.empty() && !rule.ident_uid.has_value() && !rule.ident_gid.has_value()) {
+            return false;
+        }
+        // If a command is specified with args, args must not be empty strings
+        if (!rule.cmd.empty() && !rule.cmdargs.empty()) {
+            for (const auto& arg : rule.cmdargs) {
+                if (arg.empty()) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Validate blocklist entries are non-empty
+    for (const auto& entry : blocklist_) {
+        if (entry.empty()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace Voix
