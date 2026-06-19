@@ -208,11 +208,10 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
-    if (config.is_seccomp_enabled()) {
-        // PR_SET_NO_NEW_PRIVS is required for seccomp to be effective —
-        // only set it when seccomp is actually being applied. Setting it
-        // unconditionally breaks legitimate child processes that need to
-        // switch users (e.g. pacman's alpm sandbox, transaction hooks).
+    // Apply seccomp only to non-privileged targets. Privileged targets (root)
+    // need unrestricted syscall access — PR_SET_NO_NEW_PRIVS + seccomp blocks
+    // /proc/pid/root access needed by package manager hooks (snap-pac, etc.).
+    if (config.is_seccomp_enabled() && !is_privileged_user) {
         if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
             LOG_ERROR("Failed to set PR_SET_NO_NEW_PRIVS");
             _exit(1);
