@@ -18,15 +18,19 @@ The application will adopt a **blacklist policy**. This approach blocks a set of
 
 ### 2. Workflow
 
-The process flow in the child process will be updated as follows:
+The process flow in the child process is as follows. Note that capability dropping, resource limits, and seccomp are only applied to **non-privileged target users**. Privileged targets (root, package manager) retain full access since voix's purpose is to grant root-level privileges.
 
 ```mermaid
 sequenceDiagram
     participant Child
-    Child->>Child: dropPrivileges()
-    Child->>Child: dropCapabilities()
-    Child->>Child: setResourceLimits()
-    Child->>Child: applySeccompBlacklist()
+    Child->>Child: dropPrivileges() (setuid/setgid)
+    alt Non-privileged target
+        Child->>Child: dropCapabilities()
+        Child->>Child: setResourceLimits()
+        Child->>Child: PR_SET_NO_NEW_PRIVS
+        Child->>Child: applySeccompBlacklist()
+    end
+    Child->>Child: closeFDs()
     Child->>Child: execv()
 ```
 
