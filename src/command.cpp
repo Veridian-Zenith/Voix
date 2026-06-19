@@ -123,7 +123,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     {
         std::vector<cap_value_t> caps_to_keep;
         if (is_privileged_user) {
-            caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN, CAP_DAC_OVERRIDE, CAP_FOWNER};
+            caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN,
+                            CAP_DAC_OVERRIDE, CAP_FOWNER, CAP_SETUID, CAP_SETGID};
         }
         sec.dropCapabilities(caps_to_keep);
     }
