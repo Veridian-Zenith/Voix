@@ -120,11 +120,14 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     // Drop capabilities for non-privileged target users (they should have none).
     // Privileged targets (root, alpm) retain full capabilities since the purpose
-    // of voix is to grant them root-level access — dropping caps for root breaks
-    // legitimate operations (e.g. pacman hooks accessing /proc, snapper, etc.).
+    // of voix is to grant them root-level access.
     #ifdef VOIX_WITH_CAP
     if (!is_privileged_user) {
         sec.dropCapabilities({});
+    } else {
+        // Explicitly retain all capabilities for privileged targets
+        // by NOT dropping them, and ensuring they are not restricted
+        // by further security measures.
     }
     #endif
 
@@ -152,6 +155,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     // Apply resource limits only to non-privileged targets. Privileged targets
     // may need high NPROC (pacman hooks spawn many processes) and NOFILE limits.
+    // Privileged targets also need unrestricted access to /proc/pid/root (snap-pac, etc.)
+    // which requires full capabilities and bypassing seccomp.
     if (!is_privileged_user) {
         setResourceLimits();
     }
@@ -214,8 +219,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     argv.push_back(nullptr);
 
     // Apply seccomp only to non-privileged targets. Privileged targets (root)
-    // need unrestricted syscall access — PR_SET_NO_NEW_PRIVS + seccomp blocks
-    // /proc/pid/root access needed by package manager hooks (snap-pac, etc.).
+    // need unrestricted syscall access.
     if (config.is_seccomp_enabled() && !is_privileged_user) {
         if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
             LOG_ERROR("Failed to set PR_SET_NO_NEW_PRIVS");
