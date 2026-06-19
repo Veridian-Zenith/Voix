@@ -114,7 +114,12 @@ int Voix::execute(std::string_view command,
   if (!merged_options.login_shell && config_->is_login_shell_default()) {
       merged_options.login_shell = true;
   }
-
+  
+  // Merge rule options into merged_options
+  if (rule->options & Rule::KEEPENV) {
+      merged_options.preserve_env = true;
+  }
+  
   int res = command_->execute(command_str, args, *config_, merged_options, user_str);
   authenticator_->closeSession();
   return res;
