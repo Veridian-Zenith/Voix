@@ -65,7 +65,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Preserve whitelist environment
-    const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
+    const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH", "DBUS_SESSION_BUS_ADDRESS", "XDG_RUNTIME_DIR"};
     const std::array<std::string_view, 7> dangerous_env_names = {
         "BASH_ENV", "ENV", "IFS", "CDPATH",
         "GCONV_PATH", "GETCONF_DIR", "HOSTALIASES"
