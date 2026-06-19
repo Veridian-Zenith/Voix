@@ -852,7 +852,7 @@ bool test_permission_checker_list_permitted_rules_empty() {
         std::ofstream out(config_path);
         out << "acl:\n  user:\n    1000:\n      - action: permit\n        command: ls\n";
     }
-    config->load(config_path.string(), false);
+    ASSERT_TRUE(config->load(config_path.string(), false));
 
     Voix::PermissionChecker checker(security, config);
     auto rules = checker.listPermittedRules();

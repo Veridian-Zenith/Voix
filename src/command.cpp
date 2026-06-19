@@ -146,6 +146,11 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       setenv("SHELL", pw_entry->shell.c_str(), 1);
     }
 
+    // Capture the original FD limit before reducing it, so the close loop
+    // covers all inherited descriptors (not just the reduced limit).
+    struct rlimit original_rl;
+    bool have_original_rl = (getrlimit(RLIMIT_NOFILE, &original_rl) == 0);
+
     // Prevent FD leakage for all executions
     setResourceLimits();
     bool closed = false;
@@ -156,12 +161,11 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 #endif
 
     if (!closed) {
-      struct rlimit rl;
       constexpr rlim_t k_fallback_max_fd = 4096;
       constexpr rlim_t k_close_loop_cap = 65536;
       rlim_t max_fd_limit = k_fallback_max_fd;
-      if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
-          max_fd_limit = std::min(rl.rlim_cur, k_close_loop_cap);
+      if (have_original_rl) {
+          max_fd_limit = std::min(original_rl.rlim_cur, k_close_loop_cap);
       }
       int max_fd = static_cast<int>(max_fd_limit);
       for (int i : std::views::iota(3, max_fd)) {

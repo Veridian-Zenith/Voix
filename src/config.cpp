@@ -228,7 +228,12 @@ bool Config::validate() const {
         return false;
     }
     std::error_code ec;
-    if (!std::filesystem::is_directory(sanctuary_, ec) && !ec) {
+    bool is_dir = std::filesystem::is_directory(sanctuary_, ec);
+    if (ec) {
+        // Filesystem error (e.g., permission denied, path does not exist)
+        return false;
+    }
+    if (!is_dir) {
         // Path exists but is not a directory
         return false;
     }
