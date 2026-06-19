@@ -37,10 +37,14 @@ void printUsage() {
                "  -u USER        Execute as target mask (default: root)\n"
                "  -c FILE        Use FILE as the configuration sanctuary\n"
                "  -n             Non-interactive mode (fail if proof is required)\n"
-               "  -s             Execute user's shell (ascend to shell)\n\n"
+               "  -s             Execute user's shell (ascend to shell)\n"
+               "  -l, --list     List permitted commands for the current user\n"
+               "  -E             Preserve the environment\n"
+               "  -i, --login    Execute in a login shell\n\n"
                "Examples:\n"
                "  voix ls /root\n"
                "  voix -u admin systemctl restart nginx\n"
+               "  voix -l          # List permitted commands\n"
                "  voix -s          # Start interactive shell ascension\n");
 }
 
@@ -183,8 +187,7 @@ int main(int argc, char* argv[]) noexcept {
             // Execute command with enhanced security
             int result = 0;
             if (options.list_commands) {
-                // TODO: Implement list_commands logic here
-                std::println("List commands not yet implemented.");
+                result = voix.listCommands();
             } else {
                 result = voix.execute(command, args, options, target_user);
 

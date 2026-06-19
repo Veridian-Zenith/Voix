@@ -173,4 +173,43 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
 }
 
 
+std::vector<Rule> PermissionChecker::listPermittedRules() const {
+    std::vector<Rule> permitted;
+    std::string current_user = security_->getCurrentUser();
+    auto identity = security_->identity->get_user_by_name(current_user);
+    if (!identity) return permitted;
+
+    uid_t uid = identity->uid;
+    std::vector<gid_t> groups = identity->groups;
+    groups.push_back(identity->gid);
+    int ngroups = static_cast<int>(groups.size());
+
+    auto rules = config_->getRules();
+    for (const auto& rule : rules) {
+        if (rule.action != Rule::Action::PERMIT) continue;
+
+        // Check identity match (user or group)
+        bool identity_match = false;
+        if (rule.ident_uid.has_value()) {
+            identity_match = (rule.ident_uid.value() == uid);
+        } else if (rule.ident_gid.has_value()) {
+            identity_match = std::ranges::find(std::span(groups.data(), ngroups),
+                                               rule.ident_gid.value()) != std::span(groups.data(), ngroups).end();
+        } else if (!rule.ident.empty()) {
+            if (!rule.ident.starts_with("%")) {
+                char* endptr;
+                uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
+                if (*endptr == '\0') {
+                    identity_match = (rule_uid == uid);
+                }
+            }
+        }
+
+        if (identity_match) {
+            permitted.push_back(rule);
+        }
+    }
+    return permitted;
+}
+
 } // namespace Voix

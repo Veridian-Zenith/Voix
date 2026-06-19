@@ -121,6 +121,8 @@ void PamAuthenticator::closeSession() {
             LOG_WARN(std::format("Failed to delete PAM credentials: {}",
                      pam_strerror(pamh_, result)));
         }
+        pam_end(pamh_, result);
+        pamh_ = nullptr;
     }
 }
 

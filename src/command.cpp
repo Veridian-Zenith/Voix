@@ -157,29 +157,27 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       setenv("SHELL", pw_entry->shell.c_str(), 1);
     }
 
-    if (sec.isCatastrophicCommand(command, args, config)) {
-        // Prevent FD leakage
-        setResourceLimits();
-        bool closed = false;
+    // Prevent FD leakage for all executions
+    setResourceLimits();
+    bool closed = false;
 #ifdef SYS_close_range
-        if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
-          closed = true;
-        }
+    if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
+      closed = true;
+    }
 #endif
 
-        if (!closed) {
-          struct rlimit rl;
-           constexpr rlim_t k_fallback_max_fd = 4096;
-           constexpr rlim_t k_close_loop_cap = 65536;
-           rlim_t max_fd_limit = k_fallback_max_fd;
-          if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
-               max_fd_limit = std::min(rl.rlim_cur, k_close_loop_cap);
-          }
-          int max_fd = static_cast<int>(max_fd_limit);
-          for (int i : std::views::iota(3, max_fd)) {
-            close(i);
-          }
-        }
+    if (!closed) {
+      struct rlimit rl;
+      constexpr rlim_t k_fallback_max_fd = 4096;
+      constexpr rlim_t k_close_loop_cap = 65536;
+      rlim_t max_fd_limit = k_fallback_max_fd;
+      if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
+          max_fd_limit = std::min(rl.rlim_cur, k_close_loop_cap);
+      }
+      int max_fd = static_cast<int>(max_fd_limit);
+      for (int i : std::views::iota(3, max_fd)) {
+        close(i);
+      }
     }
 
     auto escape = [](const std::string& s) {

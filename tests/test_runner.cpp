@@ -758,6 +758,108 @@ bool test_permission_checker_command_specific() {
     return true;
 }
 
+// ============================================================
+// Config::validate() tests
+// ============================================================
+
+bool test_config_validate_valid_config() {
+    Voix::Config config;
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_validate_valid.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  paths: [/bin, /usr/bin]\n  sanctuary: /tmp\n"
+            << "acl:\n  user:\n    1000:\n      - action: permit\n        command: ls\n";
+    }
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(config.validate());
+    return true;
+}
+
+bool test_config_validate_relative_path() {
+    Voix::Config config;
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_validate_relpath.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  paths: [bin, /usr/bin]\n  sanctuary: /tmp\n";
+    }
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(!config.validate());
+    return true;
+}
+
+bool test_config_validate_empty_sanctuary() {
+    Voix::Config config;
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_validate_emptysanc.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  paths: [/bin]\n  sanctuary: \"\"\n";
+    }
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(!config.validate());
+    return true;
+}
+
+// ============================================================
+// PermissionChecker::listPermittedRules() tests
+// ============================================================
+
+bool test_permission_checker_list_permitted_rules() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_list_rules.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "acl:\n  user:\n    1000:\n"
+            << "      - action: permit\n        command: ls\n"
+            << "      - action: permit\n        command: cat\n"
+            << "      - action: deny\n        command: rm\n";
+    }
+    config->load(config_path.string(), false);
+
+    Voix::PermissionChecker checker(security, config);
+    auto rules = checker.listPermittedRules();
+    // Should have 2 permit rules (ls and cat), not the deny rule
+    ASSERT_EQUAL(static_cast<int>(rules.size()), 2);
+    ASSERT_EQUAL(rules[0].cmd, std::string("ls"));
+    ASSERT_EQUAL(rules[1].cmd, std::string("cat"));
+    return true;
+}
+
+bool test_permission_checker_list_permitted_rules_empty() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"bob", 2000, 2000, {2000}}};
+    mock_id->current_user = "bob";
+    mock_id->current_uid = 2000;
+    mock_id->current_groups = {2000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_list_empty.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "acl:\n  user:\n    1000:\n      - action: permit\n        command: ls\n";
+    }
+    config->load(config_path.string(), false);
+
+    Voix::PermissionChecker checker(security, config);
+    auto rules = checker.listPermittedRules();
+    ASSERT_EQUAL(static_cast<int>(rules.size()), 0);
+    return true;
+}
+
 int main() {
     Voix::Logger::suppress_stderr = true;
     TestRunner runner;
@@ -833,6 +935,15 @@ int main() {
     runner.add_test("test_permission_checker_group_rule", test_permission_checker_group_rule);
     runner.add_test("test_permission_checker_deny_rule", test_permission_checker_deny_rule);
     runner.add_test("test_permission_checker_command_specific", test_permission_checker_command_specific);
+
+    // Config::validate() tests
+    runner.add_test("test_config_validate_valid_config", test_config_validate_valid_config);
+    runner.add_test("test_config_validate_relative_path", test_config_validate_relative_path);
+    runner.add_test("test_config_validate_empty_sanctuary", test_config_validate_empty_sanctuary);
+
+    // PermissionChecker::listPermittedRules() tests
+    runner.add_test("test_permission_checker_list_permitted_rules", test_permission_checker_list_permitted_rules);
+    runner.add_test("test_permission_checker_list_permitted_rules_empty", test_permission_checker_list_permitted_rules_empty);
 
     return runner.run();
 }

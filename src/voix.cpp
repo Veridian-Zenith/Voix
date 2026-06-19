@@ -120,4 +120,37 @@ int Voix::execute(std::string_view command,
   return res;
 }
 
+int Voix::listCommands() const {
+    auto rules = permission_checker_->listPermittedRules();
+    if (rules.empty()) {
+        std::println("No permitted commands for the current user.");
+        return 0;
+    }
+
+    std::println("Permitted commands for user '{}':", security_->getCurrentUser());
+    for (const auto& rule : rules) {
+        std::string entry;
+        if (rule.cmd.empty()) {
+            entry = "(all commands)";
+        } else {
+            entry = rule.cmd;
+            for (const auto& arg : rule.cmdargs) {
+                entry += " " + arg;
+            }
+        }
+        if (!rule.target.empty()) {
+            entry += std::format(" as {}", rule.target);
+        }
+        std::string opts;
+        if (rule.options & Rule::NOPASS) opts += " nopass";
+        if (rule.options & Rule::KEEPENV) opts += " keepenv";
+        if (rule.options & Rule::PERSIST) opts += " persist";
+        if (!opts.empty()) {
+            entry += std::format(" [{}]", opts.substr(1));
+        }
+        std::println("  {}", entry);
+    }
+    return 0;
+}
+
 } // namespace Voix
