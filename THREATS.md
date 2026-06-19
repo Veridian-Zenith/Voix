@@ -82,14 +82,15 @@ Once authenticated, Voix executes a target command with elevated privileges.
 ## 4. Technical Defenses
 
 ### Linux Capabilities (`libcap`)
-Rather than operating as a monolithic root user, Voix employs the principle of least privilege using Linux capabilities.
-- **Dynamic Escalation**: Voix only raises specific capabilities (`CAP_AUDIT_WRITE`, `CAP_DAC_READ_SEARCH`, `CAP_SETUID`) when strictly necessary.
-- **Immediate Drop**: Capabilities are stripped via `Security::dropCapabilities()` before the target command is executed, ensuring the child process does not inherit unnecessary root powers.
+Voix employs the principle of least privilege using Linux capabilities for non-privileged target users.
+- **Non-Privileged Targets**: All capabilities are stripped via `Security::dropCapabilities()` before the target command is executed, ensuring the child process has zero inherited root powers.
+- **Privileged Targets** (root, package manager): Full capabilities are retained since voix's purpose is to grant root-level access. Restricting capabilities for root targets would break legitimate operations (e.g., pacman hooks, snapper, systemd operations).
 
 ### Syscall Filtering (`libseccomp`)
-To prevent the executed command from compromising the kernel, Voix implements a syscall blacklist.
+To prevent non-privileged commands from compromising the kernel, Voix implements a syscall blacklist.
 - **Blacklisted Calls**: Dangerous syscalls including `kexec_load`, `delete_module`, `init_module`, `finit_module`, `reboot`, `swapon`, `swapoff`, `ptrace`, and `bpf` are blocked.
-- **Enforcement**: The filter is applied in the child process after privilege transition but before `execvp`. While `sudo` often relies on external AppArmor/SELinux profiles, Voix provides integrated kernel-level protection by default.
+- **Scope**: Seccomp and `PR_SET_NO_NEW_PRIVS` are applied only to non-privileged target users. Privileged targets require unrestricted syscall access for legitimate operations (package manager hooks, process management, etc.).
+- **Enforcement**: The filter is applied in the child process after privilege transition but before `execv`. While `sudo` often relies on external AppArmor/SELinux profiles, Voix provides integrated kernel-level protection for non-privileged targets by default.
 
 ---
 
@@ -99,6 +100,6 @@ To prevent the executed command from compromising the kernel, Voix implements a 
 | :--- | :--- | :--- | :--- |
 | **Complexity** | Massive Legacy Base | Minimal C++26 Core | Smaller attack surface, easier audit |
 | **Environment** | Complex Keep/Reset | Strict Whitelist/Scrub | Prevents `LD_PRELOAD` and shell escapes |
-| **Kernel Defense**| External (AppArmor) | Integrated (Seccomp) | Blocks `ptrace`/`kexec` by default |
-| **Privileges** | Root (All-or-Nothing) | Fine-grained Capabilities | Limits blast radius of a compromised process |
+| **Kernel Defense**| External (AppArmor) | Integrated (Seccomp) | Blocks `ptrace`/`kexec` for non-privileged targets |
+| **Privileges** | Root (All-or-Nothing) | Tiered (full root or zero caps) | Non-privileged targets get zero capabilities |
 | **Config** | Sudoers (Complex) | YAML (Structured) | Transparent and less prone to syntax errors |
