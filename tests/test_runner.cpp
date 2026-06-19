@@ -216,35 +216,35 @@ bool test_security_catastrophic_command() {
 bool test_command_build_string_simple() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("ls", {"-la"}, "root");
-    ASSERT_EQUAL(result, std::string("ls -la"));
+    ASSERT_EQUAL(result, std::string("'ls' '-la'"));
     return true;
 }
 
 bool test_command_build_string_non_root_user() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("cat", {"/etc/hostname"}, "alice");
-    ASSERT_EQUAL(result, std::string("su - alice -c cat /etc/hostname"));
+    ASSERT_EQUAL(result, std::string("su - 'alice' -c 'cat' '/etc/hostname'"));
     return true;
 }
 
 bool test_command_build_string_no_args() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("whoami", {}, "root");
-    ASSERT_EQUAL(result, std::string("whoami"));
+    ASSERT_EQUAL(result, std::string("'whoami'"));
     return true;
 }
 
 bool test_command_build_string_multiple_args() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("cp", {"-r", "/src", "/dst"}, "root");
-    ASSERT_EQUAL(result, std::string("cp -r /src /dst"));
+    ASSERT_EQUAL(result, std::string("'cp' '-r' '/src' '/dst'"));
     return true;
 }
 
 bool test_command_build_string_empty_user() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("ls", {"-l"}, "");
-    ASSERT_EQUAL(result, std::string("ls -l"));
+    ASSERT_EQUAL(result, std::string("'ls' '-l'"));
     return true;
 }
 
