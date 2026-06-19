@@ -42,20 +42,6 @@ jobs:
           sudo ./llvm.sh 22
           sudo apt-get install -y clang-22 lld-22
 
-      - name: Cache compiler cache (ccache)
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-ccache-
-
-      - name: Cache build directory
-        uses: actions/cache@v5
-        with:
-          path: build
-          key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt', '**/src/**', '**/include/**') }}
-          restore-keys: ${{ runner.os }}-build-
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
@@ -66,27 +52,17 @@ jobs:
       - name: Run manual build steps
         shell: bash
         env:
-          CODEQL_EXTRACTOR_CPP_TRAP_CACHING: false
           CCACHE_DISABLE: "1"
         run: |
-          echo "=== Starting CodeQL build ==="
-          echo "CMAKE version:"
-          cmake --version
-
-          echo "=== Configuring CMake with verbose output ==="
+          rm -rf build
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER=clang-22 \
             -DCMAKE_CXX_COMPILER=clang++-22 \
             -DENABLE_PERMISSIONS=OFF \
-            --debug-output \
             -DCMAKE_VERBOSE_MAKEFILE=ON
 
-          echo "=== Building with verbose output ==="
           cmake --build build --verbose
-
-          echo "=== Build complete ==="
-          ls -la build/
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
