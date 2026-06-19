@@ -20,6 +20,7 @@
 #include <format>
 #include <sys/wait.h>
 #include <sys/syscall.h>
+#include <sys/prctl.h>
 #include <unistd.h>
 #include <vector>
 #include <cstdlib>
@@ -116,34 +117,22 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     Security sec;
     bool is_privileged_user = (pw_entry->uid == 0 || user == Voix::privileged_package_manager);
-    
-    if (sec.isCatastrophicCommand(command, args, config)) {
-        #ifdef VOIX_WITH_CAP
+
+    // Drop capabilities for ALL child processes (defense in depth)
+    #ifdef VOIX_WITH_CAP
+    {
         std::vector<cap_value_t> caps_to_keep;
         if (is_privileged_user) {
-            // Privileged users may still need a narrowly scoped capability subset:
-            // - CAP_AUDIT_WRITE: allow writing audit records.
-            // - CAP_DAC_READ_SEARCH: allow read/search over restricted paths needed by admin tooling.
-            // - CAP_CHOWN: allow ownership adjustments required by package/system maintenance.
-            // - CAP_DAC_OVERRIDE and CAP_FOWNER are intentionally retained for root/admin compatibility;
-            //   these are powerful and bypass normal permission checks, so keep this list minimal and
-            //   review periodically to further reduce or remove them where possible.
             caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN, CAP_DAC_OVERRIDE, CAP_FOWNER};
         }
-        
         sec.dropCapabilities(caps_to_keep);
-        #endif
-        
-        // Scrub the environment
-        clearenv();
-    } else if (!is_privileged_user) {
-        // For non-privileged target users, always drop all capabilities
-        #ifdef VOIX_WITH_CAP
-        sec.dropCapabilities({});
-        #endif
     }
+    #endif
 
-    // Restore whitelist & explicitly set target identity
+    // Always scrub the environment before restoring the whitelist
+    clearenv();
+
+    // Restore only approved environment variables & set target identity
     std::ranges::for_each(saved_env, [](const auto& env) {
       setenv(env.first.c_str(), env.second.c_str(), 1);
     });
@@ -216,6 +205,13 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
+    // Prevent gaining new privileges via execve (required for seccomp to be
+    // effective and a general defense-in-depth measure)
+    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
+        LOG_ERROR("Failed to set PR_SET_NO_NEW_PRIVS");
+        _exit(1);
+    }
+
     if (config.is_seccomp_enabled()) {
 #ifdef VOIX_WITH_SECCOMP
         sec.applySeccompBlacklist();
@@ -256,12 +252,26 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
 void Command::setResourceLimits() const {
     struct rlimit rl;
-    // Set reasonable default limits
-    rl.rlim_cur = 1024; // Lower soft limit
-    rl.rlim_max = 4096; // Hard limit
 
+    // Limit open file descriptors
+    rl.rlim_cur = 1024;
+    rl.rlim_max = 4096;
     if (setrlimit(RLIMIT_NOFILE, &rl) != 0) {
         LOG_ERROR("Failed to set RLIMIT_NOFILE");
+    }
+
+    // Limit number of processes to prevent fork bombs
+    rl.rlim_cur = 512;
+    rl.rlim_max = 1024;
+    if (setrlimit(RLIMIT_NPROC, &rl) != 0) {
+        LOG_ERROR("Failed to set RLIMIT_NPROC");
+    }
+
+    // Limit core dump size (prevent sensitive memory from being written to disk)
+    rl.rlim_cur = 0;
+    rl.rlim_max = 0;
+    if (setrlimit(RLIMIT_CORE, &rl) != 0) {
+        LOG_ERROR("Failed to set RLIMIT_CORE");
     }
 }
 

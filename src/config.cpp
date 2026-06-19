@@ -117,9 +117,18 @@ bool Config::load(std::string_view config_path, bool verify_security) {
         return false;
     }
 
-    if (verify_security && !file_utils.isSecurePath(path_str)) {
-        logger.log("ERROR", std::format("Config file security check failed: {}", path_str));
-        return false;
+    if (verify_security) {
+        // Reject symlinks to prevent TOCTOU attacks on config file
+        std::error_code ec;
+        if (std::filesystem::is_symlink(path_str, ec)) {
+            logger.log("ERROR", std::format("Config file is a symlink (rejected): {}", path_str));
+            return false;
+        }
+
+        if (!file_utils.isSecurePath(path_str)) {
+            logger.log("ERROR", std::format("Config file security check failed: {}", path_str));
+            return false;
+        }
     }
 
     try {
