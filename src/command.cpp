@@ -118,15 +118,13 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     Security sec;
     bool is_privileged_user = (pw_entry->uid == 0 || user == Voix::privileged_package_manager);
 
-    // Drop capabilities for ALL child processes (defense in depth)
+    // Drop capabilities for non-privileged target users (they should have none).
+    // Privileged targets (root, alpm) retain full capabilities since the purpose
+    // of voix is to grant them root-level access — dropping caps for root breaks
+    // legitimate operations (e.g. pacman hooks accessing /proc, snapper, etc.).
     #ifdef VOIX_WITH_CAP
-    {
-        std::vector<cap_value_t> caps_to_keep;
-        if (is_privileged_user) {
-            caps_to_keep = {CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_CHOWN,
-                            CAP_DAC_OVERRIDE, CAP_FOWNER, CAP_SETUID, CAP_SETGID};
-        }
-        sec.dropCapabilities(caps_to_keep);
+    if (!is_privileged_user) {
+        sec.dropCapabilities({});
     }
     #endif
 
