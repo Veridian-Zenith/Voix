@@ -1,0 +1,259 @@
+{
+  "repo_notes": [
+    {
+      "content": ""
+    }
+  ],
+  "pages": [
+    {
+      "title": "Voix Overview",
+      "purpose": "High-level introduction to Voix: what it is, why it exists, its design philosophy, and how the major subsystems relate. Links to child pages for architecture, configuration, security, and operations.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Getting Started",
+      "purpose": "Installation prerequisites, build instructions, first-run setup, and how to migrate from sudo/doas. Covers toolchain requirements (Clang 22+, CMake, Ninja), dependency installation, and the sudo drop-in alias/symlink pattern.",
+      "parent": "Voix Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "CLI Reference",
+      "purpose": "Complete reference for the voix command-line interface: all flags (-u, -n, -s, -i, -E, -l, -C), argument syntax, exit codes, and usage examples. Covers the 'incantation' invocation pattern.",
+      "parent": "Voix Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Core Architecture",
+      "purpose": "Overview of how Voix's internal modules fit together: the request pipeline from CLI parsing through permission checking, authentication, and command execution. Links to child pages for each major subsystem.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Request Pipeline",
+      "purpose": "Step-by-step walkthrough of a privilege escalation request: argument parsing in main(), Voix::Voix initialization, catastrophic-command check, permission evaluation, PAM authentication, session management, and command dispatch.",
+      "parent": "Core Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Permission Checker",
+      "purpose": "Deep dive into Voix::PermissionChecker: how ACL rules are loaded, how UID/GID identity is resolved at runtime, the first-match rule evaluation algorithm, command and argument filtering, and the deny-by-default principle.",
+      "parent": "Core Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Command Execution Engine",
+      "purpose": "Internals of Voix::Command::execute: fork/exec lifecycle, signal blocking, privilege dropping (setuid/setgid/initgroups), environment sanitization whitelist, login-shell execution, file-descriptor closure, path resolution, and resource limits.",
+      "parent": "Core Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Configuration System",
+      "purpose": "Overview of how Voix is configured via /etc/voix.conf, covering the YAML schema, the three top-level blocks (core, acl, security), and links to child pages for detailed ACL rules and security policies.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "voix.conf Schema and ACL Rules",
+      "purpose": "Full YAML schema reference for /etc/voix.conf: the core block (sanctuary, paths), the acl block (user and group realms, action/permit/deny, options flags: trust/nopass/keepenv/persist/nolog, target, command, args), annotated examples, and file security requirements.",
+      "parent": "Configuration System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Configuration Loading and Validation",
+      "purpose": "How Config::load() works internally: secure-path validation (root ownership, no world/group write), YAML parsing with yaml-cpp, rule construction via parseRule(), identity resolution (getUidByName/getGidByName), regex blocklist compilation, and error handling.",
+      "parent": "Configuration System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Security Subsystem",
+      "purpose": "Overview of Voix's layered security model: capability management, seccomp syscall filtering, path safety checks, catastrophic-command detection, and audit logging. Links to child pages for each security layer.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Linux Capabilities and Privilege Management",
+      "purpose": "How Voix uses libcap for the raise-then-drop capability lifecycle: raiseCapabilities() (CAP_AUDIT_WRITE, CAP_DAC_READ_SEARCH, CAP_SETUID), dropCapabilities() with optional keep-set, the UniqueCap RAII wrapper, and how this integrates with the setuid binary model.",
+      "parent": "Security Subsystem",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Seccomp Syscall Filtering",
+      "purpose": "Architecture and implementation of the seccomp blacklist: the SCMP_ACT_ALLOW default policy, blocked syscalls (kexec_load, mount, ptrace, reboot, init_module, delete_module, etc.), the UniqueSeccomp RAII wrapper, integration point in Command::execute(), and the SECCOMP_PLAN design document.",
+      "parent": "Security Subsystem",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Path Safety and Catastrophic Command Detection",
+      "purpose": "How isSafePath() prevents directory traversal and access to forbidden paths (/etc/shadow, /etc/sudoers, /root, /etc/voix.conf). How isCatastrophicCommand() detects rm -rf / patterns and matches against the config blocklist. FileUtils::isSecurePath() ownership checks.",
+      "parent": "Security Subsystem",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Authentication (PAM Integration)",
+      "purpose": "How Voix delegates authentication to the Linux PAM framework: PamAuthenticator lifecycle, the pam_conversation callback, NOPASS/root bypass logic, pam_acct_mgmt account validation, session open/close, and the /etc/pam.d/voix configuration.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "PamAuthenticator and Session Management",
+      "purpose": "Detailed walkthrough of PamAuthenticator: constructor with Security shared_ptr and non_interactive flag, authenticate() decision tree (NOPASS → root bypass → pam_start → pam_authenticate → pam_acct_mgmt), openSession()/closeSession() lifecycle, and RAII pam_handle management.",
+      "parent": "Authentication (PAM Integration)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "PAM Configuration (pam.d/voix)",
+      "purpose": "The /etc/pam.d/voix PAM stack: auth/account/password/session module stacking, system-auth delegation, pam_nologin.so enforcement, pam_limits.so session setup, and how to customize the PAM stack for different authentication requirements (e.g., MFA).",
+      "parent": "Authentication (PAM Integration)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Utility Modules",
+      "purpose": "Overview of the supporting utility classes used across Voix: FileUtils for filesystem operations, SystemUtils for user/group resolution, and Logger for audit logging. Links to child pages for each.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "FileUtils — Filesystem Abstraction",
+      "purpose": "API reference for Voix::FileUtils: fileExists(), isSecurePath() (root-ownership + no-world/group-write checks), readFile()/writeFile() with std::expected<T, FileError> error handling, resolveCommand() PATH search algorithm, and the FileError enum.",
+      "parent": "Utility Modules",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "SystemUtils and Logger",
+      "purpose": "Voix::SystemUtils for UID/GID resolution (getUidByName, getGidByName, getCurrentUser via getpwuid_r). Voix::Logger for dual-output audit logging to /var/log/voix.log and stderr, timestamp formatting with C++20 <chrono>/<format>, and log level conventions.",
+      "parent": "Utility Modules",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Build System and CI/CD",
+      "purpose": "Overview of how Voix is built, tested, and released. Covers the CMake/Ninja build system, hardening flags, and the GitHub Actions pipelines. Links to child pages for build configuration and CI workflows.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "CMake Build Configuration",
+      "purpose": "Deep dive into CMakeLists.txt: voix_lib static library, voix executable, Clang toolchain requirement, C++26 standard, hardening flags (CFI, Shadow Call Stack, ThinLTO, ICF, stack protector, FORTIFY_SOURCE=3, PIE/ASLR), VOIX_ARCH variable, ENABLE_PERMISSIONS setuid install, and dependency linking (pam, libcap, libseccomp, yaml-cpp).",
+      "parent": "Build System and CI/CD",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "CI/CD Pipelines",
+      "purpose": "GitHub Actions workflows: the release pipeline (tag-triggered build, LLVM 22 provisioning, packaging voix-x86_64-bin.tar.gz with binary/pam/conf/man/README) and the CodeQL security analysis workflow (weekly schedule, manual build mode, ccache strategy, security-events reporting).",
+      "parent": "Build System and CI/CD",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Testing",
+      "purpose": "How Voix is tested: the lightweight custom test framework (TestRunner, ASSERT_TRUE/ASSERT_EQUAL macros in test_assert.h), test_runner.cpp test cases (file existence, safe path, catastrophic command), BUILD_TESTING CMake flag, and the --run-tests CLI hook in main().",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Contributing and Community",
+      "purpose": "How to contribute to Voix: the Forge (build environment), Rituals (linting with clang-tidy, testing), code style conventions (CamelCase classes, lower_case functions, trailing-underscore private members), PR template, issue templates, security vulnerability reporting, and the Code of Conduct.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Glossary",
+      "purpose": "Definitions of all codebase-specific terms, domain jargon, metaphors, abbreviations, and key class/function names that an onboarding engineer needs to know. Each entry includes file/class pointers.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    }
+  ]
+}
