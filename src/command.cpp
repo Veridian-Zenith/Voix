@@ -145,13 +145,18 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       setenv("SHELL", pw_entry->shell.c_str(), 1);
     }
 
-    // Capture the original FD limit before reducing it, so the close loop
-    // covers all inherited descriptors (not just the reduced limit).
+    // Capture the original FD limit before any reduction, so the close loop
+    // covers all inherited descriptors.
     struct rlimit original_rl;
     bool have_original_rl = (getrlimit(RLIMIT_NOFILE, &original_rl) == 0);
 
-    // Prevent FD leakage for all executions
-    setResourceLimits();
+    // Apply resource limits only to non-privileged targets. Privileged targets
+    // may need high NPROC (pacman hooks spawn many processes) and NOFILE limits.
+    if (!is_privileged_user) {
+        setResourceLimits();
+    }
+
+    // Close inherited FDs for all executions (prevents voix internal FD leakage)
     bool closed = false;
 #ifdef SYS_close_range
     if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
