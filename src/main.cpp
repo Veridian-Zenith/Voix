@@ -52,7 +52,7 @@ void printUsage() {
  * @brief Prints the version information of the voix command.
  */
 void printVersion() {
-    std::print("Voix version 4.3.3 - The Keeper of Realms\n"
+    std::print("Voix version 4.4.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
