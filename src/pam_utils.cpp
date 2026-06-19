@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <string>
+#include <strings.h>
 
 namespace Voix {
 
@@ -54,7 +55,7 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       std::println();
 
       response[i].resp = strdup(password);
-      memset(password, 0, sizeof(password));
+      explicit_bzero(password, sizeof(password));
       if (!response[i].resp) {
         goto cleanup;
       }
@@ -93,7 +94,7 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
 cleanup:
   for (int i = 0; i < num_msg; i++) {
     if (response[i].resp) {
-      memset(response[i].resp, 0, strlen(response[i].resp));
+      explicit_bzero(response[i].resp, strlen(response[i].resp));
       free(response[i].resp);
     }
   }

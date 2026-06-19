@@ -65,8 +65,13 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     // Preserve whitelist environment
     const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
-    const std::array<std::string_view, 2> dangerous_env_names = {"BASH_ENV", "ENV"};
-    const std::array<std::string_view, 4> dangerous_env_prefixes = {"LD_", "CC", "CXX", "CMAKE_"};
+    const std::array<std::string_view, 7> dangerous_env_names = {
+        "BASH_ENV", "ENV", "IFS", "CDPATH",
+        "GCONV_PATH", "GETCONF_DIR", "HOSTALIASES"
+    };
+    const std::array<std::string_view, 7> dangerous_env_prefixes = {
+        "LD_", "CC", "CXX", "CMAKE_", "PERL", "PYTHON", "RUBY"
+    };
     std::vector<std::pair<std::string, std::string>> saved_env;
     
     if (options.preserve_env) {
@@ -265,14 +270,24 @@ void Command::setResourceLimits() const {
 std::string Command::buildCommandString(std::string_view command,
                                         const std::vector<std::string>& args,
                                         std::string_view user) const {
+  auto shell_escape = [](std::string_view s) -> std::string {
+    std::string escaped = "'";
+    for (char c : s) {
+      if (c == '\'') escaped += "'\\''";
+      else escaped += c;
+    }
+    escaped += "'";
+    return escaped;
+  };
+
   std::string result;
   if (!user.empty() && user != "root") {
-    result = std::format("su - {} -c {}", user, command);
+    result = std::format("su - {} -c {}", shell_escape(user), shell_escape(command));
   } else {
-    result = command;
+    result = shell_escape(command);
   }
   for (const auto& arg : args) {
-    result += std::format(" {}", arg);
+    result += std::format(" {}", shell_escape(arg));
   }
   return result;
 }
