@@ -143,6 +143,10 @@ int main(int argc, char* argv[]) noexcept {
             } else {
                 shell = shell_env;
             }
+            if (!shell) {
+                std::println(stderr, "Error: memory allocation failed");
+                return 1;
+            }
             command_args.push_back(shell);
         } else if (argc < 1 && !options.list_commands) {
             std::println(stderr, "Error: No command specified");

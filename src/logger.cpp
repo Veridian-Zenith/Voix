@@ -13,6 +13,7 @@
 #include <string_view>
 #include <print>
 #include <cstdio>
+#include <syslog.h>
 
 namespace Voix {
 
@@ -28,6 +29,13 @@ void Logger::log(std::string_view level, std::string_view message) const {
   if (log_file.is_open()) {
     log_file << std::format("[{}] [{}] {}\n", getTimestamp(), level, message);
     log_file.close();
+  } else {
+    int priority = LOG_AUTHPRIV | LOG_INFO;
+    if (level == "ERROR") priority = LOG_AUTHPRIV | LOG_ERR;
+    else if (level == "WARN") priority = LOG_AUTHPRIV | LOG_WARNING;
+    syslog(priority, "voix: [%.*s] %.*s",
+           static_cast<int>(level.size()), level.data(),
+           static_cast<int>(message.size()), message.data());
   }
   if (!suppress_stderr) {
     std::println(stderr, "voix: [{}] {}", level, message);

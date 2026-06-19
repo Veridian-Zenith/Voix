@@ -10,10 +10,12 @@
 #include "security.hpp"
 #include "rule.hpp"
 #include "pam_utils.hpp"
+#include "logger.hpp"
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
 #include <cstring>
+#include <format>
 #include <print>
 #include <utility>
 #include <security/pam_appl.h>
@@ -109,8 +111,16 @@ bool PamAuthenticator::openSession() {
 
 void PamAuthenticator::closeSession() {
     if (pamh_) {
-        pam_close_session(pamh_, 0);
-        pam_setcred(pamh_, PAM_DELETE_CRED);
+        int result = pam_close_session(pamh_, 0);
+        if (result != PAM_SUCCESS) {
+            LOG_WARN(std::format("Failed to close PAM session: {}",
+                     pam_strerror(pamh_, result)));
+        }
+        result = pam_setcred(pamh_, PAM_DELETE_CRED);
+        if (result != PAM_SUCCESS) {
+            LOG_WARN(std::format("Failed to delete PAM credentials: {}",
+                     pam_strerror(pamh_, result)));
+        }
     }
 }
 
