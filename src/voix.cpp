@@ -16,7 +16,6 @@
 #include "logger.hpp"
 #include "system_utils.hpp"
 #include <syslog.h>
-#include <pwd.h>
 #include <stdexcept>
 
 #include <security/pam_appl.h>
@@ -77,18 +76,12 @@ int Voix::execute(std::string_view command,
          command_str.c_str(), user_str.c_str());
 
   // Validate command using enhanced rules
-  uid_t target_uid;
-  struct passwd pwd;
-  struct passwd *pw = nullptr;
-  long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-  if (bufsize == -1) bufsize = k_get_pw_buffer_fallback_size;
-  std::vector<char> buffer(bufsize);
-
-  if (getpwnam_r(user_str.c_str(), &pwd, buffer.data(), bufsize, &pw) != 0 || !pw) {
+  auto pw_entry = lookupPasswdByName(user_str);
+  if (!pw_entry) {
     syslog(LOG_AUTHPRIV | LOG_ERR, "Invalid target user: %s", user_str.c_str());
     return 1;
   }
-  target_uid = pw->pw_uid;
+  uid_t target_uid = pw_entry->uid;
 
   auto rule = permission_checker_->permit(command_str, args, target_uid);
 

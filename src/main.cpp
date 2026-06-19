@@ -12,8 +12,6 @@
 #include <vector>
 #include <cstdlib>
 #include <unistd.h>
-#include <pwd.h>
-#include <grp.h>
 #include <syslog.h>
 #include <cstring>
 #include <memory>
@@ -138,24 +136,14 @@ int main(int argc, char* argv[]) noexcept {
         // Handle shell mode
         if (sflag) {
             char* shell_env = getenv("SHELL");
-            char* shell = nullptr;
+            std::string shell;
             if (!shell_env || !*shell_env) {
-                struct passwd pwd;
-                struct passwd* pw = nullptr;
-                long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-                 if (bufsize == -1) bufsize = Voix::k_get_pw_buffer_fallback_size;
-                std::vector<char> buffer(static_cast<size_t>(bufsize));
-
-                if (getpwuid_r(getuid(), &pwd, buffer.data(), buffer.size(), &pw) == 0 && pw) {
-                    shell = strdup(pw->pw_shell);
-                } else {
-                    shell = strdup("/bin/sh");
-                }
+                auto pw_entry = Voix::lookupPasswdByUid(getuid());
+                shell = pw_entry ? pw_entry->shell : "/bin/sh";
             } else {
-                shell = strdup(shell_env);
+                shell = shell_env;
             }
             command_args.push_back(shell);
-            free(shell);
         } else if (argc < 1 && !options.list_commands) {
             std::println(stderr, "Error: No command specified");
             printUsage();

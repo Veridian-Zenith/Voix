@@ -8,24 +8,16 @@
  */
 
 #include "system_identity.hpp"
-#include <pwd.h>
+#include "system_utils.hpp"
 #include <grp.h>
 #include <unistd.h>
 #include <vector>
-#include <string>
 
 namespace Voix {
 
 std::optional<UserIdentity> SystemIdentity::get_user_by_name(const std::string& username) const {
-    struct passwd pwd;
-    struct passwd* result = nullptr;
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = 16384;
-    std::vector<char> buffer(static_cast<size_t>(bufsize));
-
-    if (getpwnam_r(username.c_str(), &pwd, buffer.data(), buffer.size(), &result) != 0 || result == nullptr) {
-        return std::nullopt;
-    }
+    auto entry = lookupPasswdByName(username);
+    if (!entry) return std::nullopt;
 
     std::vector<gid_t> groups;
     int ngroups = getgroups(0, nullptr);
@@ -36,48 +28,25 @@ std::optional<UserIdentity> SystemIdentity::get_user_by_name(const std::string& 
     }
 
     return UserIdentity{
-        result->pw_name,
-        result->pw_uid,
-        result->pw_gid,
-        groups,
-        result->pw_dir,
-        result->pw_shell
+        entry->name, entry->uid, entry->gid,
+        groups, entry->home_dir, entry->shell
     };
 }
 
 std::optional<UserIdentity> SystemIdentity::get_user_by_uid(uid_t uid) const {
-    struct passwd pwd;
-    struct passwd* result = nullptr;
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = 16384;
-    std::vector<char> buffer(static_cast<size_t>(bufsize));
-
-    if (getpwuid_r(uid, &pwd, buffer.data(), buffer.size(), &result) != 0 || result == nullptr) {
-        return std::nullopt;
-    }
+    auto entry = lookupPasswdByUid(uid);
+    if (!entry) return std::nullopt;
 
     return UserIdentity{
-        result->pw_name,
-        result->pw_uid,
-        result->pw_gid,
-        {}, // Groups not typically fetched by uid alone without getgroups
-        result->pw_dir,
-        result->pw_shell
+        entry->name, entry->uid, entry->gid,
+        {},
+        entry->home_dir, entry->shell
     };
 }
 
 std::string SystemIdentity::get_current_username() const {
-    uid_t uid = getuid();
-    struct passwd pwd;
-    struct passwd* result = nullptr;
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = 16384;
-    std::vector<char> buffer(static_cast<size_t>(bufsize));
-
-    if (getpwuid_r(uid, &pwd, buffer.data(), buffer.size(), &result) == 0 && result != nullptr) {
-        return std::string(result->pw_name);
-    }
-    return "unknown";
+    auto entry = lookupPasswdByUid(getuid());
+    return entry ? entry->name : "unknown";
 }
 
 uid_t SystemIdentity::get_current_uid() const {

@@ -14,6 +14,7 @@
 #include "logger.hpp"
 #include <yaml-cpp/yaml.h>
 #include <fstream>
+#include <functional>
 #include <numeric>
 #include <format>
 #include <regex>
@@ -24,6 +25,13 @@ Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", 
 
 
 namespace {
+    using IdentitySetter = std::function<void(Voix::Rule&, const std::string&)>;
+
+    void parse_acl_section(const YAML::Node& section,
+                           const std::map<std::string, std::vector<Voix::Rule>>& profiles,
+                           const IdentitySetter& set_identity,
+                           std::vector<Voix::Rule>& rules);
+
     Voix::Rule parse_rule(const YAML::Node& rule_node) {
         Voix::Rule rule;
         if (rule_node["action"]) {
@@ -70,6 +78,31 @@ namespace {
             }
         }
         return rule;
+    }
+
+    void parse_acl_section(const YAML::Node& section,
+                           const std::map<std::string, std::vector<Voix::Rule>>& profiles,
+                           const IdentitySetter& set_identity,
+                           std::vector<Voix::Rule>& rules) {
+        for (auto it = section.begin(); it != section.end(); ++it) {
+            std::string name = it->first.as<std::string>();
+            for (auto rule_node : it->second) {
+                if (rule_node["profile"]) {
+                    std::string profile_name = rule_node["profile"].as<std::string>();
+                    if (profiles.count(profile_name)) {
+                        for (const auto& p_rule : profiles.at(profile_name)) {
+                            Voix::Rule rule = p_rule;
+                            set_identity(rule, name);
+                            rules.push_back(std::move(rule));
+                        }
+                    }
+                } else {
+                    Voix::Rule rule = parse_rule(rule_node);
+                    set_identity(rule, name);
+                    rules.push_back(std::move(rule));
+                }
+            }
+        }
     }
 }
 
@@ -125,52 +158,18 @@ bool Config::load(std::string_view config_path, bool verify_security) {
         if (config["acl"]) {
             rules_.clear();
             if (config["acl"]["user"]) {
-                for (auto it = config["acl"]["user"].begin(); it != config["acl"]["user"].end(); ++it) {
-                    std::string username = it->first.as<std::string>();
-                for (auto rule_node : it->second) {
-                    if (rule_node["profile"]) {
-                        std::string profile_name = rule_node["profile"].as<std::string>();
-                        if (profiles_.count(profile_name)) {
-                            for (const auto& p_rule : profiles_.at(profile_name)) {
-                                Rule rule = p_rule;
-                                rule.ident = username;
-                                rule.ident_uid = SystemUtils::getUidByName(username);
-                                rules_.push_back(std::move(rule));
-                            }
-                        }
-                     } else {
-                         Rule rule = parse_rule(rule_node);
-                        rule.ident = username;
-                        rule.ident_uid = SystemUtils::getUidByName(username);
-                        rules_.push_back(std::move(rule));
-                    }
-                }
-
-                }
+                parse_acl_section(config["acl"]["user"], profiles_,
+                    [](Rule& rule, const std::string& name) {
+                        rule.ident = name;
+                        rule.ident_uid = SystemUtils::getUidByName(name);
+                    }, rules_);
             }
             if (config["acl"]["group"]) {
-                for (auto it = config["acl"]["group"].begin(); it != config["acl"]["group"].end(); ++it) {
-                    std::string groupname = it->first.as<std::string>();
-                for (auto rule_node : it->second) {
-                    if (rule_node["profile"]) {
-                        std::string profile_name = rule_node["profile"].as<std::string>();
-                        if (profiles_.count(profile_name)) {
-                            for (const auto& p_rule : profiles_.at(profile_name)) {
-                                Rule rule = p_rule;
-                                rule.ident = ":" + groupname;
-                                rule.ident_gid = SystemUtils::getGidByName(groupname);
-                                rules_.push_back(std::move(rule));
-                            }
-                        }
-                     } else {
-                         Rule rule = parse_rule(rule_node);
-                        rule.ident = ":" + groupname;
-                        rule.ident_gid = SystemUtils::getGidByName(groupname);
-                        rules_.push_back(std::move(rule));
-                    }
-                }
-
-                }
+                parse_acl_section(config["acl"]["group"], profiles_,
+                    [](Rule& rule, const std::string& name) {
+                        rule.ident = ":" + name;
+                        rule.ident_gid = SystemUtils::getGidByName(name);
+                    }, rules_);
             }
         }
 

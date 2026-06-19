@@ -53,14 +53,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         signal(i, SIG_DFL);
     }
 
-    std::string user_str{user};
-    struct passwd pwd;
-    struct passwd *pw = nullptr;
-    long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (bufsize == -1) bufsize = Voix::k_get_pw_buffer_fallback_size;
-    std::vector<char> buffer(bufsize);
-
-    if (getpwnam_r(user.empty() ? "root" : user_str.c_str(), &pwd, buffer.data(), bufsize, &pw) != 0 || !pw) {
+    auto pw_entry = Voix::lookupPasswdByName(user.empty() ? "root" : user);
+    if (!pw_entry) {
       _exit(1);
     }
 
@@ -97,12 +91,12 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Drop privileges completely
-    if (initgroups(pw->pw_name, pw->pw_gid) != 0) _exit(1);
-    if (setgid(pw->pw_gid) != 0) _exit(1);
-    if (setuid(pw->pw_uid) != 0) _exit(1);
+    if (initgroups(pw_entry->name.c_str(), pw_entry->gid) != 0) _exit(1);
+    if (setgid(pw_entry->gid) != 0) _exit(1);
+    if (setuid(pw_entry->uid) != 0) _exit(1);
 
     Security sec;
-    bool is_privileged_user = (pw->pw_uid == 0 || user == Voix::privileged_package_manager);
+    bool is_privileged_user = (pw_entry->uid == 0 || user == Voix::privileged_package_manager);
     
     if (sec.isCatastrophicCommand(command, args, config)) {
         #ifdef VOIX_WITH_CAP
@@ -135,13 +129,13 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       setenv(env.first.c_str(), env.second.c_str(), 1);
     });
     setenv("PATH", config.getPath().c_str(), 1);
-    setenv("USER", pw->pw_name, 1);
-    setenv("LOGNAME", pw->pw_name, 1);
-    setenv("HOME", pw->pw_dir, 1);
+    setenv("USER", pw_entry->name.c_str(), 1);
+    setenv("LOGNAME", pw_entry->name.c_str(), 1);
+    setenv("HOME", pw_entry->home_dir.c_str(), 1);
 
     // Set shell
     if (options.login_shell) {
-      setenv("SHELL", pw->pw_shell, 1);
+      setenv("SHELL", pw_entry->shell.c_str(), 1);
     }
 
     if (sec.isCatastrophicCommand(command, args, config)) {
@@ -220,8 +214,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         full_cmd += " " + escape(arg);
       }
 
-      const char *args_exec[] = {pw->pw_shell, login_shell_cmd.c_str(), c_arg.c_str(), full_cmd.c_str(), nullptr};
-      execv(pw->pw_shell, const_cast<char *const *>(args_exec));
+      const char *args_exec[] = {pw_entry->shell.c_str(), login_shell_cmd.c_str(), c_arg.c_str(), full_cmd.c_str(), nullptr};
+      execv(pw_entry->shell.c_str(), const_cast<char *const *>(args_exec));
     } else {
       execv(cmd_str.c_str(), const_cast<char *const *>(argv.data()));
     }

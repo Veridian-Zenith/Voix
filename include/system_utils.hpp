@@ -9,6 +9,7 @@
 #ifndef SYSTEM_UTILS_H
 #define SYSTEM_UTILS_H
 
+#include <string>
 #include <string_view>
 #include <vector>
 #include <optional>
@@ -59,6 +60,31 @@ public:
      */
     static std::optional<gid_t> getGidByName(std::string_view name);
 };
+
+/**
+ * @brief Lightweight result from a passwd database lookup.
+ */
+struct PasswdEntry {
+    std::string name;
+    uid_t uid;
+    gid_t gid;
+    std::string home_dir;
+    std::string shell;
+};
+
+/**
+ * @brief Looks up a passwd entry by username with automatic buffer management.
+ * @param name The username to look up.
+ * @return The PasswdEntry if found, otherwise std::nullopt.
+ */
+std::optional<PasswdEntry> lookupPasswdByName(std::string_view name);
+
+/**
+ * @brief Looks up a passwd entry by UID with automatic buffer management.
+ * @param uid The user ID to look up.
+ * @return The PasswdEntry if found, otherwise std::nullopt.
+ */
+std::optional<PasswdEntry> lookupPasswdByUid(uid_t uid);
 
 } // namespace Voix
 
