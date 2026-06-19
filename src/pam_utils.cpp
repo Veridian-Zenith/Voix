@@ -33,10 +33,14 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
     switch (msg[i]->msg_style) {
     case PAM_PROMPT_ECHO_OFF: {
       struct termios old_term, new_term;
-      tcgetattr(STDIN_FILENO, &old_term);
-      new_term = old_term;
-      new_term.c_lflag &= ~ECHO;
-      tcsetattr(STDIN_FILENO, TCSANOW, &new_term);
+      bool have_term = (tcgetattr(STDIN_FILENO, &old_term) == 0);
+      if (have_term) {
+        new_term = old_term;
+        new_term.c_lflag &= ~ECHO;
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &new_term) != 0) {
+          std::println(stderr, "voix: warning: failed to disable terminal echo");
+        }
+      }
 
       std::print("{}", msg[i]->msg);
       std::fflush(stdout);
@@ -44,7 +48,9 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       char password[512] = {0};
       std::cin.getline(password, sizeof(password));
 
-      tcsetattr(STDIN_FILENO, TCSANOW, &old_term);
+      if (have_term) {
+        tcsetattr(STDIN_FILENO, TCSANOW, &old_term);
+      }
       std::println();
 
       response[i].resp = strdup(password);

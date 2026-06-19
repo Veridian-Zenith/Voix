@@ -14,6 +14,8 @@
 #include <csignal>
 #include <pwd.h>
 #include <grp.h>
+#include <cerrno>
+#include <cstring>
 
 #include <format>
 #include <sys/wait.h>
@@ -39,6 +41,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
   pid_t pid = fork();
 
   if (pid == -1) {
+    LOG_ERROR(std::format("fork() failed: {}", std::strerror(errno)));
     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
     return -1;
   } else if (pid == 0) {
@@ -55,6 +58,8 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     auto pw_entry = Voix::lookupPasswdByName(user.empty() ? "root" : user);
     if (!pw_entry) {
+      LOG_ERROR(std::format("Failed to resolve target user '{}': {}",
+               user.empty() ? std::string_view{"root"} : user, std::strerror(errno)));
       _exit(1);
     }
 
@@ -91,9 +96,18 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Drop privileges completely
-    if (initgroups(pw_entry->name.c_str(), pw_entry->gid) != 0) _exit(1);
-    if (setgid(pw_entry->gid) != 0) _exit(1);
-    if (setuid(pw_entry->uid) != 0) _exit(1);
+    if (initgroups(pw_entry->name.c_str(), pw_entry->gid) != 0) {
+        LOG_ERROR(std::format("initgroups() failed for '{}': {}", pw_entry->name, std::strerror(errno)));
+        _exit(1);
+    }
+    if (setgid(pw_entry->gid) != 0) {
+        LOG_ERROR(std::format("setgid({}) failed: {}", pw_entry->gid, std::strerror(errno)));
+        _exit(1);
+    }
+    if (setuid(pw_entry->uid) != 0) {
+        LOG_ERROR(std::format("setuid({}) failed: {}", pw_entry->uid, std::strerror(errno)));
+        _exit(1);
+    }
 
     Security sec;
     bool is_privileged_user = (pw_entry->uid == 0 || user == Voix::privileged_package_manager);

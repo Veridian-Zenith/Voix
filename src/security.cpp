@@ -132,7 +132,8 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
             } else {
                 normalized_command += " " + arg;
             }
-        } catch (...) {
+        } catch (const std::exception& e) {
+            LOG_WARN(std::format("Path normalization failed for arg '{}': {}", arg, e.what()));
             normalized_command += " " + arg;
         }
     }

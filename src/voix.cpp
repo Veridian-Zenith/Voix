@@ -101,17 +101,23 @@ int Voix::execute(std::string_view command,
     return 1;
   }
 
-  if (authenticator_->openSession()) {
-    CommandOptions merged_options = options;
-    if (!merged_options.login_shell && config_->is_login_shell_default()) {
-        merged_options.login_shell = true;
-    }
-
-    int res = command_->execute(command_str, args, *config_, merged_options, user_str);
-    authenticator_->closeSession();
-    return res;
+  if (!authenticator_->openSession()) {
+    std::println(stderr, "voix: failed to open session");
+    security_->logEvent(std::format("Failed to open PAM session for command: {}", command_str),
+                        current_user);
+    syslog(LOG_AUTHPRIV | LOG_ERR, "Failed to open PAM session for user: %s",
+           current_user.c_str());
+    return 1;
   }
-  return 1;
+
+  CommandOptions merged_options = options;
+  if (!merged_options.login_shell && config_->is_login_shell_default()) {
+      merged_options.login_shell = true;
+  }
+
+  int res = command_->execute(command_str, args, *config_, merged_options, user_str);
+  authenticator_->closeSession();
+  return res;
 }
 
 } // namespace Voix
