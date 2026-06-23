@@ -1,12 +1,12 @@
 # Threat Model and Security Architecture
 
-Voix is a privilege management tool designed to replace `sudo` with a more transparent, minimal, and strictly controlled security model. This document outlines the attack surface, threat model, and the technical mitigations implemented to ensure system integrity.
+Voix is a Privilege Policy Enforcement Runtime designed to supersede traditional privilege escalation tools with a more transparent, minimal, and strictly controlled security model. This document outlines the attack surface, threat model, and the technical mitigations implemented to ensure system integrity.
 
 ## 1. TCB Metrics (Trusted Computing Base)
 
 To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike traditional tools that have grown complex over decades, Voix is designed for a narrow, high-assurance scope.
 
-| Metric | `sudo` (approx.) | Voix | Note |
+| Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
 | **Lines of Code** | ~180,000 | ~2,800 | $\sim$64x smaller attack surface |
 | **External Dependencies** | Many (varies) | 4 | `yaml-cpp`, `libpam`, `libcap`, `libseccomp` |
@@ -90,13 +90,13 @@ Voix employs the principle of least privilege using Linux capabilities for non-p
 To prevent non-privileged commands from compromising the kernel, Voix implements a syscall blacklist.
 - **Blacklisted Calls**: Dangerous syscalls including `kexec_load`, `delete_module`, `init_module`, `finit_module`, `reboot`, `swapon`, `swapoff`, `ptrace`, and `bpf` are blocked.
 - **Scope**: Seccomp and `PR_SET_NO_NEW_PRIVS` are applied only to non-privileged target users. Privileged targets require unrestricted syscall access for legitimate operations (package manager hooks, process management, etc.).
-- **Enforcement**: The filter is applied in the child process after privilege transition but before `execv`. While `sudo` often relies on external AppArmor/SELinux profiles, Voix provides integrated kernel-level protection for non-privileged targets by default.
+- **Enforcement**: The filter is applied in the child process after privilege transition but before `execv`. While traditional tools often rely on external AppArmor/SELinux profiles, Voix provides integrated kernel-level protection for non-privileged targets by default.
 
 ---
 
 ## 5. Summary Comparison
 
-| Feature | `sudo` | Voix | Why it matters |
+| Feature | Traditional Tools | Voix | Why it matters |
 | :--- | :--- | :--- | :--- |
 | **Complexity** | Massive Legacy Base | Minimal C++26 Core | Smaller attack surface, easier audit |
 | **Environment** | Complex Keep/Reset | Strict Whitelist/Scrub | Prevents `LD_PRELOAD` and shell escapes |

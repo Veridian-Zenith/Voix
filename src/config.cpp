@@ -22,7 +22,7 @@
 
 namespace Voix {
 
-Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}) {}
+Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}), privileged_users_({"root", "alpm"}) {}
 
 
 namespace {
@@ -150,6 +150,12 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                 if (config["core"]["suppress_stderr"]) {
                     suppress_stderr_ = config["core"]["suppress_stderr"].as<bool>();
                 }
+                if (config["core"]["privileged_users"]) {
+                    privileged_users_.clear();
+                    for (auto user_entry : config["core"]["privileged_users"]) {
+                        privileged_users_.push_back(user_entry.as<std::string>());
+                    }
+                }
             }
 
 
@@ -269,6 +275,10 @@ bool Config::validate() const {
     }
 
     return true;
+}
+
+bool Config::isPrivilegedUser(std::string_view user) const {
+    return std::ranges::find(privileged_users_, user) != privileged_users_.end();
 }
 
 } // namespace Voix

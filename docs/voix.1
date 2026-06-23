@@ -1,16 +1,19 @@
-.TH VOIX 1 "June 2026" "Voix 4.4.0" "User Commands"
+.TH VOIX 1 "June 2026" "Voix 4.5.0" "User Commands"
 .SH NAME
-voix \- a modern, secure privilege escalation tool
+voix \- a Privilege Policy Enforcement Runtime
 .SH SYNOPSIS
 .B voix
 [\fIOPTIONS\fR]
 [\fICOMMAND\fR [\fIARGS\fR...]]
 .SH DESCRIPTION
-Voix is a secure, modern, and easy-to-use privilege escalation tool for Unix-like operating systems. It is designed to be a secure replacement for \fBsudo\fR and is inspired by \fBOpenDoas\fR. Voix uses Pluggable Authentication Modules (PAM) for authentication and a YAML-based configuration file for defining access rules.
+Voix is a Privilege Policy Enforcement Runtime for Unix-like operating systems. It is architected as a policy-driven execution system that can functionally replace \fBsudo\fR or \fBdoas\fR. Voix uses Pluggable Authentication Modules (PAM) for authentication and a YAML-based configuration file for defining access rules.
 .SH OPTIONS
 .TP
 .B \-C, \-\-config \fIFILE\fR
 Use the specified file as the configuration sanctuary (default: /etc/voix.conf).
+.TP
+.B \-c, \-\-check-config
+Validate the configuration file and exit.
 .TP
 .B \-E, \-\-preserve-env
 Preserve the user's environment variables.

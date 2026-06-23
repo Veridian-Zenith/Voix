@@ -75,7 +75,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     };
     std::vector<std::pair<std::string, std::string>> saved_env;
     
-    if (options.preserve_env) {
+    bool is_privileged_user = (pw_entry->uid == 0 || config.isPrivilegedUser(user));
+
+    if (options.preserve_env || is_privileged_user) {
       extern char **environ;
       for (char **env = ::environ; *env != nullptr; ++env) {
         std::string entry(*env);
@@ -116,10 +118,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     Security sec;
-    bool is_privileged_user = (pw_entry->uid == 0 || user == Voix::privileged_package_manager);
 
     // Drop capabilities for non-privileged target users (they should have none).
-    // Privileged targets (root, alpm) retain full capabilities since the purpose
+    // Privileged targets retain full capabilities since the purpose
     // of voix is to grant them root-level access.
     #ifdef VOIX_WITH_CAP
     if (!is_privileged_user) {
@@ -131,16 +132,15 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     #endif
 
-    // Scrub environment only for non-privileged users to maintain security.
-    // Privileged users (root, alpm) need a full environment to perform hooks
-    // and system operations without breaking D-Bus or other services.
-    if (!is_privileged_user) {
-        clearenv();
-        // Restore only approved environment variables
-        std::ranges::for_each(saved_env, [](const auto& env) {
-          setenv(env.first.c_str(), env.second.c_str(), 1);
-        });
-    }
+    // Scrub environment to maintain security.
+    // Privileged users need a full environment to perform hooks and system
+    // operations without breaking D-Bus or other services, but we still clear
+    // the environment and restore only the sanitized variables to prevent privilege escalation.
+    clearenv();
+    // Restore only approved/sanitized environment variables
+    std::ranges::for_each(saved_env, [](const auto& env) {
+      setenv(env.first.c_str(), env.second.c_str(), 1);
+    });
 
     setenv("PATH", config.getPath().c_str(), 1);
     setenv("USER", pw_entry->name.c_str(), 1);

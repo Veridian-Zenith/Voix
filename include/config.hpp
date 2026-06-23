@@ -81,6 +81,17 @@ public:
      */
     const std::vector<std::regex>& get_compiled_blocklist() const { return compiled_blocklist_; }
     /**
+     * @brief Checks if a user is in the privileged users list.
+     * @param user The username to check.
+     * @return True if privileged, false otherwise.
+     */
+    bool isPrivilegedUser(std::string_view user) const;
+    /**
+     * @brief Gets the list of privileged users.
+     * @return A reference to the privileged users vector.
+     */
+    const std::vector<std::string>& getPrivilegedUsers() const { return privileged_users_; }
+    /**
      * @brief Validates the configuration schema and path permissions.
      * @return True if valid, false otherwise.
      */
@@ -93,6 +104,7 @@ private:
     std::map<std::string, std::vector<Rule>> profiles_;
     std::vector<std::string> blocklist_;
     std::vector<std::regex> compiled_blocklist_;
+    std::vector<std::string> privileged_users_;
     bool seccomp_enabled_ = true;
     bool login_shell_default_ = false;
     bool suppress_stderr_ = true;

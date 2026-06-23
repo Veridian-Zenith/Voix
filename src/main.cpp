@@ -32,27 +32,29 @@
 void printUsage() {
     std::print("Usage: voix [options] <incantation> [args...]\n\n"
                "Options:\n"
-               "  -h             Show this help message\n"
-               "  -v             Show the version of this artifact\n"
-               "  -u USER        Execute as target mask (default: root)\n"
-               "  -c FILE        Use FILE as the configuration sanctuary\n"
-               "  -n             Non-interactive mode (fail if proof is required)\n"
-               "  -s             Execute user's shell (ascend to shell)\n"
-               "  -l, --list     List permitted commands for the current user\n"
-               "  -E             Preserve the environment\n"
-               "  -i, --login    Execute in a login shell\n\n"
+               "  -h, --help               Show this help message\n"
+               "  -v, --version            Show the version of this artifact\n"
+               "  -u USER                  Execute as target mask (default: root)\n"
+               "  -C, --config FILE        Use FILE as the configuration sanctuary\n"
+               "  -c, --check-config       Validate the configuration file\n"
+               "  -n                       Non-interactive mode (fail if proof is required)\n"
+               "  -s, --shell              Execute user's shell (ascend to shell)\n"
+               "  -l, --list               List permitted commands for the current user\n"
+               "  -E, --preserve-env       Preserve the environment\n"
+               "  -i, --login              Execute in a login shell\n"
+               "  -k                       Invalidate timestamp (compatibility no-op)\n\n"
                "Examples:\n"
                "  voix ls /root\n"
                "  voix -u admin systemctl restart nginx\n"
-               "  voix -l          # List permitted commands\n"
-               "  voix -s          # Start interactive shell ascension\n");
+               "  voix -l                  # List permitted commands\n"
+               "  voix -s                  # Start interactive shell ascension\n");
 }
 
 /**
  * @brief Prints the version information of the voix command.
  */
 void printVersion() {
-    std::print("Voix version 4.4.0 - The Keeper of Realms\n"
+    std::print("Voix version 4.5.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -90,6 +92,7 @@ int main(int argc, char* argv[]) noexcept {
             {"help", no_argument, nullptr, 'h'},
             {"version", no_argument, nullptr, 'v'},
             {"check-config", no_argument, nullptr, 'c'},
+            {"config", required_argument, nullptr, 'C'},
             {nullptr, 0, nullptr, 0}
         };
 
@@ -148,7 +151,7 @@ int main(int argc, char* argv[]) noexcept {
                 shell = shell_env;
             }
             command_args.push_back(shell);
-        } else if (argc < 1 && !options.list_commands) {
+        } else if (argc < 1 && !options.list_commands && !options.check_config) {
             std::println(stderr, "Error: No command specified");
             printUsage();
             return 1;

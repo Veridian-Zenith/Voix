@@ -18,7 +18,6 @@
 namespace Voix {
  
 constexpr long k_get_pw_buffer_fallback_size = 16384;
-constexpr std::string_view privileged_package_manager = "alpm";
  
 /**
   * @brief Utility class for system-level operations.

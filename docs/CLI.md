@@ -7,7 +7,7 @@ Usage: `voix [options] <incantation> [args...]`
 - `-h`: Show the help message.
 - `-v`: Show version information.
 - `-u USER`: Execute as the specified target user (default: root).
-- `-C FILE`: Use the specified file as the configuration source (default: `/etc/voix.conf`).
+- `-C FILE`, `--config FILE`: Use the specified file as the configuration source (default: `/etc/voix.conf`).
 - `-n`: Non-interactive mode; fail if authentication is required.
 - `-s`: Execute the user's shell (ascend to shell).
 - `-i, --login`: Execute the incantation in a login shell environment.

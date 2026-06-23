@@ -648,6 +648,54 @@ bool test_security_catastrophic_blocklist() {
     return true;
 }
 
+bool test_security_catastrophic_dd() {
+    Voix::Security security;
+    Voix::Config config;
+
+    ASSERT_TRUE(security.isCatastrophicCommand("dd", {"if=/dev/zero", "of=/dev/sda", "bs=1M"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("dd", {"if=/dev/zero", "of=/dev/nvme0n1"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("/bin/dd", {"if=/dev/zero", "of=/dev/sdb"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("/usr/bin/dd", {"if=/dev/zero", "of=/dev/nvme1n1"}, config));
+    ASSERT_TRUE(!security.isCatastrophicCommand("dd", {"if=/dev/zero", "of=disk.img"}, config));
+    ASSERT_TRUE(!security.isCatastrophicCommand("dd", {"--help"}, config));
+    return true;
+}
+
+bool test_security_catastrophic_mkfs() {
+    Voix::Security security;
+    Voix::Config config;
+
+    ASSERT_TRUE(security.isCatastrophicCommand("mkfs.ext4", {"/dev/sda1"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("mkfs.btrfs", {"/dev/sdb1"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("mkfs", {"-t", "ext4", "/dev/sdc1"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("/sbin/mkfs.xfs", {"/dev/sdd1"}, config));
+    return true;
+}
+
+bool test_security_catastrophic_partition_tools() {
+    Voix::Security security;
+    Voix::Config config;
+
+    ASSERT_TRUE(security.isCatastrophicCommand("fdisk", {"/dev/sda"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("/sbin/fdisk", {"/dev/sda"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("parted", {"/dev/sda"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("wipe", {"-a", "/dev/sdb"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("/usr/bin/shred", {"/dev/sdc"}, config));
+    ASSERT_TRUE(security.isCatastrophicCommand("shred", {"/etc/shadow"}, config));
+    return true;
+}
+
+bool test_security_catastrophic_safe_commands() {
+    Voix::Security security;
+    Voix::Config config;
+
+    ASSERT_TRUE(!security.isCatastrophicCommand("mount", {"/dev/sda1", "/mnt"}, config));
+    ASSERT_TRUE(!security.isCatastrophicCommand("lsblk", {}, config));
+    ASSERT_TRUE(!security.isCatastrophicCommand("blkid", {"/dev/sda1"}, config));
+    ASSERT_TRUE(!security.isCatastrophicCommand("systemctl", {"start", "nginx"}, config));
+    return true;
+}
+
 bool test_security_validate_user_underscore_hyphen() {
     auto identity = std::make_shared<MockIdentity>();
     identity->users = {{"test-user", 1000, 1000, {1000}}, {"test_user", 1001, 1001, {1001}}};
@@ -860,6 +908,28 @@ bool test_permission_checker_list_permitted_rules_empty() {
     return true;
 }
 
+bool test_config_privileged_users() {
+    Voix::Config config;
+    // Default should contain root and alpm
+    ASSERT_TRUE(config.isPrivilegedUser("root"));
+    ASSERT_TRUE(config.isPrivilegedUser("alpm"));
+    ASSERT_TRUE(!config.isPrivilegedUser("guest"));
+
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_privileged_users.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  privileged_users:\n    - admin\n    - operator\n";
+    }
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(config.isPrivilegedUser("admin"));
+    ASSERT_TRUE(config.isPrivilegedUser("operator"));
+    ASSERT_TRUE(!config.isPrivilegedUser("root"));
+    ASSERT_TRUE(!config.isPrivilegedUser("alpm"));
+
+    return true;
+}
+
 int main() {
     Voix::Logger::suppress_stderr = true;
     TestRunner runner;
@@ -920,6 +990,7 @@ int main() {
     runner.add_test("test_config_validate_after_load", test_config_validate_after_load);
     runner.add_test("test_config_blocklist", test_config_blocklist);
     runner.add_test("test_config_seccomp_default_enabled", test_config_seccomp_default_enabled);
+    runner.add_test("test_config_privileged_users", test_config_privileged_users);
 
     // New Security tests - additional coverage
     runner.add_test("test_security_safe_path_traversal", test_security_safe_path_traversal);
@@ -927,6 +998,10 @@ int main() {
     runner.add_test("test_security_safe_path_root_forbidden", test_security_safe_path_root_forbidden);
     runner.add_test("test_security_catastrophic_rm_variants", test_security_catastrophic_rm_variants);
     runner.add_test("test_security_catastrophic_blocklist", test_security_catastrophic_blocklist);
+    runner.add_test("test_security_catastrophic_dd", test_security_catastrophic_dd);
+    runner.add_test("test_security_catastrophic_mkfs", test_security_catastrophic_mkfs);
+    runner.add_test("test_security_catastrophic_partition_tools", test_security_catastrophic_partition_tools);
+    runner.add_test("test_security_catastrophic_safe_commands", test_security_catastrophic_safe_commands);
     runner.add_test("test_security_validate_user_underscore_hyphen", test_security_validate_user_underscore_hyphen);
     runner.add_test("test_security_validate_user_empty", test_security_validate_user_empty);
     runner.add_test("test_security_get_current_user", test_security_get_current_user);

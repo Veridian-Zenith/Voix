@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.4.0 LANGUAGES CXX)
+project(Voix VERSION 4.5.0 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -141,6 +141,13 @@ include(GNUInstallDirs)
 option(ENABLE_PERMISSIONS "Set permissions and capabilities during install" ON)
 
 if(ENABLE_PERMISSIONS)
+    install(CODE [[
+        if(NOT CMAKE_INSTALL_UID EQUAL 0)
+            message(FATAL_ERROR "ENABLE_PERMISSIONS=ON requires root privileges.\n"
+                    "  Run: sudo cmake --install build\n"
+                    "  Or reconfigure with: -DENABLE_PERMISSIONS=OFF")
+        endif()
+    ]])
     install(TARGETS voix RUNTIME DESTINATION bin
             PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE SETUID)
 else()

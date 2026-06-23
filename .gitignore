@@ -1,6 +1,6 @@
 .cache/
+build*/
 build/
-build-dbg/
 AUR/
 tidy.log
 perf.data

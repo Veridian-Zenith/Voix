@@ -161,6 +161,19 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
         if (recursive && force && target_root) {
             return true;
         }
+    } else if (command == "dd" || command == "/bin/dd" || command == "/usr/bin/dd") {
+        for (const auto& arg : args) {
+            if (arg.find("/dev/sd") != std::string::npos || arg.find("/dev/nvme") != std::string::npos) {
+                return true;
+            }
+        }
+    } else if (command.find("mkfs") != std::string::npos) {
+        return true;
+    } else if (command == "fdisk" || command == "/sbin/fdisk" || command == "/usr/bin/fdisk" ||
+               command == "parted" || command == "/sbin/parted" || command == "/usr/bin/parted" ||
+               command == "wipe" || command == "/sbin/wipe" || command == "/usr/bin/wipe" ||
+               command == "shred" || command == "/usr/bin/shred") {
+        return true;
     }
 
     // Check for explicit blocked commands first (faster)

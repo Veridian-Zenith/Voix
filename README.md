@@ -1,102 +1,105 @@
-# Voix - The Keeper of Realms
+# Voix
 
-## Prophecy
+## Privilege Policy Enforcement Runtime
 
-Born from the ancient runes of OpenDoas, Voix is a modern, secure invocation designed to govern the ascension of privileges across your systems. As a hardened successor to traditional tools like `sudo` and `doas`, it utilizes the pact of Pluggable Authentication Modules (PAM) and immutable rules to ensure only the worthy are granted the power to traverse higher planes of execution.
+Voix is a user-space Privilege Policy Enforcement Runtime designed to evaluate authorization policies, construct controlled execution contexts, and enforce privilege and syscall-level boundaries during command execution on Unix-like systems.
 
-"Where `sudo` scatters trust, Voix binds it with modern security."
+It operates as a deterministic execution broker between user intent and privileged system operations. While it may provide compatibility with `sudo`-like workflows, it is architecturally distinct from traditional privilege escalation utilities and is not intended as a drop-in wrapper.
 
-## The Arcane Arts (Features)
+---
 
-- **Ascension by Design**: Execute incantations with elevated privileges only when explicitly ordained by the Elders.
-- **The PAM Pact**: Cryptographically secure authentication tied into your realm’s deep foundations.
-- **Runes of Clarity**: Configuration is ordained in unmistakable syntax within the `/etc/voix.conf` sanctuary.
-- **Seamless Transmutation**: Properly spawns the user's shell environment upon successful ascent.
-- **Sanctified Tokens**: Optional time-gated persistence of power, mimicking familiar boons.
+## 1. System Model
 
-## Forging the Artifact
+Voix implements a staged execution pipeline for privileged command invocation:
 
-### Prerequisites for the Forge
+```
+Policy Evaluation
+→ Authentication (PAM, optional)
+→ Privilege Transition (setuid/setgid)
+→ Capability Reduction (libcap)
+→ Syscall Confinement (seccomp)
+→ Environment Sanitization
+→ Process Execution (execve)
+```
 
-The Elders command strict adherence to modern crafting:
+Each stage is strictly ordered and failure-atomic where applicable. Any violation of required invariants results in termination prior to execution.
 
-- **LLVM Clang Toolchain** (Only Clang is accepted by the forge)
-- A **C++26** compliant arcane environment
-- **CMake** (v3.18+) and **Ninja**
-- Core dependencies: 
-  - `yaml-cpp`, `pam`, `libcap`, `libseccomp`, `pkg-config`.
-  - On Debian/Ubuntu: `libyaml-cpp-dev`, `libpam0g-dev`, `libcap-dev`, `libseccomp-dev`.
-  - On Fedora/RHEL: `yaml-cpp-devel`, `pam-devel`, `libcap-devel`, `libseccomp-devel`.
+---
 
-### Bringing Forth the Binary
+## 2. Core Responsibilities
 
-1. **Obtain the Scrolls**:
+Voix is responsible for:
 
-    ```bash
-    git clone https://github.com/Veridian-Zenith/Voix.git && cd Voix
-    ```
+* Evaluating structured authorization policies (YAML-based ACL model)
+* Determining whether an execution request is permitted
+* Constructing a constrained execution context for permitted operations
+* Applying privilege transitions and security hardening based on target execution tier
+* Delegating authentication to PAM where required
+* Enforcing syscall and capability restrictions for non-privileged execution targets
+* Executing the final binary within the prepared context
 
-2. **Forge the Release Artifact**:
+Voix does not interpret shell logic, provide a scripting environment, or manage long-lived sessions beyond optional authentication persistence mechanisms.
 
-    ```bash
-    cmake -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
-    cmake --build build
-    ```
+---
 
-3. **Install the Artifact**:
+## 3. Execution Tiers
 
-    ```bash
-    sudo cmake --install build
-    ```
+Voix defines two primary execution tiers:
 
-4. **Distribution Specifics**:
+### Privileged Target Execution
+Targets such as `root` or system service users.
+* Full Linux capabilities retained
+* No seccomp filtering applied
+* No resource limits imposed by Voix
+* Environment is sanitized but not confined
+* Intended for compatibility with system-level operations
 
-    - **Arch Linux**: Users are encouraged to install via AUR using `paru` or `yay`:
-      ```bash
-      paru -S voix
-      # OR
-      yay -S voix
-      ```
-    - **Other Distributions**: Please refer to the [packaging directory](packaging/) for guidance on creating packages for your specific system.
+### Non-Privileged Target Execution
+All non-root execution targets.
+* All capabilities dropped
+* `PR_SET_NO_NEW_PRIVS` enforced
+* Seccomp syscall blacklist applied
+* Resource limits enforced (RLIMIT_* policies)
+* Environment fully sanitized to a restricted whitelist
 
-## The Great Archives (Documentation)
+---
 
-For those who wish to delve deeper into the mysteries of Voix, consult the following scrolls in the `[docs/](docs/)` sanctuary:
+## 4. Security Model
 
-- **[The Book of Threats](THREATS.md)**: A technical breakdown of the attack surface and the wards protecting the realm.
-- **[The Lexicon of Command](docs/CLI.md)**: A guide to the incantations and flags of the artifact.
-- **[The Runes of Law](docs/CONFIG.md)**: Detailed guidance on scribing the `/etc/voix.conf` sanctuary.
-- **[The Rite of Replacement](docs/SUDO.md)**: How to use Voix as a successor to the ancient `sudo`.
-- **[The Seccomp Seals](docs/SECCOMP.md)**: An analysis of the syscall filters that bind the power.
-- **[The Trial of Truth](docs/TESTING.md)**: How to verify the artifact's integrity through rigorous testing.
+Voix follows a defense-in-depth model consisting of:
 
-## First Invocation (Getting Started)
+* Policy-driven authorization (ACL evaluation)
+* System authentication delegation (PAM integration)
+* Privilege separation via fork/exec transition
+* Capability reduction via `libcap`
+* Syscall filtering via `libseccomp`
+* Environment sanitization to eliminate injection vectors
+* Explicit denial of privilege escalation paths post-transition
 
-With the forge and installation complete, ensure your PAM configuration at `/etc/pam.d/voix` is aligned with your security policy, and you may now invoke Voix.
+The security boundary is enforced at process creation time and is not dynamically adjusted after execution begins.
 
-## The Runes of Law (Configuration)
+---
 
-The heart of Voix is defined in `/etc/voix.conf` using a structured YAML format.
+## 5. Configuration Model
 
-**Deconstructing the Runes:**
+Voix uses a structured YAML configuration file (`/etc/voix.conf`) to define execution policy.
 
-- **`core`**: Global settings like the `sanctuary` (temp directory) and allowed execution `paths`.
-- **`acl`**: The Access Control List, divided into `user` and `group` realms.
-  - **`action`**: Use `permit` to ordain power or `deny` to shun a soul.
-  - **`options`**: (Optional) Use `trust` to grant power without re-authentication for a time.
-  - **`target`**: (Optional) The entity to execute as. Defaults to `root`.
-  - **`command`**: (Optional) The specific rite allowed.
-  - **`args`**: (Optional) Specific arguments required for the rite.
-- **`security`**: Global restrictions, such as a `blocklist` of forbidden incantations.
+Configuration is divided into:
+* `core`: Execution environment parameters (paths, sanctuary)
+* `acl`: Authorization rules for users and groups
+* `security`: Global restrictions and blocklists
 
-**An Offering to the Config:**
+Policies are evaluated deterministically and matched against:
+* User identity
+* Group membership
+* Requested command path
+* Optional argument constraints
 
-For the most up-to-date and complete configuration example, please refer to the `[config/voix.conf](config/voix.conf)` file within this repository:
+### Configuration Example
+For a full example, see `[config/voix.conf](config/voix.conf)`.
 
 ```yaml
 # Voix configuration
-
-# Core system settings
 core:
   sanctuary: /tmp
   paths:
@@ -105,49 +108,107 @@ core:
     - /usr/bin
     - /usr/sbin
 
-# Access Control List
 acl:
   group:
     wheel:
       - action: permit
         options: [trust]
 
-# Security Policies
 security:
   blocklist:
     - /bin/sh
 ```
 
-## Invoking the Power
+---
 
-To cast a command beyond your station:
+## 6. Authentication Model
 
+Authentication is delegated to the system PAM stack under the `voix` service context.
+Authentication is required unless explicitly bypassed via policy-level trust options.
+Voix does not implement its own credential storage or verification system.
+
+---
+
+## 7. Design Constraints
+
+* Implemented in C++26
+* Built exclusively with Clang toolchain
+* Minimal external dependency surface
+* Deterministic policy evaluation
+* No dynamic plugin execution model
+* No embedded shell interpreter
+
+---
+
+## 8. Compatibility Note
+
+Voix may be used in workflows similar to `sudo` or `doas` for operational familiarity. However, this is a compatibility layer of usage, not a reflection of its internal architecture or design intent.
+
+---
+
+## Build and Installation
+
+### Prerequisites
+- **LLVM Clang Toolchain**
+- **C++26** compliant environment
+- **CMake** (v3.18+) and **Ninja**
+- Core dependencies: `yaml-cpp`, `pam`, `libcap`, `libseccomp`, `pkg-config`.
+
+### Build Instructions
+1. **Clone the repository**:
+    ```bash
+    git clone https://github.com/Veridian-Zenith/Voix.git && cd Voix
+    ```
+2. **Configure and Build**:
+    ```bash
+    cmake -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
+    cmake --build build
+    ```
+3. **Install**:
+    ```bash
+    sudo cmake --install build
+    ```
+
+### Distribution Specifics
+- **Arch Linux**: Install via AUR: `paru -S voix` or `yay -S voix`.
+- **Other Distributions**: Refer to the `[packaging/](packaging/)` directory for guidance.
+
+---
+
+## Documentation
+
+Consult the following technical guides in the `[docs/](docs/)` directory:
+- **[Threat Model](THREATS.md)**: Analysis of attack surface and mitigations.
+- **[CLI Reference](docs/CLI.md)**: Command-line interface and flag specifications.
+- **[Configuration Guide](docs/CONFIG.md)**: Detailed guidance on `/etc/voix.conf`.
+- **[Sudo Compatibility](docs/SUDO.md)**: Using Voix as a functional alternative to `sudo`.
+- **[Seccomp Analysis](docs/SECCOMP.md)**: Syscall filtering and containment.
+- **[Testing Suite](docs/TESTING.md)**: Verification and integrity testing.
+
+---
+
+## Usage
+
+After installation, ensure the PAM configuration at `/etc/pam.d/voix` is aligned with your security policy.
+
+**Execution Syntax:**
 ```bash
-voix <incantation> [args...]
+voix <command> [args...]
 ```
 
-- `-u USER, --user USER`: Invoke as a specific entity.
-- `-n, --non-interactive`: Fail the cast immediately if blood (password) is required.
-- `-C, --clear`: Forsake any lingering tokens of power instantly.
+**Common Options:**
+- `-u USER`: Execute as a specific target user.
+- `-n`: Non-interactive mode (fail if authentication is required).
+- `-C`: Clear authentication tokens.
 
-## Consulting the Oracle (Troubleshooting)
+---
 
-**Problem:** "PAM authentication failed"
+## Troubleshooting
 
-**Solution:** The pact is broken. Ensure that the PAM scroll at `/etc/pam.d/voix` is correctly inscribed.
+- **"PAM authentication failed"**: Verify that the PAM configuration at `/etc/pam.d/voix` is correct.
+- **"Permission denied"**: Verify the user/group authorization rules in `/etc/voix.conf`.
 
-**Problem:** "Permission denied"
+---
 
-**Solution:** The runes of law are not in your favor. Consult the `/etc/voix.conf` scroll to ensure you are worthy.
-
-## The Architect's Code
-
-Every function, every design, everything is modular, has a use, and is well put-together. If you seek to alter the artifact:
-
-1. Speak exclusively in C++26.
-2. Honor the Clang compiler constraints.
-3. Bind your work with `clang-tidy` to cleanse any lingering chaos (see `[CONTRIBUTING.md](./CONTRIBUTING.md)` for the exact ritual).
-
-## The Final Vow (License)
-
-Voix is sealed and distributed under the Open Software License v3.0 (OSL-3.0). See the `[LICENSE](./LICENSE)` scroll for eternal details.
+## License
+Voix is distributed under the Open Software License v3.0 (OSL-3.0). See `[LICENSE](./LICENSE)` for details.

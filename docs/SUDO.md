@@ -1,6 +1,8 @@
-# Using Voix as a `sudo`/`doas` Replacement
+# Using Voix as a Functional Alternative to `sudo`/`doas`
 
-This guide explains how to configure `voix` as a modern, secure, and performant drop-in replacement for traditional privilege escalation tools like `sudo` and `doas`.
+This guide explains how to use `voix` as a functional replacement for traditional privilege escalation tools like `sudo` and `doas`. 
+
+While Voix is architected as a Privilege Policy Enforcement Runtime rather than a simple utility, it can be configured to provide a similar user experience to these tools.
 
 ## 1. Configuring Voix for Privilege Escalation
 
@@ -10,7 +12,7 @@ To grant specific users or groups the ability to escalate privileges, you must d
 
 ## 2. Setting Up a Drop-in Experience
 
-To use `voix` as a `sudo` replacement, you can create an alias in your shell configuration (e.g., `.bashrc` or `.zshrc`):
+To use `voix` as a functional alternative to `sudo`, you can create an alias in your shell configuration (e.g., `.bashrc` or `.zshrc`):
 
 ```bash
 alias sudo=voix
