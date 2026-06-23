@@ -31,7 +31,7 @@
 namespace Voix {
 
 int Command::execute(std::string_view command, const std::vector<std::string>& args,
-                      const Config& config, const CommandOptions& options, std::string_view user) const {
+                       const Config& config, const CommandOptions& options, const Rule& rule, std::string_view user) const {
   sigset_t new_mask, old_mask;
   sigfillset(&new_mask);
   if (pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask) != 0) {
@@ -57,6 +57,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         signal(i, SIG_DFL);
     }
 
+    // Resolve identity and profile
     auto pw_entry = Voix::lookupPasswdByName(user.empty() ? "root" : user);
     if (!pw_entry) {
       LOG_ERROR(std::format("Failed to resolve target user '{}': {}",
@@ -64,7 +65,14 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       _exit(1);
     }
 
-    // Preserve whitelist environment
+    SecurityProfile profile = config.getProfile(rule.profile);
+    bool is_privileged_user = (pw_entry->uid == 0 || config.isPrivilegedUser(user));
+    // When no explicit profile is set, fall back to the privileged heuristic
+    if (rule.profile.empty() && is_privileged_user) {
+        profile = SecurityProfile{true, false, false, false};
+    }
+    bool is_privileged_tier = profile.retain_full_capabilities;
+
     const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
     const std::array<std::string_view, 7> dangerous_env_names = {
         "BASH_ENV", "ENV", "IFS", "CDPATH",
@@ -75,8 +83,6 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     };
     std::vector<std::pair<std::string, std::string>> saved_env;
     
-    bool is_privileged_user = (pw_entry->uid == 0 || config.isPrivilegedUser(user));
-
     if (options.preserve_env || is_privileged_user) {
       extern char **environ;
       for (char **env = ::environ; *env != nullptr; ++env) {
@@ -119,11 +125,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     Security sec;
 
-    // Drop capabilities for non-privileged target users (they should have none).
-    // Privileged targets retain full capabilities since the purpose
-    // of voix is to grant them root-level access.
+    // Drop capabilities for targets not in a full-privilege profile.
     #ifdef VOIX_WITH_CAP
-    if (!is_privileged_user) {
+    if (!is_privileged_tier) {
         sec.dropCapabilities({});
     } else {
         // Explicitly retain all capabilities for privileged targets
@@ -131,6 +135,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         // by further security measures.
     }
     #endif
+
 
     // Scrub environment to maintain security.
     // Privileged users need a full environment to perform hooks and system
@@ -161,14 +166,14 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     // may need high NPROC (pacman hooks spawn many processes) and NOFILE limits.
     // Privileged targets also need unrestricted access to /proc/pid/root (snap-pac, etc.)
     // which requires full capabilities and bypassing seccomp.
-    if (!is_privileged_user) {
+    if (profile.enable_resource_limits) {
         setResourceLimits();
     }
 
     // Close inherited FDs only for non-privileged executions (prevents voix internal FD leakage)
     // Privileged targets (pacman hooks) may rely on inherited FDs like D-Bus sockets.
     bool closed = false;
-    if (!is_privileged_user) {
+    if (profile.scrub_environment) {
 #ifdef SYS_close_range
         if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
             closed = true;
@@ -201,7 +206,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     std::vector<const char *> argv;
     std::string cmd_str{command};
-    LOG_ERROR(std::format("DEBUG: executing command: {}, is_privileged_user: {}", cmd_str, is_privileged_user));
+    LOG_ERROR(std::format("executing command: {}, profile: {}", cmd_str, rule.profile));
 
     // Resolve non-absolute paths
     if (!cmd_str.empty() && cmd_str[0] != '/') {
@@ -226,9 +231,9 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
     argv.push_back(nullptr);
 
-    // Apply seccomp only to non-privileged targets. Privileged targets (root)
+    // Apply seccomp only to targets with seccomp enabled in their profile. Privileged targets
     // need unrestricted syscall access.
-    if (config.is_seccomp_enabled() && !is_privileged_user) {
+    if (config.is_seccomp_enabled() && profile.enable_seccomp) {
         if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
             LOG_ERROR("Failed to set PR_SET_NO_NEW_PRIVS");
             _exit(1);

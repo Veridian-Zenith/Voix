@@ -54,6 +54,10 @@ namespace {
             }
         }
 
+        if (rule_node["profile"]) {
+            rule.profile = rule_node["profile"].as<std::string>();
+        }
+
         if (rule_node["env"]) {
             for (auto env_entry : rule_node["env"]) {
                 rule.envlist.push_back(env_entry.as<std::string>());
@@ -190,6 +194,18 @@ bool Config::load(std::string_view config_path, bool verify_security) {
         }
 
         if (config["security"]) {
+            if (config["security"]["profiles"]) {
+                for (auto it = config["security"]["profiles"].begin(); it != config["security"]["profiles"].end(); ++it) {
+                    std::string profile_name = it->first.as<std::string>();
+                    YAML::Node p_node = it->second;
+                    SecurityProfile profile;
+                    if (p_node["retain_full_capabilities"]) profile.retain_full_capabilities = p_node["retain_full_capabilities"].as<bool>();
+                    if (p_node["enable_seccomp"]) profile.enable_seccomp = p_node["enable_seccomp"].as<bool>();
+                    if (p_node["enable_resource_limits"]) profile.enable_resource_limits = p_node["enable_resource_limits"].as<bool>();
+                    if (p_node["scrub_environment"]) profile.scrub_environment = p_node["scrub_environment"].as<bool>();
+                    security_profiles_[profile_name] = profile;
+                }
+            }
             if (config["security"]["seccomp"]) {
                 seccomp_enabled_ = config["security"]["seccomp"].as<bool>();
             }
@@ -279,6 +295,14 @@ bool Config::validate() const {
 
 bool Config::isPrivilegedUser(std::string_view user) const {
     return std::ranges::find(privileged_users_, user) != privileged_users_.end();
+}
+
+SecurityProfile Config::getProfile(std::string_view name) const {
+    if (security_profiles_.count(std::string(name))) {
+        return security_profiles_.at(std::string(name));
+    }
+    // Default "restricted" profile
+    return SecurityProfile{false, true, true, true};
 }
 
 } // namespace Voix

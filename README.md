@@ -115,6 +115,17 @@ acl:
         options: [trust]
 
 security:
+  profiles:
+    restricted:
+      retain_full_capabilities: false
+      enable_seccomp: true
+      enable_resource_limits: true
+      scrub_environment: true
+    privileged:
+      retain_full_capabilities: true
+      enable_seccomp: false
+      enable_resource_limits: false
+      scrub_environment: false
   blocklist:
     - /bin/sh
 ```

@@ -48,6 +48,7 @@ public:
     std::string cmd;                   /**< The command to execute. */
     std::vector<std::string> cmdargs;  /**< Arguments for the command. */
     std::vector<std::string> envlist;  /**< Environment variables to set. */
+    std::string profile;                  /**< Security profile to apply. */
     Action action;                     /**< Action to take on match. */
     int options;                       /**< Combined options flags. */
 

@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.5.0 LANGUAGES CXX)
+project(Voix VERSION 4.6.0 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -137,6 +137,10 @@ endif()
 
 # ---- Installation ----
 include(GNUInstallDirs)
+
+# Force sysconfdir to /etc regardless of install prefix,
+# as this is the standard location on all Linux distributions.
+set(CMAKE_INSTALL_SYSCONFDIR "/etc" CACHE PATH "" FORCE)
 
 option(ENABLE_PERMISSIONS "Set permissions and capabilities during install" ON)
 

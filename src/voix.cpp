@@ -65,7 +65,7 @@ int Voix::execute(std::string_view command,
   std::string user_str{user};
 
   if (security_->isCatastrophicCommand(command_str, args, *config_)) {
-    std::println(stderr, "voix: command blocked: this incantation is deemed catastrophic and is forbidden.");
+    std::println(stderr, "voix: command blocked: catastrophic command forbidden.");
     security_->logEvent(std::format("Catastrophic command blocked: {}", command_str), current_user);
     syslog(LOG_AUTHPRIV | LOG_ALERT, "Catastrophic command blocked: %s", command_str.c_str());
     return 1;
@@ -120,7 +120,7 @@ int Voix::execute(std::string_view command,
       merged_options.preserve_env = true;
   }
   
-  int res = command_->execute(command_str, args, *config_, merged_options, user_str);
+  int res = command_->execute(command_str, args, *config_, merged_options, *rule, user_str);
   authenticator_->closeSession();
   return res;
 }

@@ -10,6 +10,7 @@
 #define COMMAND_H
 
 #include "config.hpp"
+#include "rule.hpp"
 #include <string>
 #include <string_view>
 #include <vector>
@@ -50,10 +51,11 @@ public:
      * @return The return code of the command, or a non-zero value on failure.
      */
     int execute(std::string_view command,
-                const std::vector<std::string>& args,
-                const Config& config,
-                const CommandOptions& options,
-                std::string_view user = "root") const;
+                 const std::vector<std::string>& args,
+                 const Config& config,
+                 const CommandOptions& options,
+                 const Rule& rule,
+                 std::string_view user = "root") const;
 
     /**
      * @brief Builds a command string for logging or debugging.

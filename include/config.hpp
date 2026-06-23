@@ -22,6 +22,13 @@
 
 namespace Voix {
 
+struct SecurityProfile {
+    bool retain_full_capabilities = false;
+    bool enable_seccomp = true;
+    bool enable_resource_limits = true;
+    bool scrub_environment = true;
+};
+
 class Config {
 public:
     /**
@@ -81,6 +88,12 @@ public:
      */
     const std::vector<std::regex>& get_compiled_blocklist() const { return compiled_blocklist_; }
     /**
+     * @brief Gets the security profile associated with a name.
+     * @param name The profile name.
+     * @return The SecurityProfile object.
+     */
+    SecurityProfile getProfile(std::string_view name) const;
+    /**
      * @brief Checks if a user is in the privileged users list.
      * @param user The username to check.
      * @return True if privileged, false otherwise.
@@ -102,6 +115,7 @@ private:
     std::vector<std::string> path_list_;
     std::vector<Rule> rules_;
     std::map<std::string, std::vector<Rule>> profiles_;
+    std::map<std::string, SecurityProfile> security_profiles_;
     std::vector<std::string> blocklist_;
     std::vector<std::regex> compiled_blocklist_;
     std::vector<std::string> privileged_users_;
