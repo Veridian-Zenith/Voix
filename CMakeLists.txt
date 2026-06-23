@@ -142,7 +142,10 @@ option(ENABLE_PERMISSIONS "Set permissions and capabilities during install" ON)
 
 if(ENABLE_PERMISSIONS)
     install(CODE [[
-        if(NOT CMAKE_INSTALL_UID EQUAL 0)
+        execute_process(COMMAND id -u
+            OUTPUT_VARIABLE _voix_uid
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(NOT _voix_uid EQUAL 0)
             message(FATAL_ERROR "ENABLE_PERMISSIONS=ON requires root privileges.\n"
                     "  Run: sudo cmake --install build\n"
                     "  Or reconfigure with: -DENABLE_PERMISSIONS=OFF")
