@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) noexcept {
         std::vector<std::string> command_args;
         bool nflag = false;
         bool sflag = false;
+        bool clear_timestamp = false;
         Voix::CommandOptions options;
 
         if (argc > 1 && strcmp(argv[1], "--run-tests") == 0) {
@@ -178,7 +179,7 @@ int main(int argc, char* argv[]) noexcept {
             security.raiseCapabilities();
 #endif
             // Initialize Voix with enhanced configuration
-            Voix::Voix voix(config_path, nflag, options.list_commands);
+            Voix::Voix voix(config_path, nflag, clear_timestamp);
 
             std::string command = "";
             std::vector<std::string> args;
