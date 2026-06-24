@@ -14,6 +14,7 @@
 
 #define LOG_ERROR(msg) Voix::Logger().log("ERROR", msg)
 #define LOG_WARN(msg) Voix::Logger().log("WARN", msg)
+#define LOG_INFO(msg) Voix::Logger().log("INFO", msg)
 
 namespace Voix {
 

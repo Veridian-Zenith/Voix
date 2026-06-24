@@ -1,0 +1,50 @@
+diff --git a/.github/SECURITY.md b/.github/SECURITY.md
+index 22874b4..a36fd16 100644
+--- a/.github/SECURITY.md
++++ b/.github/SECURITY.md
+@@ -6,8 +6,8 @@ The following table shows the versions of Voix that are currently supported with
+ 
+ | Version | Supported          |
+ | ------- | ------------------ |
+-| 4.6.0+  | :white_check_mark: |
+-| < 4.2   | :x:                |
++| 4.7.0+  | :white_check_mark: |
++| < 4.6   | :x:                |
+ 
+ ## Reporting a Vulnerability
+ 
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7c7af01..39740a2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
+ set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
+ set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
+ 
+-project(Voix VERSION 4.6.0 LANGUAGES CXX)
++project(Voix VERSION 4.7.0 LANGUAGES CXX)
+ 
+ # ---- Cache Acceleration ----
+ # Explicitly use ccache as the compiler launcher for speed and consistency
+diff --git a/docs/voix.1 b/docs/voix.1
+index 7626fee..5a054f3 100644
+--- a/docs/voix.1
++++ b/docs/voix.1
+@@ -1,4 +1,4 @@
+-.TH VOIX 1 "June 2026" "Voix 4.6.0" "User Commands"
++.TH VOIX 1 "June 2026" "Voix 4.7.0" "User Commands"
+ .SH NAME
+ voix \- a Privilege Policy Enforcement Runtime
+ .SH SYNOPSIS
+diff --git a/include/logger.hpp b/include/logger.hpp
+index 609d8de..0586cd7 100644
+--- a/include/logger.hpp
++++ b/include/logger.hpp
+@@ -14,6 +14,7 @@
+ 
+ #define LOG_ERROR(msg) Voix::Logger().log("ERROR", msg)
+ #define LOG_WARN(msg) Voix::Logger().log("WARN", msg)
++#define LOG_INFO(msg) Voix::Logger().log("INFO", msg)
+ 
+ namespace Voix {
+ 
