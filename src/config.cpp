@@ -215,7 +215,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                         std::string exact = block_item.as<std::string>();
                         std::string pattern = "^" + exact + "$";
                         blocklist_.push_back(exact);
-                        compiled_blocklist_.emplace_back(pattern, std::regex::optimize | std::regex::icase);
+                        compiled_blocklist_.emplace_back(pattern, std::regex::optimize);
                     }
                 }
             }
