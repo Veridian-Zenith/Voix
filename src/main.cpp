@@ -54,7 +54,7 @@ void printUsage() {
  * @brief Prints the version information of the voix command.
  */
 void printVersion() {
-    std::print("Voix version 4.6.0 - The Keeper of Realms\n"
+    std::print("Voix version 4.7.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) noexcept {
         std::vector<std::string> command_args;
         bool nflag = false;
         bool sflag = false;
+        bool clear_timestamp = false;
         Voix::CommandOptions options;
 
         if (argc > 1 && strcmp(argv[1], "--run-tests") == 0) {
@@ -130,6 +131,7 @@ int main(int argc, char* argv[]) noexcept {
                     break;
                 case 'k':
                     // sudo -k: invalidate timestamp. No-op for voix.
+                    clear_timestamp = true;
                     break;
                 default:
                     std::println(stderr, "Error: Unknown option: {}", static_cast<char>(ch));
@@ -178,7 +180,7 @@ int main(int argc, char* argv[]) noexcept {
             security.raiseCapabilities();
 #endif
             // Initialize Voix with enhanced configuration
-            Voix::Voix voix(config_path, nflag, options.list_commands);
+            Voix::Voix voix(config_path, nflag, clear_timestamp);
 
             std::string command = "";
             std::vector<std::string> args;
