@@ -223,7 +223,7 @@ bool test_command_build_string_simple() {
 bool test_command_build_string_non_root_user() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("cat", {"/etc/hostname"}, "alice");
-    ASSERT_EQUAL(result, std::string("su - 'alice' -c 'cat' '/etc/hostname'"));
+    ASSERT_EQUAL(result, std::string("su - 'alice' -c 'cat /etc/hostname'"));
     return true;
 }
 
