@@ -206,7 +206,7 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
 
     std::vector<const char *> argv;
     std::string cmd_str{command};
-    LOG_ERROR(std::format("executing command: {}, profile: {}", cmd_str, rule.profile));
+    LOG_INFO(std::format("executing command: {}, profile: {}", cmd_str, rule.profile));
 
     // Resolve non-absolute paths
     if (!cmd_str.empty() && cmd_str[0] != '/') {
