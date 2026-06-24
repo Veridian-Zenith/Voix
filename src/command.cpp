@@ -315,12 +315,16 @@ std::string Command::buildCommandString(std::string_view command,
 
   std::string result;
   if (!user.empty() && user != "root") {
-    result = std::format("su - {} -c {}", shell_escape(user), shell_escape(command));
+    std::string cmd_to_run{command};
+    for (const auto& arg : args) {
+      cmd_to_run += " " + arg;
+    }
+    result = std::format("su - {} -c {}", shell_escape(user), shell_escape(cmd_to_run));
   } else {
     result = shell_escape(command);
-  }
-  for (const auto& arg : args) {
-    result += std::format(" {}", shell_escape(arg));
+    for (const auto& arg : args) {
+      result += std::format(" {}", shell_escape(arg));
+    }
   }
   return result;
 }

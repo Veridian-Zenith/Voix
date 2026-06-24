@@ -368,8 +368,8 @@ bool test_file_utils_write_file_overwrite() {
     std::filesystem::path test_file = test_dir / "overwrite.txt";
     std::filesystem::create_directories(test_dir);
 
-    file_utils.writeFile(test_file, "original");
-    file_utils.writeFile(test_file, "replaced");
+    (void)file_utils.writeFile(test_file, "original");
+    (void)file_utils.writeFile(test_file, "replaced");
 
     auto result = file_utils.readFile(test_file);
     ASSERT_TRUE(result.has_value());
