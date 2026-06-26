@@ -167,9 +167,8 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
                 return true;
             }
         }
-    } else if (command.find("mkfs") != std::string::npos) {
-        return true;
-    } else if (command == "fdisk" || command == "/sbin/fdisk" || command == "/usr/bin/fdisk" ||
+    } else if (command.find("mkfs") != std::string::npos ||
+               command == "fdisk" || command == "/sbin/fdisk" || command == "/usr/bin/fdisk" ||
                command == "parted" || command == "/sbin/parted" || command == "/usr/bin/parted" ||
                command == "wipe" || command == "/sbin/wipe" || command == "/usr/bin/wipe" ||
                command == "shred" || command == "/usr/bin/shred") {

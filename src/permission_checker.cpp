@@ -173,7 +173,7 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
 }
 
 
-std::vector<Rule> PermissionChecker::listPermittedRules() const {
+std::vector<Rule> PermissionChecker::list_permitted_rules() const {
     std::vector<Rule> permitted;
     std::string current_user = security_->getCurrentUser();
     auto identity = security_->identity->get_user_by_name(current_user);

@@ -223,7 +223,7 @@ bool test_command_build_string_simple() {
 bool test_command_build_string_non_root_user() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("cat", {"/etc/hostname"}, "alice");
-    ASSERT_EQUAL(result, std::string("su - 'alice' -c 'cat /etc/hostname'"));
+    ASSERT_EQUAL(result, std::string("su - 'alice' -c ''\\''cat'\\'' '\\''/etc/hostname'\\'''"));
     return true;
 }
 
@@ -268,9 +268,12 @@ bool test_logger_timestamp_format() {
 bool test_logger_timestamp_current_year() {
     Voix::Logger logger;
     std::string ts = logger.getTimestamp();
-    // Year should be 2025 or later
+    // Year should be the current year or later
+    auto now = std::chrono::system_clock::now();
+    auto today = std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(now)};
+    int current_year = static_cast<int>(today.year());
     int year = std::stoi(ts.substr(0, 4));
-    ASSERT_TRUE(year >= 2025);
+    ASSERT_TRUE(year >= current_year);
     return true;
 }
 
@@ -302,7 +305,7 @@ bool test_file_utils_read_file_success() {
     std::filesystem::path test_dir = std::filesystem::temp_directory_path() / "voix_test_read";
     std::filesystem::path test_file = test_dir / "readable.txt";
     std::filesystem::create_directories(test_dir);
-    ScopedTempFile dir_cleanup(test_dir);
+    ScopedTempFile dir_guard(test_dir);
 
     {
         std::ofstream out(test_file);
@@ -464,9 +467,15 @@ bool test_system_utils_set_environment_multiple() {
     };
     sys_utils.setEnvironment(env_vars);
 
-    ASSERT_EQUAL(std::string(std::getenv("VOIX_TEST_A")), std::string("alpha"));
-    ASSERT_EQUAL(std::string(std::getenv("VOIX_TEST_B")), std::string("beta"));
-    ASSERT_EQUAL(std::string(std::getenv("VOIX_TEST_C")), std::string("gamma"));
+    const char* env_a = std::getenv("VOIX_TEST_A");
+    const char* env_b = std::getenv("VOIX_TEST_B");
+    const char* env_c = std::getenv("VOIX_TEST_C");
+    ASSERT_TRUE(env_a != nullptr);
+    ASSERT_TRUE(env_b != nullptr);
+    ASSERT_TRUE(env_c != nullptr);
+    ASSERT_EQUAL(std::string(env_a), std::string("alpha"));
+    ASSERT_EQUAL(std::string(env_b), std::string("beta"));
+    ASSERT_EQUAL(std::string(env_c), std::string("gamma"));
 
     unsetenv("VOIX_TEST_A");
     unsetenv("VOIX_TEST_B");
@@ -748,6 +757,12 @@ bool test_permission_checker_group_rule() {
     }
     config->load(config_path.string(), false);
 
+    // Verify that 'root' group name is resolved to GID 0
+    const auto& loaded_rules = config->getRules();
+    ASSERT_TRUE(loaded_rules.size() > 0);
+    ASSERT_TRUE(loaded_rules[0].ident_gid.has_value());
+    ASSERT_EQUAL(loaded_rules[0].ident_gid.value(), static_cast<gid_t>(0));
+
     Voix::PermissionChecker checker(security, config);
     auto rule = checker.permit("anything", {}, 0);
     ASSERT_TRUE(rule.has_value());
@@ -851,7 +866,7 @@ bool test_config_validate_empty_sanctuary() {
 }
 
 // ============================================================
-// PermissionChecker::listPermittedRules() tests
+// PermissionChecker::list_permitted_rules() tests
 // ============================================================
 
 bool test_permission_checker_list_permitted_rules() {
@@ -876,7 +891,7 @@ bool test_permission_checker_list_permitted_rules() {
     config->load(config_path.string(), false);
 
     Voix::PermissionChecker checker(security, config);
-    auto rules = checker.listPermittedRules();
+    auto rules = checker.list_permitted_rules();
     // Should have 2 permit rules (ls and cat), not the deny rule
     ASSERT_EQUAL(static_cast<int>(rules.size()), 2);
     ASSERT_EQUAL(rules[0].cmd, std::string("ls"));
@@ -903,7 +918,7 @@ bool test_permission_checker_list_permitted_rules_empty() {
     ASSERT_TRUE(config->load(config_path.string(), false));
 
     Voix::PermissionChecker checker(security, config);
-    auto rules = checker.listPermittedRules();
+    auto rules = checker.list_permitted_rules();
     ASSERT_EQUAL(static_cast<int>(rules.size()), 0);
     return true;
 }
@@ -911,9 +926,9 @@ bool test_permission_checker_list_permitted_rules_empty() {
 bool test_config_privileged_users() {
     Voix::Config config;
     // Default should contain root and alpm
-    ASSERT_TRUE(config.isPrivilegedUser("root"));
-    ASSERT_TRUE(config.isPrivilegedUser("alpm"));
-    ASSERT_TRUE(!config.isPrivilegedUser("guest"));
+    ASSERT_TRUE(config.is_privileged_user("root"));
+    ASSERT_TRUE(config.is_privileged_user("alpm"));
+    ASSERT_TRUE(!config.is_privileged_user("guest"));
 
     std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_privileged_users.conf";
     ScopedTempFile cleanup(config_path);
@@ -922,10 +937,10 @@ bool test_config_privileged_users() {
         out << "core:\n  privileged_users:\n    - admin\n    - operator\n";
     }
     ASSERT_TRUE(config.load(config_path.string(), false));
-    ASSERT_TRUE(config.isPrivilegedUser("admin"));
-    ASSERT_TRUE(config.isPrivilegedUser("operator"));
-    ASSERT_TRUE(!config.isPrivilegedUser("root"));
-    ASSERT_TRUE(!config.isPrivilegedUser("alpm"));
+    ASSERT_TRUE(config.is_privileged_user("admin"));
+    ASSERT_TRUE(config.is_privileged_user("operator"));
+    ASSERT_TRUE(!config.is_privileged_user("root"));
+    ASSERT_TRUE(!config.is_privileged_user("alpm"));
 
     return true;
 }
@@ -1016,7 +1031,7 @@ int main() {
     runner.add_test("test_config_validate_relative_path", test_config_validate_relative_path);
     runner.add_test("test_config_validate_empty_sanctuary", test_config_validate_empty_sanctuary);
 
-    // PermissionChecker::listPermittedRules() tests
+    // PermissionChecker::list_permitted_rules() tests
     runner.add_test("test_permission_checker_list_permitted_rules", test_permission_checker_list_permitted_rules);
     runner.add_test("test_permission_checker_list_permitted_rules_empty", test_permission_checker_list_permitted_rules_empty);
 

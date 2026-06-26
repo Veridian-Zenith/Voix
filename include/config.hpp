@@ -51,7 +51,7 @@ public:
      * @brief Gets the list of rules from the configuration.
      * @return A vector of Rule objects.
      */
-    std::vector<Rule> getRules() const;
+    const std::vector<Rule>& getRules() const;
     /**
      * @brief Gets the sanctuary path from the configuration.
      * @return The sanctuary path as a string.
@@ -92,18 +92,18 @@ public:
      * @param name The profile name.
      * @return The SecurityProfile object.
      */
-    SecurityProfile getProfile(std::string_view name) const;
+    SecurityProfile get_profile(std::string_view name) const;
     /**
      * @brief Checks if a user is in the privileged users list.
      * @param user The username to check.
      * @return True if privileged, false otherwise.
      */
-    bool isPrivilegedUser(std::string_view user) const;
+    bool is_privileged_user(std::string_view user) const;
     /**
      * @brief Gets the list of privileged users.
      * @return A reference to the privileged users vector.
      */
-    const std::vector<std::string>& getPrivilegedUsers() const { return privileged_users_; }
+    const std::vector<std::string>& get_privileged_users() const { return privileged_users_; }
     /**
      * @brief Validates the configuration schema and path permissions.
      * @return True if valid, false otherwise.

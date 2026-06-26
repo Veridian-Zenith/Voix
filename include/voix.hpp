@@ -59,7 +59,7 @@ public:
      * @brief Lists all permitted commands for the current user.
      * @return 0 on success, non-zero on failure.
      */
-    int listCommands() const;
+    int list_commands() const;
 
 private:
     std::shared_ptr<Config> config_;

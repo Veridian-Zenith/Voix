@@ -22,7 +22,7 @@ You can explicitly enable or disable the build of tests using the `-DBUILD_TESTI
 To configure and compile a Debug build (which automatically runs tests):
 
 ```bash
-cmake -B build-dbg -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && cmake --build build-dbg
+cmake -B build-debug -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && cmake --build build-debug
 ```
 
 ### Force-enabling Tests (Release Mode)

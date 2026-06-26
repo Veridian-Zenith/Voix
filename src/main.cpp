@@ -28,6 +28,8 @@
 
 /**
  * @brief Prints the usage information for the voix command.
+ * @param None No parameters.
+ * @return void
  */
 void printUsage() {
     std::print("Usage: voix [options] <incantation> [args...]\n\n"
@@ -52,9 +54,11 @@ void printUsage() {
 
 /**
  * @brief Prints the version information of the voix command.
+ * @param None No parameters.
+ * @return void
  */
 void printVersion() {
-    std::print("Voix version 4.7.0 - The Keeper of Realms\n"
+    std::print("Voix version 4.8.0 - The Keeper of Realms\n"
                "Copyright © 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
@@ -75,6 +79,10 @@ int main(int argc, char* argv[]) noexcept {
         bool sflag = false;
         bool clear_timestamp = false;
         Voix::CommandOptions options;
+
+        // Note: short-only options 'n', 's', 'u', 'k' in the optstring have
+        // no corresponding long_option entries. They remain short-only for
+        // compatibility with doas/OpenDoas conventions.
 
         if (argc > 1 && strcmp(argv[1], "--run-tests") == 0) {
 #if BUILD_TESTING
@@ -134,7 +142,7 @@ int main(int argc, char* argv[]) noexcept {
                     clear_timestamp = true;
                     break;
                 default:
-                    std::println(stderr, "Error: Unknown option: {}", static_cast<char>(ch));
+                    // getopt_long already prints an error for unknown options
                     printUsage();
                     return 1;
             }
@@ -144,13 +152,13 @@ int main(int argc, char* argv[]) noexcept {
 
         // Handle shell mode
         if (sflag) {
-            char* shell_env = getenv("SHELL");
+            char* shell_var = getenv("SHELL");
             std::string shell;
-            if (!shell_env || !*shell_env) {
-                auto pw_entry = Voix::lookupPasswdByUid(getuid());
+            if (!shell_var || !*shell_var) {
+                auto pw_entry = Voix::lookup_passwd_by_uid(getuid());
                 shell = pw_entry ? pw_entry->shell : "/bin/sh";
             } else {
-                shell = shell_env;
+                shell = shell_var;
             }
             command_args.push_back(shell);
         } else if (argc < 1 && !options.list_commands && !options.check_config) {
@@ -192,7 +200,7 @@ int main(int argc, char* argv[]) noexcept {
             // Execute command with enhanced security
             int result = 0;
             if (options.list_commands) {
-                result = voix.listCommands();
+                result = voix.list_commands();
             } else {
                 result = voix.execute(command, args, options, target_user);
 

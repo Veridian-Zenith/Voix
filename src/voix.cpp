@@ -76,7 +76,7 @@ int Voix::execute(std::string_view command,
          command_str.c_str(), user_str.c_str());
 
   // Validate command using enhanced rules
-  auto pw_entry = lookupPasswdByName(user_str);
+  auto pw_entry = lookup_passwd_by_name(user_str);
   if (!pw_entry) {
     syslog(LOG_AUTHPRIV | LOG_ERR, "Invalid target user: %s", user_str.c_str());
     return 1;
@@ -125,8 +125,8 @@ int Voix::execute(std::string_view command,
   return res;
 }
 
-int Voix::listCommands() const {
-    auto rules = permission_checker_->listPermittedRules();
+int Voix::list_commands() const {
+    auto rules = permission_checker_->list_permitted_rules();
     if (rules.empty()) {
         std::println("No permitted commands for the current user.");
         return 0;

@@ -58,15 +58,15 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     }
 
     // Resolve identity and profile
-    auto pw_entry = Voix::lookupPasswdByName(user.empty() ? "root" : user);
+    auto pw_entry = Voix::lookup_passwd_by_name(user.empty() ? "root" : user);
     if (!pw_entry) {
       LOG_ERROR(std::format("Failed to resolve target user '{}': {}",
                user.empty() ? std::string_view{"root"} : user, std::strerror(errno)));
       _exit(1);
     }
 
-    SecurityProfile profile = config.getProfile(rule.profile);
-    bool is_privileged_user = (pw_entry->uid == 0 || config.isPrivilegedUser(user));
+    SecurityProfile profile = config.get_profile(rule.profile);
+    bool is_privileged_user = (pw_entry->uid == 0 || config.is_privileged_user(user));
     // When no explicit profile is set, fall back to the privileged heuristic
     if (rule.profile.empty() && is_privileged_user) {
         profile = SecurityProfile{true, false, false, false};
@@ -315,9 +315,9 @@ std::string Command::buildCommandString(std::string_view command,
 
   std::string result;
   if (!user.empty() && user != "root") {
-    std::string cmd_to_run{command};
+    std::string cmd_to_run = shell_escape(command);
     for (const auto& arg : args) {
-      cmd_to_run += " " + arg;
+      cmd_to_run += " " + shell_escape(arg);
     }
     result = std::format("su - {} -c {}", shell_escape(user), shell_escape(cmd_to_run));
   } else {

@@ -16,7 +16,7 @@
 namespace Voix {
 
 std::optional<UserIdentity> SystemIdentity::get_user_by_name(const std::string& username) const {
-    auto entry = lookupPasswdByName(username);
+    auto entry = lookup_passwd_by_name(username);
     if (!entry) return std::nullopt;
 
     // Use getgrouplist() to resolve the target user's supplementary groups
@@ -41,7 +41,7 @@ std::optional<UserIdentity> SystemIdentity::get_user_by_name(const std::string& 
 }
 
 std::optional<UserIdentity> SystemIdentity::get_user_by_uid(uid_t uid) const {
-    auto entry = lookupPasswdByUid(uid);
+    auto entry = lookup_passwd_by_uid(uid);
     if (!entry) return std::nullopt;
 
     return UserIdentity{
@@ -52,7 +52,7 @@ std::optional<UserIdentity> SystemIdentity::get_user_by_uid(uid_t uid) const {
 }
 
 std::string SystemIdentity::get_current_username() const {
-    auto entry = lookupPasswdByUid(getuid());
+    auto entry = lookup_passwd_by_uid(getuid());
     return entry ? entry->name : "unknown";
 }
 

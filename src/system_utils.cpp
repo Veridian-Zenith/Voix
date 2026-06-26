@@ -39,7 +39,7 @@ void SystemUtils::setEnvironment(const std::vector<std::string>& env_vars) const
 }
 
 std::optional<uid_t> SystemUtils::getUidByName(std::string_view name) {
-    auto entry = lookupPasswdByName(name);
+    auto entry = lookup_passwd_by_name(name);
     if (!entry) return std::nullopt;
     return entry->uid;
 }
@@ -74,7 +74,7 @@ namespace {
     }
 }
 
-std::optional<PasswdEntry> lookupPasswdByName(std::string_view name) {
+std::optional<PasswdEntry> lookup_passwd_by_name(std::string_view name) {
     struct passwd pwd;
     struct passwd *result = nullptr;
     auto buf = make_passwd_buffer();
@@ -94,7 +94,7 @@ std::optional<PasswdEntry> lookupPasswdByName(std::string_view name) {
                        result->pw_dir, result->pw_shell};
 }
 
-std::optional<PasswdEntry> lookupPasswdByUid(uid_t uid) {
+std::optional<PasswdEntry> lookup_passwd_by_uid(uid_t uid) {
     struct passwd pwd;
     struct passwd *result = nullptr;
     auto buf = make_passwd_buffer();

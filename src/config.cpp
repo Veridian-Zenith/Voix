@@ -67,6 +67,9 @@ namespace {
         if (rule_node["target"]) {
             rule.target = rule_node["target"].as<std::string>();
             rule.target_uid = Voix::SystemUtils::getUidByName(rule.target);
+            if (!rule.target_uid.has_value()) {
+                LOG_ERROR(std::format("Target user '{}' not found", rule.target));
+            }
         }
 
         if (rule_node["command"]) {
@@ -148,19 +151,19 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                     path_list_.push_back(path_entry.as<std::string>());
                 }
             }
-                if (config["core"]["login_shell"]) {
-                    login_shell_default_ = config["core"]["login_shell"].as<bool>();
-                }
-                if (config["core"]["suppress_stderr"]) {
-                    suppress_stderr_ = config["core"]["suppress_stderr"].as<bool>();
-                }
-                if (config["core"]["privileged_users"]) {
-                    privileged_users_.clear();
-                    for (auto user_entry : config["core"]["privileged_users"]) {
-                        privileged_users_.push_back(user_entry.as<std::string>());
-                    }
+            if (config["core"]["login_shell"]) {
+                login_shell_default_ = config["core"]["login_shell"].as<bool>();
+            }
+            if (config["core"]["suppress_stderr"]) {
+                suppress_stderr_ = config["core"]["suppress_stderr"].as<bool>();
+            }
+            if (config["core"]["privileged_users"]) {
+                privileged_users_.clear();
+                for (auto user_entry : config["core"]["privileged_users"]) {
+                    privileged_users_.push_back(user_entry.as<std::string>());
                 }
             }
+        }
 
 
         if (config["profiles"]) {
@@ -179,16 +182,22 @@ bool Config::load(std::string_view config_path, bool verify_security) {
             rules_.clear();
             if (config["acl"]["user"]) {
                 parse_acl_section(config["acl"]["user"], profiles_,
-                    [](Rule& rule, const std::string& name) {
+                    [&logger](Rule& rule, const std::string& name) {
                         rule.ident = name;
                         rule.ident_uid = SystemUtils::getUidByName(name);
+                        if (!rule.ident_uid.has_value()) {
+                            logger.log("ERROR", std::format("ACL user '{}' not found", name));
+                        }
                     }, rules_);
             }
             if (config["acl"]["group"]) {
                 parse_acl_section(config["acl"]["group"], profiles_,
-                    [](Rule& rule, const std::string& name) {
+                    [&logger](Rule& rule, const std::string& name) {
                         rule.ident = ":" + name;
                         rule.ident_gid = SystemUtils::getGidByName(name);
+                        if (!rule.ident_gid.has_value()) {
+                            logger.log("ERROR", std::format("ACL group '{}' not found", name));
+                        }
                     }, rules_);
             }
         }
@@ -228,7 +237,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
     return true;
 }
 
-std::vector<Rule> Config::getRules() const {
+const std::vector<Rule>& Config::getRules() const {
     return rules_;
 }
 
@@ -293,11 +302,11 @@ bool Config::validate() const {
     return true;
 }
 
-bool Config::isPrivilegedUser(std::string_view user) const {
+bool Config::is_privileged_user(std::string_view user) const {
     return std::ranges::find(privileged_users_, user) != privileged_users_.end();
 }
 
-SecurityProfile Config::getProfile(std::string_view name) const {
+SecurityProfile Config::get_profile(std::string_view name) const {
     if (security_profiles_.count(std::string(name))) {
         return security_profiles_.at(std::string(name));
     }

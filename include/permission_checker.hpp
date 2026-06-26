@@ -58,7 +58,7 @@ public:
      * @brief Returns all rules that permit actions for the current user.
      * @return Vector of permitted rules for the current user.
      */
-    std::vector<Rule> listPermittedRules() const;
+    std::vector<Rule> list_permitted_rules() const;
 
 private:
     std::shared_ptr<Security> security_;

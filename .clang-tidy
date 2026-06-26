@@ -9,7 +9,7 @@ CheckOptions:
   - key:             readability-identifier-naming.FunctionCase
     value:           lower_case
   - key:             readability-identifier-naming.FunctionIgnoredRegexp
-    value:           '^(pam_.*|getRules|getSanctuary|getPath|parseConfigLine|validateUser|isSafePath|logEvent|getCurrentUser|isCatastrophicCommand|raiseCapabilities|dropCapabilities|printUsage|printVersion|authenticate|openSession|closeSession|buildCommandString|setResourceLimits|fileExists|isSecurePath|readFile|writeFile|getTimestamp|isAllowed|matchRule|setUserCredentials|setEnvironment|getUidByName|getGidByName)$'
+    value:           '^(pam_.*|getRules|getSanctuary|getPath|validateUser|isSafePath|logEvent|getCurrentUser|isCatastrophicCommand|raiseCapabilities|dropCapabilities|printUsage|printVersion|authenticate|openSession|closeSession|buildCommandString|setResourceLimits|fileExists|isSecurePath|readFile|writeFile|getTimestamp|isAllowed|matchRule|setUserCredentials|setEnvironment|getUidByName|getGidByName)$'
   - key:             readability-identifier-naming.VariableCase
     value:           lower_case
   - key:             readability-identifier-naming.ParameterCase

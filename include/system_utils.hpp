@@ -76,14 +76,14 @@ struct PasswdEntry {
  * @param name The username to look up.
  * @return The PasswdEntry if found, otherwise std::nullopt.
  */
-std::optional<PasswdEntry> lookupPasswdByName(std::string_view name);
+std::optional<PasswdEntry> lookup_passwd_by_name(std::string_view name);
 
 /**
  * @brief Looks up a passwd entry by UID with automatic buffer management.
  * @param uid The user ID to look up.
  * @return The PasswdEntry if found, otherwise std::nullopt.
  */
-std::optional<PasswdEntry> lookupPasswdByUid(uid_t uid);
+std::optional<PasswdEntry> lookup_passwd_by_uid(uid_t uid);
 
 } // namespace Voix
 
