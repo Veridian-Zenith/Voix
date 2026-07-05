@@ -85,7 +85,29 @@ The use of `std::regex` for the global blocklist introduces potential ambiguity 
 
 ---
 
-## 6. Final Verdict
+## 6. Additional Review Findings (July 2026)
+
+### 6.1 TOCTOU in Config Loading
+**Severity: Medium** — `FileUtils::isSecurePath()` and `std::filesystem::is_symlink()` are checked against the config path before `YAML::LoadFile()` opens it. An attacker with write access to the parent directory could swap the file between check and load. Fix: open the file with `O_NOFOLLOW` first, then `fstat()` the fd and read via `read()` into the YAML parser.
+
+### 6.2 Portable Memory Zeroing
+`explicit_bzero()` (src/pam_utils.cpp:58) is a glibc extension (2.25+) and unavailable on musl-based systems (Alpine, etc.). Use `memset_s()` (C11 Annex K) or a portable volatile-function-pointer-based memset wrapper.
+
+### 6.3 Broad Capability Raise
+`Security::raiseCapabilities()` raises `CAP_DAC_READ_SEARCH` for config file access. This is a broad capability for a narrow need. Consider raising `CAP_DAC_OVERRIDE` or opening the config file before dropping capabilities.
+
+### 6.4 Monolithic Command Execution
+`Command::execute()` spans ~276 lines, handling signal blocking, privilege transition, capability drop, environment sanitization, resource limits, FD closing, seccomp, and exec. Decomposing into smaller focused methods would improve maintainability.
+
+### 6.5 Catastrophic Command False Positives
+`isCatastrophicCommand()` uses `std::string::find("mkfs")`, which matches any path containing "mkfs" (e.g., `mkfs-my-usb`). Exact command matching is safer.
+
+### 6.6 Test File Monolith
+All 58 unit tests reside in a single `tests/test_runner.cpp` (1039 lines). Splitting per module would improve organization and parallelism.
+
+---
+
+## 7. Final Verdict
 
 <div style="background-color: #e6ffed; border: 1px solid #b7eb8f; padding: 15px; border-radius: 5px; color: #22863a; font-weight: bold; text-align: center;">
   STATUS: No critical implementation-level flaws identified in the privilege transition and enforcement pipeline under intended trust assumptions.
