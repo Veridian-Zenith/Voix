@@ -19,6 +19,7 @@
 #include <numeric>
 #include <format>
 #include <regex>
+#include <string_view>
 
 namespace Voix {
 
@@ -26,7 +27,21 @@ Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", 
 
 
 namespace {
-    using IdentitySetter = std::function<void(Voix::Rule&, const std::string&)>;
+
+std::string regex_escape(std::string_view s) {
+    static const std::string metachars = ".^$*+?()[]{}|\\";
+    std::string result;
+    result.reserve(s.size() * 2);
+    for (char c : s) {
+        if (metachars.find(c) != std::string::npos) {
+            result += '\\';
+        }
+        result += c;
+    }
+    return result;
+}
+
+using IdentitySetter = std::function<void(Voix::Rule&, const std::string&)>;
 
     void parse_acl_section(const YAML::Node& section,
                            const std::map<std::string, std::vector<Voix::Rule>>& profiles,
@@ -139,7 +154,24 @@ bool Config::load(std::string_view config_path, bool verify_security) {
     }
 
     try {
-        YAML::Node config = YAML::LoadFile(path_str);
+        std::string config_content;
+        if (verify_security) {
+            auto result = file_utils.readFileSecure(path_str);
+            if (!result) {
+                logger.log("ERROR", std::format("Failed to securely read config file: {}", path_str));
+                return false;
+            }
+            config_content = std::move(*result);
+        } else {
+            auto result = file_utils.readFile(path_str);
+            if (!result) {
+                logger.log("ERROR", std::format("Failed to read config file: {}", path_str));
+                return false;
+            }
+            config_content = std::move(*result);
+        }
+
+        YAML::Node config = YAML::Load(config_content);
 
         if (config["core"]) {
             if (config["core"]["sanctuary"]) {
@@ -222,7 +254,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                 for (auto block_item : config["security"]["blocklist"]) {
                     if (block_item.IsScalar()) {
                         std::string exact = block_item.as<std::string>();
-                        std::string pattern = "^" + exact + "$";
+                        std::string pattern = "^" + regex_escape(exact) + "$";
                         blocklist_.push_back(exact);
                         compiled_blocklist_.emplace_back(pattern, std::regex::optimize);
                     }

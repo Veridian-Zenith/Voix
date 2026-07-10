@@ -58,8 +58,8 @@ void printUsage() {
  * @return void
  */
 void printVersion() {
-    std::print("Voix version 4.8.0 - The Keeper of Realms\n"
-               "Copyright © 2026 Veridian Zenith\n"
+    std::print("Voix version 4.9.0 - The Keeper of Realms\n"
+               "Copyright \u00a9 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");
 }

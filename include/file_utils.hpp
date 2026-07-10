@@ -58,6 +58,14 @@ public:
      */
     std::expected<std::string, FileError> readFile(const fs::path& path) const;
     /**
+     * @brief Reads a file securely using O_NOFOLLOW to prevent TOCTOU.
+     * Opens the file, verifies it's a regular file owned by root with safe permissions,
+     * then reads the content. All checks are done on the open file descriptor.
+     * @param path The path to the file.
+     * @return File content on success, or FileError on failure.
+     */
+    std::expected<std::string, FileError> readFileSecure(const fs::path& path) const;
+    /**
      * @brief Writes content to a file.
      * @param path The path to the file.
      * @param content The content to write.

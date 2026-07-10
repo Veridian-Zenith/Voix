@@ -19,6 +19,12 @@
 
 namespace Voix {
 
+static void secure_zero(void* ptr, size_t len) {
+    volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr);
+    while (len--) *p++ = 0;
+    asm volatile("" : : "r"(ptr) : "memory");
+}
+
 int pam_conversation(int num_msg, const struct pam_message **msg,
                      struct pam_response **resp, void *appdata_ptr) {
   (void)appdata_ptr;
@@ -55,7 +61,7 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       std::println();
 
       response[i].resp = strdup(password);
-      explicit_bzero(password, sizeof(password));
+      secure_zero(password, sizeof(password));
       if (!response[i].resp) {
         goto cleanup;
       }
@@ -94,7 +100,7 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
 cleanup:
   for (int i = 0; i < num_msg; i++) {
     if (response[i].resp) {
-      explicit_bzero(response[i].resp, strlen(response[i].resp));
+      secure_zero(response[i].resp, strlen(response[i].resp));
       free(response[i].resp);
     }
   }

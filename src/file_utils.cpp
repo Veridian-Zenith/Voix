@@ -16,6 +16,7 @@
 #include <format>
 #include <sstream>
 #include <fcntl.h>
+#include <fcntl.h>
 
 namespace Voix {
 
@@ -157,6 +158,52 @@ std::expected<void, FileError> FileUtils::writeFile(const fs::path& path, std::s
   }
 
   return {};
+}
+
+std::expected<std::string, FileError> FileUtils::readFileSecure(const fs::path& path) const {
+    int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    if (fd == -1) {
+        return std::unexpected(FileError::NotFound);
+    }
+
+    struct stat st;
+    if (fstat(fd, &st) != 0) {
+        close(fd);
+        return std::unexpected(FileError::ReadError);
+    }
+
+    if (!S_ISREG(st.st_mode)) {
+        close(fd);
+        return std::unexpected(FileError::ReadError);
+    }
+
+    if (st.st_uid != 0) {
+        close(fd);
+        return std::unexpected(FileError::PermissionDenied);
+    }
+
+    if (st.st_mode & (S_IWOTH | S_IWGRP)) {
+        close(fd);
+        return std::unexpected(FileError::PermissionDenied);
+    }
+
+    off_t size = lseek(fd, 0, SEEK_END);
+    if (size < 0) {
+        close(fd);
+        return std::unexpected(FileError::ReadError);
+    }
+    lseek(fd, 0, SEEK_SET);
+
+    std::string content;
+    content.resize(static_cast<size_t>(size));
+    ssize_t bytes_read = read(fd, content.data(), size);
+    close(fd);
+
+    if (bytes_read != size) {
+        return std::unexpected(FileError::ReadError);
+    }
+
+    return content;
 }
 
 std::string FileUtils::resolve_command(const ResolveCommandParams& params) const {

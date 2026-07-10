@@ -78,6 +78,12 @@ public:
      */
     bool isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const;
 
+    /**
+     * @brief Get the root filesystem device path (e.g., /dev/sda2).
+     * @return The root device path, or empty string if undetermined.
+     */
+    std::string getRootDevice() const;
+
 #ifdef VOIX_WITH_CAP
     /**
      * @brief Raises capabilities to perform privileged operations.

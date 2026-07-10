@@ -20,10 +20,13 @@
 #include <vector>
 #include <regex>
 #include <algorithm>
+#include <fstream>
+#include <sstream>
 #ifdef VOIX_WITH_SECCOMP
 #include <seccomp.h>
 #endif
 #include <memory>
+#include <sys/stat.h>
 
 namespace Voix {
 
@@ -118,6 +121,43 @@ uid_t Security::get_current_uid() const {
     return identity->get_current_uid();
 }
 
+std::string Security::getRootDevice() const {
+    std::ifstream mounts("/proc/self/mountinfo");
+    if (!mounts.is_open()) return "";
+    
+    std::string line;
+    while (std::getline(mounts, line)) {
+        std::istringstream iss(line);
+        std::string dummy, mountpoint, fstype, source;
+        int mount_id, parent_id, major, minor;
+        
+        // Parse: mount_id parent_id major:minor root mountpoint mount_options ...
+        if (!(iss >> mount_id >> parent_id >> major >> minor >> dummy >> mountpoint)) continue;
+        
+        if (mountpoint == "/") {
+            // Now find the source device in the optional fields
+            // Format: ... - fstype source options
+            std::string rest;
+            std::getline(iss, rest);
+            
+            // Find the separator " - "
+            size_t dash_pos = rest.find(" - ");
+            if (dash_pos != std::string::npos) {
+                std::string after_dash = rest.substr(dash_pos + 3);
+                std::istringstream iss2(after_dash);
+                if (iss2 >> fstype >> source) {
+                    // If source is a device path like /dev/sda2, return it
+                    if (source.starts_with("/dev/")) {
+                        return source;
+                    }
+                }
+            }
+            break;
+        }
+    }
+    return "";
+}
+
 bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const {
     std::string full_command = std::string(command);
     std::string normalized_command = std::string(command);
@@ -162,17 +202,36 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
             return true;
         }
     } else if (command == "dd" || command == "/bin/dd" || command == "/usr/bin/dd") {
+        std::string root_dev = getRootDevice();
         for (const auto& arg : args) {
+            // Block dd targeting the root filesystem device
+            if (!root_dev.empty() && arg.find(root_dev) != std::string::npos) {
+                return true;
+            }
+            // Still block raw disk access as before
             if (arg.find("/dev/sd") != std::string::npos || arg.find("/dev/nvme") != std::string::npos) {
                 return true;
             }
         }
-    } else if (command.find("mkfs") != std::string::npos ||
-               command == "fdisk" || command == "/sbin/fdisk" || command == "/usr/bin/fdisk" ||
-               command == "parted" || command == "/sbin/parted" || command == "/usr/bin/parted" ||
-               command == "wipe" || command == "/sbin/wipe" || command == "/usr/bin/wipe" ||
-               command == "shred" || command == "/usr/bin/shred") {
-        return true;
+    } else {
+        static const std::vector<std::string> catastrophic_exact = {
+            "fdisk", "/sbin/fdisk", "/usr/bin/fdisk",
+            "parted", "/sbin/parted", "/usr/bin/parted",
+            "wipe", "/sbin/wipe", "/usr/bin/wipe",
+            "shred", "/usr/bin/shred",
+            "mkfs", "/sbin/mkfs", "/usr/bin/mkfs",
+            "mkfs.ext2", "/sbin/mkfs.ext2", "/usr/bin/mkfs.ext2",
+            "mkfs.ext3", "/sbin/mkfs.ext3", "/usr/bin/mkfs.ext3",
+            "mkfs.ext4", "/sbin/mkfs.ext4", "/usr/bin/mkfs.ext4",
+            "mkfs.xfs", "/sbin/mkfs.xfs", "/usr/bin/mkfs.xfs",
+            "mkfs.btrfs", "/sbin/mkfs.btrfs", "/usr/bin/mkfs.btrfs",
+            "mkfs.vfat", "/sbin/mkfs.vfat", "/usr/bin/mkfs.vfat",
+            "mkfs.ntfs", "/sbin/mkfs.ntfs", "/usr/bin/mkfs.ntfs",
+            "mkswap", "/sbin/mkswap", "/usr/bin/mkswap"
+        };
+        if (std::ranges::find(catastrophic_exact, command) != catastrophic_exact.end()) {
+            return true;
+        }
     }
 
     // Check for explicit blocked commands first (faster)
