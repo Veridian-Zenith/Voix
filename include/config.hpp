@@ -27,6 +27,10 @@ struct SecurityProfile {
     bool enable_seccomp = true;
     bool enable_resource_limits = true;
     bool scrub_environment = true;
+    // Preserve the entire inherited environment verbatim, without stripping
+    // loader/interpreted-language variables (LD_*, PYTHON*, etc.). Intended
+    // only for confined system targets such as the package-manager user.
+    bool preserve_full_environment = false;
 };
 
 class Config {
@@ -94,16 +98,22 @@ public:
      */
     SecurityProfile get_profile(std::string_view name) const;
     /**
-     * @brief Checks if a user is in the privileged users list.
-     * @param user The username to check.
-     * @return True if privileged, false otherwise.
+     * @brief Checks if a target is an unconfined system target.
+     *
+     * Unconfined targets (e.g. the package-manager user) receive the full
+     * "system" treatment: retained capabilities, no seccomp, no FD scrubbing,
+     * and a fully preserved environment. This is required for package managers
+     * such as pacman and is intentionally opt-in per target.
+     *
+     * @param user The target username to check.
+     * @return True if the target is unconfined, false otherwise.
      */
-    bool is_privileged_user(std::string_view user) const;
+    bool is_unconfined_target(std::string_view user) const;
     /**
-     * @brief Gets the list of privileged users.
-     * @return A reference to the privileged users vector.
+     * @brief Gets the list of unconfined system targets.
+     * @return A reference to the unconfined targets vector.
      */
-    const std::vector<std::string>& get_privileged_users() const { return privileged_users_; }
+    const std::vector<std::string>& get_unconfined_targets() const { return unconfined_targets_; }
     /**
      * @brief Validates the configuration schema and path permissions.
      * @return True if valid, false otherwise.
@@ -118,7 +128,7 @@ private:
     std::map<std::string, SecurityProfile> security_profiles_;
     std::vector<std::string> blocklist_;
     std::vector<std::regex> compiled_blocklist_;
-    std::vector<std::string> privileged_users_;
+    std::vector<std::string> unconfined_targets_;
     bool seccomp_enabled_ = true;
     bool login_shell_default_ = false;
     bool suppress_stderr_ = true;

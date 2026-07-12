@@ -12,7 +12,16 @@ The configuration file (default: `/etc/voix.conf`) is composed of three main sec
 - `paths`: Trusted directories for executable resolution.
 - `login_shell`: Whether to default to login shell mode.
 - `suppress_stderr`: Whether to suppress stderr log output.
-- `privileged_users`: List of usernames treated as privileged (defaults to `["root", "alpm"]`).
+- `unconfined_targets`: List of target usernames that receive the full
+  "system" treatment — retained capabilities, no seccomp, no file-descriptor
+  scrubbing, and a fully preserved environment (including loader/interpreter
+  variables such as `LD_*` and `PYTHON*`). This is required for package
+  managers that drop to an unprivileged system account (e.g. Arch's `alpm`
+  user) and for AUR helpers that need the caller's environment. Defaults to
+  `["alpm"]`. Leave it empty to disable the unconfined path entirely (every
+  target then defaults to the `restricted` profile). For other distributions,
+  set the equivalent package-manager target here (for example `root` when
+  `apt`/`dnf` run as root, or `_apt` on Debian).
 
 Example:
 
@@ -22,8 +31,7 @@ core:
   paths:
     - /bin
     - /usr/bin
-  privileged_users:
-    - root
+  unconfined_targets:
     - alpm
 ```
 
@@ -37,7 +45,7 @@ A mapping of users or groups to rules that govern execution authorization.
     - `keepenv`: Preserve the user's environment variables.
     - `persist`: Maintain a session to avoid repeated authentication.
     - `nolog`: Suppress logging of this execution.
-- `profile`: (Optional) Name of a security profile to apply (see `security.profiles`). If omitted, Voix selects automatically based on target user.
+- `profile`: (Optional) Name of a security profile to apply (see `security.profiles`). If omitted, Voix uses the `restricted` profile, unless the target is listed in `core.unconfined_targets`, in which case the unconfined "system" profile is applied.
 - `target`: (Optional) The user identity to assume during execution (defaults to `root`).
 - `command`: (Optional) The specific command (full path) being allowed.
 - `args`: (Optional) A list of exact arguments that must be present for the rule to match. Supports `*` (any sequence) and `?` (single character) wildcards.
@@ -52,6 +60,10 @@ Defines named execution profiles that control confinement behavior:
 - `enable_seccomp`: Apply seccomp syscall blacklist (`true`) or bypass (`false`).
 - `enable_resource_limits`: Enforce RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_CORE (`true`) or disable (`false`).
 - `scrub_environment`: Clear and restrict environment variables (`true`) or preserve (`false`).
+- `preserve_full_environment`: Preserve the entire inherited environment
+  verbatim, without stripping loader/interpreter variables (`true`), or apply
+  the normal sanitization (`false`). Intended only for unconfined system
+  targets.
 
 #### `blocklist` (optional)
 
@@ -84,8 +96,7 @@ core:
   paths:
     - /bin
     - /usr/bin
-  privileged_users:
-    - root
+  unconfined_targets:
     - alpm
 
 acl:

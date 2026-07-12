@@ -23,7 +23,7 @@
 
 namespace Voix {
 
-Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}), privileged_users_({"root", "alpm"}) {}
+Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}), unconfined_targets_({"alpm"}) {}
 
 
 namespace {
@@ -189,10 +189,16 @@ bool Config::load(std::string_view config_path, bool verify_security) {
             if (config["core"]["suppress_stderr"]) {
                 suppress_stderr_ = config["core"]["suppress_stderr"].as<bool>();
             }
-            if (config["core"]["privileged_users"]) {
-                privileged_users_.clear();
+            if (config["core"]["unconfined_targets"]) {
+                unconfined_targets_.clear();
+                for (auto user_entry : config["core"]["unconfined_targets"]) {
+                    unconfined_targets_.push_back(user_entry.as<std::string>());
+                }
+            } else if (config["core"]["privileged_users"]) {
+                // Backwards-compatible alias for unconfined_targets.
+                unconfined_targets_.clear();
                 for (auto user_entry : config["core"]["privileged_users"]) {
-                    privileged_users_.push_back(user_entry.as<std::string>());
+                    unconfined_targets_.push_back(user_entry.as<std::string>());
                 }
             }
         }
@@ -244,6 +250,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                     if (p_node["enable_seccomp"]) profile.enable_seccomp = p_node["enable_seccomp"].as<bool>();
                     if (p_node["enable_resource_limits"]) profile.enable_resource_limits = p_node["enable_resource_limits"].as<bool>();
                     if (p_node["scrub_environment"]) profile.scrub_environment = p_node["scrub_environment"].as<bool>();
+                    if (p_node["preserve_full_environment"]) profile.preserve_full_environment = p_node["preserve_full_environment"].as<bool>();
                     security_profiles_[profile_name] = profile;
                 }
             }
@@ -334,8 +341,8 @@ bool Config::validate() const {
     return true;
 }
 
-bool Config::is_privileged_user(std::string_view user) const {
-    return std::ranges::find(privileged_users_, user) != privileged_users_.end();
+bool Config::is_unconfined_target(std::string_view user) const {
+    return std::ranges::find(unconfined_targets_, user) != unconfined_targets_.end();
 }
 
 SecurityProfile Config::get_profile(std::string_view name) const {

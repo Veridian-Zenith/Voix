@@ -58,6 +58,27 @@ public:
                  std::string_view user = "root") const;
 
     /**
+     * @brief Resolves the security profile to apply for a matched rule and target.
+     *
+     * Resolution order:
+     *   1. An explicit profile named on the rule (administrator's decision).
+     *   2. The target is a configured unconfined system target (e.g. the package
+     *      manager user) -> the full "system" profile is applied.
+     *   3. Otherwise the safe restricted default is applied.
+     *
+     * Unconfined targets always keep their full environment independently of the
+     * selected profile, since package managers and AUR helpers require it.
+     *
+     * @param config The configuration.
+     * @param rule The matched rule.
+     * @param target_user The target user name.
+     * @return The resolved SecurityProfile.
+     */
+    static SecurityProfile resolve_profile(const Config& config,
+                                          const Rule& rule,
+                                          std::string_view target_user);
+
+    /**
      * @brief Builds a command string for logging or debugging.
      * @param command The command.
      * @param args The arguments.

@@ -34,7 +34,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ---- Options ----
-option(VOIX_USE_MOLD "Use MOLD linker instead of LLD" ON)
 option(VOIX_ENABLE_PAM "Enable PAM support" ON)
 option(VOIX_ENABLE_CAP "Enable Capability support" ON)
 option(VOIX_ENABLE_SECCOMP "Enable Seccomp support" ON)
@@ -43,7 +42,7 @@ option(VOIX_ENABLE_SECCOMP "Enable Seccomp support" ON)
 # Allow overriding the architecture for generic binary builds (e.g., CI/CD)
 set(VOIX_ARCH "native" CACHE STRING "Target architecture for compilation (default: native)")
 message(STATUS "Targeting architecture: ${VOIX_ARCH}")
-message(STATUS "Build options: MOLD=${VOIX_USE_MOLD}, PAM=${VOIX_ENABLE_PAM}, CAP=${VOIX_ENABLE_CAP}, SECCOMP=${VOIX_ENABLE_SECCOMP}")
+message(STATUS "Build options: PAM=${VOIX_ENABLE_PAM}, CAP=${VOIX_ENABLE_CAP}, SECCOMP=${VOIX_ENABLE_SECCOMP}")
 
 # ---- Toolchain Validation ----
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -51,13 +50,20 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # ---- Compiler & Feature Flags ----
-# Optimized for the chosen architecture and C++26 experimental features
-# Using LLVM toolchain (Clang + LLD/MOLD + Oz optimization)
+# Optimized for the chosen architecture and C++26 experimental features.
+# LLVM-only toolchain (Clang + LLD). Hardening notes:
+#   -fvisibility=hidden / -flto=thin : minimize exported surface, LTO
+#   -fstack-protector-strong / -fstack-clash-protection : stack safety
+#   -D_FORTIFY_SOURCE=3 : fortified libc functions
+#   -ftrivial-auto-var-init=zero : deterministic stack (kills uninit-read UAF/info-leak)
+#   -fcf-protection=full : CET indirect-branch + return landing-pad protection
+#   -fexperimental-library : C++26 experimental features
 set(COMMON_FLAGS "-march=${VOIX_ARCH} -Oz -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
+-ftrivial-auto-var-init=zero -fcf-protection=full \
 -fexperimental-library -std=c++26")
 
-set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer")
+set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS")
 set(RELEASE_FLAGS "-O3 -DNDEBUG")
 
 set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}" CACHE STRING "" FORCE)
@@ -65,16 +71,13 @@ string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${COMMON_FLAGS} ${DEBUG_FLAGS}")
 string(APPEND CMAKE_CXX_FLAGS_RELEASE " ${COMMON_FLAGS} ${RELEASE_FLAGS}")
 
 # ---- Linker Flags ----
-# Utilizing LLD/MOLD, ThinLTO caching, and Identical Code Folding (ICF)
-set(LINKER_FLAGS "-Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
--Wl,-z,noexecstack -Wl,--icf=all \
+# LLVM LLD, ThinLTO, full RELRO. (CET/IBT+Shadow-Stack linker flags are
+# omitted because some lld versions reject -z ibt/-z shstk; the compiler-side
+# -fcf-protection=full still emits endbr landing pads for CET-capable targets.)
+set(LINKER_FLAGS "-fuse-ld=lld -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
+-Wl,-z,noexecstack \
+-Wl,--icf=all \
 -pie -flto=thin")
-
-if(VOIX_USE_MOLD)
-    set(LINKER_FLAGS "-fuse-ld=mold ${LINKER_FLAGS}")
-else()
-    set(LINKER_FLAGS "-fuse-ld=lld ${LINKER_FLAGS}")
-endif()
 
 set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${LINKER_FLAGS}" CACHE STRING "" FORCE)

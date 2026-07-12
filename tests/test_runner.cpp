@@ -213,6 +213,72 @@ bool test_security_catastrophic_command() {
 // Command tests
 // ============================================================
 
+bool test_command_resolve_profile_matrix() {
+    // alpm is the only unconfined target; both named profiles are defined.
+    const char* cfg =
+        "core:\n"
+        "  unconfined_targets:\n"
+        "    - alpm\n"
+        "security:\n"
+        "  profiles:\n"
+        "    restricted:\n"
+        "      retain_full_capabilities: false\n"
+        "      enable_seccomp: true\n"
+        "      enable_resource_limits: true\n"
+        "      scrub_environment: true\n"
+        "    privileged:\n"
+        "      retain_full_capabilities: true\n"
+        "      enable_seccomp: false\n"
+        "      enable_resource_limits: false\n"
+        "      scrub_environment: false\n";
+    std::filesystem::path cfg_path =
+        std::filesystem::temp_directory_path() / "test_resolve_profile.yml";
+    ScopedTempFile cleanup(cfg_path);
+    {
+        std::ofstream out(cfg_path);
+        out << cfg;
+    }
+    Voix::Config config;
+    ASSERT_TRUE(config.load(cfg_path.string(), false));
+
+    Voix::Rule no_profile;
+    Voix::Rule privileged_profile;
+    privileged_profile.profile = "privileged";
+    Voix::Rule restricted_profile;
+    restricted_profile.profile = "restricted";
+
+    // 1. alpm, no profile -> unconfined "system" profile (full env).
+    auto p_alpm = Voix::Command::resolve_profile(config, no_profile, "alpm");
+    ASSERT_TRUE(p_alpm.retain_full_capabilities);
+    ASSERT_TRUE(!p_alpm.enable_seccomp);
+    ASSERT_TRUE(!p_alpm.enable_resource_limits);
+    ASSERT_TRUE(!p_alpm.scrub_environment);
+    ASSERT_TRUE(p_alpm.preserve_full_environment);
+
+    // 2. root, no profile -> safe restricted default.
+    auto p_root = Voix::Command::resolve_profile(config, no_profile, "root");
+    ASSERT_TRUE(!p_root.retain_full_capabilities);
+    ASSERT_TRUE(p_root.enable_seccomp);
+    ASSERT_TRUE(p_root.enable_resource_limits);
+    ASSERT_TRUE(p_root.scrub_environment);
+    ASSERT_TRUE(!p_root.preserve_full_environment);
+
+    // 3. root with explicit privileged profile -> that profile is honored.
+    auto p_priv = Voix::Command::resolve_profile(config, privileged_profile, "root");
+    ASSERT_TRUE(p_priv.retain_full_capabilities);
+    ASSERT_TRUE(!p_priv.enable_seccomp);
+    ASSERT_TRUE(!p_priv.preserve_full_environment); // root is not unconfined
+
+    // 4. alpm with explicit restricted profile -> confinement honored, but the
+    //    unconfined target still keeps its full environment.
+    auto p_alpm_restr = Voix::Command::resolve_profile(config, restricted_profile, "alpm");
+    ASSERT_TRUE(!p_alpm_restr.retain_full_capabilities);
+    ASSERT_TRUE(p_alpm_restr.enable_seccomp);
+    ASSERT_TRUE(p_alpm_restr.preserve_full_environment);
+
+    return true;
+}
+
 bool test_command_build_string_simple() {
     Voix::Command cmd;
     std::string result = cmd.buildCommandString("ls", {"-la"}, "root");
@@ -923,24 +989,24 @@ bool test_permission_checker_list_permitted_rules_empty() {
     return true;
 }
 
-bool test_config_privileged_users() {
+bool test_config_unconfined_targets() {
     Voix::Config config;
-    // Default should contain root and alpm
-    ASSERT_TRUE(config.is_privileged_user("root"));
-    ASSERT_TRUE(config.is_privileged_user("alpm"));
-    ASSERT_TRUE(!config.is_privileged_user("guest"));
+    // Default should contain only the package-manager target (alpm).
+    ASSERT_TRUE(config.is_unconfined_target("alpm"));
+    ASSERT_TRUE(!config.is_unconfined_target("root"));
+    ASSERT_TRUE(!config.is_unconfined_target("guest"));
 
-    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_privileged_users.conf";
+    std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_unconfined_targets.conf";
     ScopedTempFile cleanup(config_path);
     {
         std::ofstream out(config_path);
-        out << "core:\n  privileged_users:\n    - admin\n    - operator\n";
+        out << "core:\n  unconfined_targets:\n    - admin\n    - operator\n";
     }
     ASSERT_TRUE(config.load(config_path.string(), false));
-    ASSERT_TRUE(config.is_privileged_user("admin"));
-    ASSERT_TRUE(config.is_privileged_user("operator"));
-    ASSERT_TRUE(!config.is_privileged_user("root"));
-    ASSERT_TRUE(!config.is_privileged_user("alpm"));
+    ASSERT_TRUE(config.is_unconfined_target("admin"));
+    ASSERT_TRUE(config.is_unconfined_target("operator"));
+    ASSERT_TRUE(!config.is_unconfined_target("root"));
+    ASSERT_TRUE(!config.is_unconfined_target("alpm"));
 
     return true;
 }
@@ -1005,7 +1071,7 @@ int main() {
     runner.add_test("test_config_validate_after_load", test_config_validate_after_load);
     runner.add_test("test_config_blocklist", test_config_blocklist);
     runner.add_test("test_config_seccomp_default_enabled", test_config_seccomp_default_enabled);
-    runner.add_test("test_config_privileged_users", test_config_privileged_users);
+    runner.add_test("test_config_unconfined_targets", test_config_unconfined_targets);
 
     // New Security tests - additional coverage
     runner.add_test("test_security_safe_path_traversal", test_security_safe_path_traversal);
@@ -1020,6 +1086,9 @@ int main() {
     runner.add_test("test_security_validate_user_underscore_hyphen", test_security_validate_user_underscore_hyphen);
     runner.add_test("test_security_validate_user_empty", test_security_validate_user_empty);
     runner.add_test("test_security_get_current_user", test_security_get_current_user);
+
+    // Profile-resolution matrix
+    runner.add_test("test_command_resolve_profile_matrix", test_command_resolve_profile_matrix);
 
     // New PermissionChecker tests - additional coverage
     runner.add_test("test_permission_checker_group_rule", test_permission_checker_group_rule);

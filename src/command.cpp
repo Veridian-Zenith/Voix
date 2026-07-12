@@ -30,6 +30,30 @@
 
 namespace Voix {
 
+SecurityProfile Command::resolve_profile(const Config& config, const Rule& rule,
+                                       std::string_view target_user) {
+    const bool target_unconfined = config.is_unconfined_target(target_user);
+
+    SecurityProfile profile = config.get_profile(rule.profile);
+    if (rule.profile.empty() && target_unconfined) {
+        // No explicit profile: an unconfined system target (e.g. the package
+        // manager user) receives the full "system" treatment.
+        profile = SecurityProfile{/* retain_full_capabilities */ true,
+                                  /* enable_seccomp         */ false,
+                                  /* enable_resource_limits*/ false,
+                                  /* scrub_environment     */ false,
+                                  /* preserve_full_environment*/ false};
+    }
+
+    // Unconfined targets always keep their full environment, regardless of the
+    // selected profile, because package managers and AUR helpers require it.
+    if (target_unconfined) {
+        profile.preserve_full_environment = true;
+    }
+
+    return profile;
+}
+
 int Command::execute(std::string_view command, const std::vector<std::string>& args,
                        const Config& config, const CommandOptions& options, const Rule& rule, std::string_view user) const {
   sigset_t new_mask, old_mask;
@@ -65,14 +89,20 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
       _exit(1);
     }
 
-    SecurityProfile profile = config.get_profile(rule.profile);
-    bool is_privileged_user = (pw_entry->uid == 0 || config.is_privileged_user(user));
-    // When no explicit profile is set, fall back to the privileged heuristic
-    if (rule.profile.empty() && is_privileged_user) {
-        profile = SecurityProfile{true, false, false, false};
-    }
-    bool is_privileged_tier = profile.retain_full_capabilities;
+    // Profile resolution order (see Command::resolve_profile):
+    //   1. An explicit profile named on the rule (administrator's decision).
+    //   2. The target is a configured unconfined system target (e.g. the
+    //      package-manager user) -> full "system" treatment.
+    //   3. Otherwise the safe restricted default.
+    SecurityProfile profile = resolve_profile(config, rule, user.empty() ? "root" : user);
+    const bool preserve_full_env = profile.preserve_full_environment;
+    const bool is_privileged_tier = profile.retain_full_capabilities;
 
+    // Collect the environment to restore after clearenv(), based on the
+    // requested policy. Unconfined targets keep the entire inherited
+    // environment (required for package managers and AUR helpers); an
+    // explicit preserve_env keeps everything except known dangerous loader /
+    // interpreter variables; otherwise only a minimal safe whitelist is kept.
     const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY", "LANG", "PATH"};
     const std::array<std::string_view, 7> dangerous_env_names = {
         "BASH_ENV", "ENV", "IFS", "CDPATH",
@@ -81,32 +111,37 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
     const std::array<std::string_view, 7> dangerous_env_prefixes = {
         "LD_", "CC", "CXX", "CMAKE_", "PERL", "PYTHON", "RUBY"
     };
+
+    auto collect_environment = [&](bool keep_all, bool keep_sanitized) {
+        std::vector<std::pair<std::string, std::string>> env;
+        extern char **environ;
+        for (char **e = ::environ; *e != nullptr; ++e) {
+            std::string entry(*e);
+            const size_t pos = entry.find('=');
+            if (pos == std::string::npos) continue;
+            std::string key = entry.substr(0, pos);
+            if (!keep_all) {
+                const bool is_dangerous_name =
+                    std::ranges::find(dangerous_env_names, std::string_view{key}) != dangerous_env_names.end();
+                const bool is_dangerous_prefix =
+                    std::ranges::any_of(dangerous_env_prefixes, [&](std::string_view prefix) {
+                        return key.starts_with(prefix);
+                    });
+                if (keep_sanitized && (is_dangerous_name || is_dangerous_prefix)) continue;
+                if (!keep_sanitized && std::ranges::find(whitelist, key) == whitelist.end()) continue;
+            }
+            env.emplace_back(key, entry.substr(pos + 1));
+        }
+        return env;
+    };
+
     std::vector<std::pair<std::string, std::string>> saved_env;
-    
-    if (options.preserve_env || is_privileged_user) {
-      extern char **environ;
-      for (char **env = ::environ; *env != nullptr; ++env) {
-        std::string entry(*env);
-        size_t pos = entry.find('=');
-        if (pos != std::string::npos) {
-          std::string key = entry.substr(0, pos);
-          // Sanitize sensitive environment variables
-          const bool is_dangerous_name =
-              std::ranges::find(dangerous_env_names, std::string_view{key}) != dangerous_env_names.end();
-          const bool is_dangerous_prefix =
-              std::ranges::any_of(dangerous_env_prefixes, [&](std::string_view prefix) {
-                return key.starts_with(prefix);
-              });
-          if (is_dangerous_name || is_dangerous_prefix) continue;
-          saved_env.push_back({key, entry.substr(pos + 1)});
-        }
-      }
+    if (preserve_full_env) {
+        saved_env = collect_environment(/* keep_all */ true, /* keep_sanitized */ false);
+    } else if (options.preserve_env) {
+        saved_env = collect_environment(/* keep_all */ false, /* keep_sanitized */ true);
     } else {
-      std::ranges::for_each(whitelist, [&](const auto& var) {
-        if (const char* val = getenv(var.c_str())) {
-          saved_env.push_back({var, val});
-        }
-      });
+        saved_env = collect_environment(/* keep_all */ false, /* keep_sanitized */ false);
     }
 
     // Drop privileges completely
