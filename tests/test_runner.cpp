@@ -991,9 +991,9 @@ bool test_permission_checker_list_permitted_rules_empty() {
 
 bool test_config_unconfined_targets() {
     Voix::Config config;
-    // Default should contain only the package-manager target (alpm).
+    // Default should contain the package-manager targets (root and alpm).
+    ASSERT_TRUE(config.is_unconfined_target("root"));
     ASSERT_TRUE(config.is_unconfined_target("alpm"));
-    ASSERT_TRUE(!config.is_unconfined_target("root"));
     ASSERT_TRUE(!config.is_unconfined_target("guest"));
 
     std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_unconfined_targets.conf";

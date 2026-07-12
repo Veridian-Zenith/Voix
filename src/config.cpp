@@ -23,7 +23,7 @@
 
 namespace Voix {
 
-Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}), unconfined_targets_({"alpm"}) {}
+Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}), unconfined_targets_({"root", "alpm"}) {}
 
 
 namespace {

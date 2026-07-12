@@ -16,12 +16,13 @@ The configuration file (default: `/etc/voix.conf`) is composed of three main sec
   "system" treatment — retained capabilities, no seccomp, no file-descriptor
   scrubbing, and a fully preserved environment (including loader/interpreter
   variables such as `LD_*` and `PYTHON*`). This is required for package
-  managers that drop to an unprivileged system account (e.g. Arch's `alpm`
-  user) and for AUR helpers that need the caller's environment. Defaults to
-  `["alpm"]`. Leave it empty to disable the unconfined path entirely (every
-  target then defaults to the `restricted` profile). For other distributions,
-  set the equivalent package-manager target here (for example `root` when
-  `apt`/`dnf` run as root, or `_apt` on Debian).
+  managers: `root` runs `pacman` and must `chown` its download directories
+  (needs `CAP_CHOWN`), while `alpm` is its internal unprivileged drop-user
+  that also needs the full environment for AUR helpers. Defaults to
+  `["root", "alpm"]`. Remove `root` to confine generic root commands (then
+  grant the package manager explicitly via a rule with `profile: privileged`).
+  For other distributions, set the equivalent package-manager target here
+  (for example `root` for `apt`/`dnf`, or `_apt` on Debian).
 
 Example:
 
