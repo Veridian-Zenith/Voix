@@ -1,4 +1,4 @@
-.TH VOIX 1 "July 2026" "Voix 4.9.0" "User Commands"
+.TH VOIX 1 "July 2026" "Voix 4.9.1" "User Commands"
 .SH NAME
 voix \- a Privilege Policy Enforcement Runtime
 .SH SYNOPSIS
@@ -47,8 +47,9 @@ Voix applies a tiered hardening strategy based on the target user's privilege le
 .PP
 .B Privileged targets
 (root, package manager): retain full capabilities and unrestricted
-syscall access. Environment is scrubbed and inherited file descriptors are closed,
-but no resource limits, capability drops, or seccomp filters are applied. This
+syscall access. The full inherited environment is preserved (including loader
+variables such as LD_*), inherited file descriptors are not closed, and no
+resource limits, capability drops, or seccomp filters are applied. This
 ensures legitimate root operations (package manager hooks, process management)
 work without restriction.
 .PP
@@ -58,9 +59,11 @@ RLIMIT_NPROC, RLIMIT_CORE), PR_SET_NO_NEW_PRIVS is set, and a seccomp syscall
 blacklist is applied (if enabled in configuration). This provides maximum
 containment for commands running as unprivileged users.
 .PP
-.B All targets:
+.B Non-privileged targets:
 the environment is fully scrubbed (clearenv) and rebuilt from a safe whitelist,
-inherited file descriptors (3+) are closed, and signal handlers are reset.
+and inherited file descriptors (3+) are closed.
+.B All targets:
+signal handlers are reset to SIG_DFL.
 .SH AUTHENTICATION
 Voix uses the Pluggable Authentication Modules (PAM) framework for authentication.
 The service name is \fBvoix\fR, and its configuration can be found in \fI/etc/pam.d/voix\fR.

@@ -32,11 +32,10 @@ Voix includes several flags to support `sudo`-like behavior. See [`docs/CLI.md`]
 
 Important flags include:
 
-* `-i, --login`: Executes the incantation in a login shell environment.
+* `-i, --login`: Executes the command in a login shell environment.
 * `-E, --preserve-env`: Preserves the user's environment variables.
-* `-l, --list`: Lists the rites permitted for the user (pending full implementation).
+* `-l, --list`: Lists commands permitted for the current user.
 
 ## 4. Limitations
 
-* The `-l` (`--list`) flag is currently a placeholder and does not yet list permitted rites as expected.
 * Ensure that `/etc/voix.conf` is securely configured with restricted permissions (owned by root, not world-writable) to prevent unauthorized modifications to privilege rules.

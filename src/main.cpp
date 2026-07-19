@@ -40,7 +40,7 @@ void printUsage() {
                "  -C, --config FILE        Use FILE as the configuration sanctuary\n"
                "  -c, --check-config       Validate the configuration file\n"
                "  -n                       Non-interactive mode (fail if proof is required)\n"
-               "  -s, --shell              Execute user's shell (ascend to shell)\n"
+               "  -s                       Execute user's shell (ascend to shell)\n"
                "  -l, --list               List permitted commands for the current user\n"
                "  -E, --preserve-env       Preserve the environment\n"
                "  -i, --login              Execute in a login shell\n"
@@ -58,7 +58,7 @@ void printUsage() {
  * @return void
  */
 void printVersion() {
-    std::print("Voix version 4.9.0 - The Keeper of Realms\n"
+    std::print("Voix version 4.9.1 - The Keeper of Realms\n"
                "Copyright \u00a9 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
                "Licensed under the Open Software License v3\n");

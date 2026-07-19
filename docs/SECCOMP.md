@@ -14,7 +14,7 @@ The application will adopt a **blacklist policy**. This approach blocks a set of
 
 - **Dependency**: Use `libseccomp` for cross-platform, robust Seccomp filter generation.
 - **New Method**: Implement `Security::applySeccompBlacklist()` in `src/security.cpp`.
-- **Integration Point**: `Command::execute()` in `src/command.cpp` will call this method within the child process (immediately after privilege and capability dropping).
+- **Integration Point**: `Command::execute()` in `src/command.cpp` calls this method in the child process, after privilege dropping, capability dropping, environment setup, resource limits, and FD closing. This ensures seccomp is the final confinement step before `execv()`.
 
 ### 2. Workflow
 

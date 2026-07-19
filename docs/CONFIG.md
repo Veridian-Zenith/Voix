@@ -85,6 +85,7 @@ security:
       enable_seccomp: false
       enable_resource_limits: false
       scrub_environment: false
+      preserve_full_environment: false
   blocklist:
     - /bin/sh
 ```
@@ -124,6 +125,7 @@ security:
       enable_seccomp: false
       enable_resource_limits: false
       scrub_environment: false
+      preserve_full_environment: false
   blocklist:
     - /bin/sh
 ```

@@ -189,6 +189,7 @@ Voix may be used in workflows similar to `sudo` or `doas` for operational famili
 ## Documentation
 
 Consult the following technical guides in the `[docs/](docs/)` directory:
+- **[Voix Overview](VOIX.md)**: Comprehensive reference document.
 - **[Threat Model](THREATS.md)**: Analysis of attack surface and mitigations.
 - **[CLI Reference](docs/CLI.md)**: Command-line interface and flag specifications.
 - **[Configuration Guide](docs/CONFIG.md)**: Detailed guidance on `/etc/voix.conf`.

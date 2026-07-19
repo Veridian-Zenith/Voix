@@ -4,8 +4,8 @@ Usage: `voix [options] <incantation> [args...]`
 
 ## Options
 
-- `-h`: Show the help message.
-- `-v`: Show version information.
+- `-h, --help`: Show the help message.
+- `-v, --version`: Show version information.
 - `-u USER`: Execute as the specified target user (default: root).
 - `-C FILE`, `--config FILE`: Use the specified file as the configuration source (default: `/etc/voix.conf`).
 - `-n`: Non-interactive mode; fail if authentication is required.

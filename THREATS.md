@@ -8,8 +8,8 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | ~2,800 | $\sim$64x smaller attack surface |
-| **External Dependencies** | Many (varies) | 4 | `yaml-cpp`, `libpam`, `libcap`, `libseccomp` |
+| **Lines of Code** | ~180,000 | ~3,375 | $\sim$53x smaller attack surface |
+| **External Dependencies** | Many (varies) | 1 required, 3 optional | `yaml-cpp` (required); `pam`, `libcap`, `libseccomp` (optional) |
 | **Binary Size (Release)** | ~1.2 MB | 418 KB | Highly optimized via Clang/LTO |
 | **Config Language** | Sudoers (Custom) | YAML (Standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
@@ -74,7 +74,7 @@ Once authenticated, Voix executes a target command with elevated privileges.
 - **Risk**: Execution of "catastrophic" commands or path traversal.
 - **Mitigation**:
     - **Catastrophic Command Blocklist**: Hardcoded prevention of high-risk operations (e.g., `rm -rf /`).
-    - **Configurable Blocklist**: Administrators can extend this via the YAML `blocklist` to forbid tools like `mkfs`, `dd`, or `passwd`.
+    - **Configurable Blocklist**: Administrators can extend this via the YAML `blocklist` to forbid additional tools.
     - **Safe Path Verification**: `Security::isSafePath` prevents access to sensitive files like `/etc/shadow` unless explicitly permitted.
 
 ---
