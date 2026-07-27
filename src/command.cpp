@@ -36,13 +36,11 @@ SecurityProfile Command::resolve_profile(const Config& config, const Rule& rule,
 
     SecurityProfile profile = config.get_profile(rule.profile);
     if (rule.profile.empty() && target_unconfined) {
-        // No explicit profile: an unconfined system target (e.g. the package
-        // manager user) receives the full "system" treatment.
         profile = SecurityProfile{/* retain_full_capabilities */ true,
                                   /* enable_seccomp         */ false,
                                   /* enable_resource_limits*/ false,
                                   /* scrub_environment     */ false,
-                                  /* preserve_full_environment*/ false};
+                                  /* preserve_full_environment*/ true};
     }
 
     // Unconfined targets always keep their full environment, regardless of the
@@ -205,29 +203,30 @@ int Command::execute(std::string_view command, const std::vector<std::string>& a
         setResourceLimits();
     }
 
-    // Close inherited FDs only for non-privileged executions (prevents voix internal FD leakage)
-    // Privileged targets (pacman hooks) may rely on inherited FDs like D-Bus sockets.
+// Close inherited FDs for all non-privileged executions (prevents voix
+// internal FD leakage into the executed command). Privileged targets may
+// rely on inherited FDs (e.g. D-Bus sockets for pacman hooks).
+if (!is_privileged_tier) {
     bool closed = false;
-    if (profile.scrub_environment) {
 #ifdef SYS_close_range
-        if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
-            closed = true;
-        }
+    if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
+        closed = true;
+    }
 #endif
 
-        if (!closed) {
-            constexpr rlim_t k_fallback_max_fd = 4096;
-            constexpr rlim_t k_close_loop_cap = 65536;
-            rlim_t max_fd_limit = k_fallback_max_fd;
-            if (have_original_rl) {
-                max_fd_limit = std::min(original_rl.rlim_cur, k_close_loop_cap);
-            }
-            int max_fd = static_cast<int>(max_fd_limit);
-            for (int i : std::views::iota(3, max_fd)) {
-                close(i);
-            }
+    if (!closed) {
+        constexpr rlim_t k_fallback_max_fd = 4096;
+        constexpr rlim_t k_close_loop_cap = 65536;
+        rlim_t max_fd_limit = k_fallback_max_fd;
+        if (have_original_rl) {
+            max_fd_limit = std::min(original_rl.rlim_cur, k_close_loop_cap);
+        }
+        int max_fd = static_cast<int>(max_fd_limit);
+        for (int i : std::views::iota(3, max_fd)) {
+            close(i);
         }
     }
+}
 
     auto escape = [](const std::string& s) {
       std::string escaped = "'";

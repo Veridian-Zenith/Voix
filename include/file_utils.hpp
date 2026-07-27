@@ -64,7 +64,7 @@ public:
      * @param path The path to the file.
      * @return File content on success, or FileError on failure.
      */
-    std::expected<std::string, FileError> readFileSecure(const fs::path& path) const;
+    std::expected<std::string, FileError> read_file_secure(const fs::path& path) const;
     /**
      * @brief Writes content to a file.
      * @param path The path to the file.

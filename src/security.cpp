@@ -121,38 +121,36 @@ uid_t Security::get_current_uid() const {
     return identity->get_current_uid();
 }
 
-std::string Security::getRootDevice() const {
+std::string Security::get_root_device() const {
     std::ifstream mounts("/proc/self/mountinfo");
     if (!mounts.is_open()) return "";
-    
+
     std::string line;
     while (std::getline(mounts, line)) {
-        std::istringstream iss(line);
-        std::string dummy, mountpoint, fstype, source;
-        int mount_id, parent_id, major, minor;
-        
-        // Parse: mount_id parent_id major:minor root mountpoint mount_options ...
-        if (!(iss >> mount_id >> parent_id >> major >> minor >> dummy >> mountpoint)) continue;
-        
-        if (mountpoint == "/") {
-            // Now find the source device in the optional fields
-            // Format: ... - fstype source options
-            std::string rest;
-            std::getline(iss, rest);
-            
-            // Find the separator " - "
-            size_t dash_pos = rest.find(" - ");
-            if (dash_pos != std::string::npos) {
-                std::string after_dash = rest.substr(dash_pos + 3);
-                std::istringstream iss2(after_dash);
-                if (iss2 >> fstype >> source) {
-                    // If source is a device path like /dev/sda2, return it
-                    if (source.starts_with("/dev/")) {
-                        return source;
-                    }
-                }
-            }
-            break;
+        // mountinfo format: mount-ID parent-ID major:minor root mountpoint mount-options - fstype source mount-options
+        // Use a simple split approach: find the " - " separator, then parse from there
+        size_t sep = line.find(" - ");
+        if (sep == std::string::npos) continue;
+
+        std::string fields_part = line.substr(0, sep);
+        std::string after_sep = line.substr(sep + 3);
+
+        // Parse mountpoint from fields_part (field 5, 0-indexed 4)
+        std::istringstream iss_fields(fields_part);
+        std::string mount_id_str, parent_id_str, major_minor_str, root_str;
+        std::string mountpoint;
+        if (!(iss_fields >> mount_id_str >> parent_id_str >> major_minor_str >> root_str >> mountpoint)) continue;
+
+        if (mountpoint != "/") continue;
+
+        // Parse fstype and source from after_sep
+        // Format: fstype source [optional mount options]
+        std::istringstream iss_after(after_sep);
+        std::string fstype, source;
+        if (!(iss_after >> fstype >> source)) continue;
+
+        if (source.starts_with("/dev/")) {
+            return source;
         }
     }
     return "";
@@ -202,7 +200,7 @@ bool Security::isCatastrophicCommand(std::string_view command, const std::vector
             return true;
         }
     } else if (command == "dd" || command == "/bin/dd" || command == "/usr/bin/dd") {
-        std::string root_dev = getRootDevice();
+        std::string root_dev = get_root_device();
         for (const auto& arg : args) {
             // Block dd targeting the root filesystem device
             if (!root_dev.empty() && arg.find(root_dev) != std::string::npos) {

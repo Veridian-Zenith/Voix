@@ -156,7 +156,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
     try {
         std::string config_content;
         if (verify_security) {
-            auto result = file_utils.readFileSecure(path_str);
+            auto result = file_utils.read_file_secure(path_str);
             if (!result) {
                 logger.log("ERROR", std::format("Failed to securely read config file: {}", path_str));
                 return false;

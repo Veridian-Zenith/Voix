@@ -160,7 +160,7 @@ std::expected<void, FileError> FileUtils::writeFile(const fs::path& path, std::s
   return {};
 }
 
-std::expected<std::string, FileError> FileUtils::readFileSecure(const fs::path& path) const {
+std::expected<std::string, FileError> FileUtils::read_file_secure(const fs::path& path) const {
     int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     if (fd == -1) {
         return std::unexpected(FileError::NotFound);
