@@ -95,12 +95,10 @@ add_executable(voix src/main.cpp)
 target_link_libraries(voix_lib PUBLIC yaml-cpp::yaml-cpp)
 target_include_directories(voix_lib PUBLIC include)
 
-if(VOIX_ENABLE_PAM)
-    pkg_check_modules(PAM REQUIRED pam)
-    target_link_libraries(voix_lib PUBLIC ${PAM_LIBRARIES})
-    target_include_directories(voix_lib PUBLIC ${PAM_INCLUDE_DIRS})
-    target_compile_definitions(voix_lib PUBLIC VOIX_WITH_PAM)
-endif()
+# PAM is required — authentication is unconditional in the source code.
+pkg_check_modules(PAM REQUIRED pam)
+target_link_libraries(voix_lib PUBLIC ${PAM_LIBRARIES})
+target_include_directories(voix_lib PUBLIC ${PAM_INCLUDE_DIRS})
 
 if(VOIX_ENABLE_CAP)
     pkg_check_modules(LIBCAP REQUIRED libcap)

@@ -73,7 +73,7 @@ void PolicyAnalyzer::check_open_permissions(std::vector<PolicyFinding>& findings
     }
 }
 
-void PolicyAnalyzer::check_referenced_profiles(std::vector<PolicyFinding>& findings) const {
+void PolicyAnalyzer::check_referenced_profiles(std::vector<PolicyFinding>& /* findings */) const {
     // Reserved for future use: detect rules referencing non-existent profiles.
 }
 
