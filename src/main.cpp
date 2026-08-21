@@ -21,6 +21,7 @@
 #include "config.hpp"
 #include "security.hpp"
 #include "system_utils.hpp"
+#include "policy_analyzer.hpp"
 
 #if BUILD_TESTING
 #include "tests/test_main.hpp"
@@ -178,6 +179,17 @@ int main(int argc, char* argv[]) noexcept {
                 return 1;
             }
             std::println("Configuration is valid.");
+
+            Voix::PolicyAnalyzer analyzer(config);
+            auto findings = analyzer.analyze();
+            if (!findings.empty()) {
+                std::println("\nPolicy analysis:");
+                for (const auto& f : findings) {
+                    const char* severity = (f.severity == Voix::PolicyFinding::Severity::ERROR)
+                        ? "error" : "warning";
+                    std::println("  [{}] {}", severity, f.message);
+                }
+            }
             return 0;
         }
 
