@@ -5,7 +5,7 @@ We welcome all who wish to help forge the future of Voix. To maintain the artifa
 ## The Architect's Code
 
 1. **Modernity**: All code must be written in **C++26**.
-2. **The Toolchain**: We exclusively use the **LLVM/Clang** toolchain. Ensure your environment matches (Clang 21+).
+2. **The Toolchain**: We exclusively use the **LLVM/Clang** toolchain. Ensure your environment matches (Clang 22+).
 3. **Purity**: Before submitting your changes, run `clang-tidy` to cleanse the code of any lingering chaos.
 4. **Security**: Voix is a security-critical tool. Be thorough, be careful, and always consider the principle of least privilege.
 

@@ -162,7 +162,7 @@ Voix may be used in workflows similar to `sudo` or `doas` for operational famili
 ### Prerequisites
 - **LLVM Clang Toolchain**
 - **C++26** compliant environment
-- **CMake** (v3.18+) and **Ninja**
+- **CMake** (v3.30+) and **Ninja**
 - Core dependencies: `yaml-cpp`, `pam`, `libcap`, `libseccomp`, `pkg-config`.
 
 ### Build Instructions
