@@ -14,12 +14,11 @@ Voix supports optional runtime security features that can be toggled at build ti
 
 | CMake Option | Default | Purpose |
 | :--- | :--- | :--- |
-| `VOIX_ENABLE_PAM` | `ON` | PAM authentication via `libpam` |
 | `VOIX_ENABLE_CAP` | `ON` | Linux capabilities management via `libcap` |
 | `VOIX_ENABLE_SECCOMP` | `ON` | Syscall filtering via `libseccomp` |
 | `ENABLE_PERMISSIONS` | `ON` | Set `setuid` on install (disable for packaging; set manually) |
 
-A minimal build with only `yaml-cpp` is possible by disabling all three optional features.
+A minimal build with only `yaml-cpp` and `pam` is possible by disabling the two optional features.
 
 ## AUR Packaging
 

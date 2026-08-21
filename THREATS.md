@@ -8,9 +8,9 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | ~3,375 | $\sim$53x smaller attack surface |
-| **External Dependencies** | Many (varies) | 1 required, 3 optional | `yaml-cpp` (required); `pam`, `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | 418 KB | Highly optimized via Clang/LTO |
+| **Lines of Code** | ~180,000 | ~3,515 | $\sim$51x smaller attack surface |
+| **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
+| **Binary Size (Release)** | ~1.2 MB | ~544 KB | Highly optimized via Clang/LTO |
 | **Config Language** | Sudoers (Custom) | YAML (Standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 

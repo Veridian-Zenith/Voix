@@ -97,9 +97,9 @@ Voix maintains a minimal Trusted Computing Base for transparency and auditabilit
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | ~3,375 | ~53x smaller attack surface |
-| **External Dependencies** | Many (varies) | 1 required, 3 optional | `yaml-cpp` (required); `pam`, `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | ~418 KB | Optimized via Clang/LTO |
+| **Lines of Code** | ~180,000 | ~3,515 | ~51x smaller attack surface |
+| **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
+| **Binary Size (Release)** | ~1.2 MB | ~544 KB | Optimized via Clang/LTO |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 
@@ -262,11 +262,11 @@ voix -c                          # Validate configuration
 | Library | Required | Purpose |
 | :--- | :--- | :--- |
 | `yaml-cpp` | yes | YAML configuration parsing |
-| `pam` | optional | PAM authentication (`VOIX_ENABLE_PAM`, default: ON) |
+| `pam` | yes | PAM authentication (`libpam`) |
 | `libcap` | optional | Linux capabilities management (`VOIX_ENABLE_CAP`, default: ON) |
 | `libseccomp` | optional | Syscall filtering (`VOIX_ENABLE_SECCOMP`, default: ON) |
 
-A minimal build with only `yaml-cpp` is possible by disabling the three optional features.
+A minimal build with only `yaml-cpp` and `pam` is possible by disabling the two optional features.
 
 ### Build Instructions
 

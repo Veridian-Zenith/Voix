@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.9.2 LANGUAGES CXX)
+project(Voix VERSION 4.10.0 LANGUAGES CXX)
 
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
@@ -34,7 +34,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ---- Options ----
-option(VOIX_ENABLE_PAM "Enable PAM support" ON)
 option(VOIX_ENABLE_CAP "Enable Capability support" ON)
 option(VOIX_ENABLE_SECCOMP "Enable Seccomp support" ON)
 
@@ -42,7 +41,7 @@ option(VOIX_ENABLE_SECCOMP "Enable Seccomp support" ON)
 # Allow overriding the architecture for generic binary builds (e.g., CI/CD)
 set(VOIX_ARCH "native" CACHE STRING "Target architecture for compilation (default: native)")
 message(STATUS "Targeting architecture: ${VOIX_ARCH}")
-message(STATUS "Build options: PAM=${VOIX_ENABLE_PAM}, CAP=${VOIX_ENABLE_CAP}, SECCOMP=${VOIX_ENABLE_SECCOMP}")
+message(STATUS "Build options: CAP=${VOIX_ENABLE_CAP}, SECCOMP=${VOIX_ENABLE_SECCOMP}")
 
 # ---- Toolchain Validation ----
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")

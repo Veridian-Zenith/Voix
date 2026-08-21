@@ -6,7 +6,8 @@ The following table shows the versions of Voix that are currently supported with
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 4.9.2+  | :white_check_mark: |
+| 4.10.0+ | :white_check_mark: |
+| 4.9.x   | :white_check_mark: |
 | < 4.8   | :x:                |
 
 ## Reporting a Vulnerability
