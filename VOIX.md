@@ -225,7 +225,7 @@ voix [options] <command> [args...]
 | :--- | :--- | :--- |
 | `-h` | `--help` | Show help message |
 | `-v` | `--version` | Show version information |
-| `-u USER` | | Execute as the specified target user (default: root) |
+| `-u USER` | | Execute as the specified target user (default: root). Requires an explicit `target` rule for non-root users. |
 | `-C FILE` | `--config FILE` | Use the specified configuration file (default: `/etc/voix.conf`) |
 | `-c` | `--check-config` | Validate the configuration file and exit |
 | `-n` | | Non-interactive mode; fail if authentication is required |
@@ -374,15 +374,16 @@ Administrators can extend this via the `security.blocklist` YAML configuration.
 
 ## 12. Testing
 
-Voix includes 58 unit tests covering:
+Voix includes 80 unit tests covering:
 
-* Permission checking (allow, deny, group rules, command-specific, pattern matching, listing)
+* Permission checking (allow, deny, group rules, command-specific, pattern matching, listing, target defaulting to root)
 * Configuration loading (valid, invalid YAML, nonexistent files, blocklist, unconfined targets, validation)
 * Security (user validation, safe paths, path traversal, catastrophic commands)
 * Command (profile resolution, command string building)
 * Logger (timestamp format, empty messages)
 * FileUtils (read, write, overwrite, command resolution)
 * SystemUtils (UID/GID lookup, environment management)
+* Negative security testing (catastrophic command evasion, path traversal, config tampering, permission bypass, blocklist evasion, command injection, environment injection, user validation injection)
 
 ### Running Tests
 

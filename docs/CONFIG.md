@@ -47,7 +47,7 @@ A mapping of users or groups to rules that govern execution authorization.
     - `persist`: Maintain a session to avoid repeated authentication.
     - `nolog`: Suppress logging of this execution.
 - `profile`: (Optional) Name of a security profile to apply (see `security.profiles`). If omitted, Voix uses the `restricted` profile, unless the target is listed in `core.unconfined_targets`, in which case the unconfined "system" profile is applied.
-- `target`: (Optional) The user identity to assume during execution (defaults to `root`).
+- `target`: (Optional) The user identity to assume during execution (defaults to `root`). Rules without a `target` field only match when executing as root (uid 0). To allow user switching via `-u`, add explicit `target` rules (e.g., `target: postgres`).
 - `command`: (Optional) The specific command (full path) being allowed.
 - `args`: (Optional) A list of exact arguments that must be present for the rule to match. Supports `*` (any sequence) and `?` (single character) wildcards.
 

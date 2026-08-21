@@ -37,7 +37,7 @@ void printUsage() {
                "Options:\n"
                "  -h, --help               Show this help message\n"
                "  -v, --version            Show the version of this artifact\n"
-               "  -u USER                  Execute as target mask (default: root)\n"
+               "  -u USER                  Execute as target user (default: root)\n"
                "  -C, --config FILE        Use FILE as the configuration sanctuary\n"
                "  -c, --check-config       Validate the configuration file\n"
                "  -n                       Non-interactive mode (fail if proof is required)\n"

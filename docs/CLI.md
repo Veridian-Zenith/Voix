@@ -6,7 +6,7 @@ Usage: `voix [options] <incantation> [args...]`
 
 - `-h, --help`: Show the help message.
 - `-v, --version`: Show version information.
-- `-u USER`: Execute as the specified target user (default: root).
+- `-u USER`: Execute as the specified target user (default: root). Requires an explicit `target` rule in the ACL for non-root users.
 - `-C FILE`, `--config FILE`: Use the specified file as the configuration source (default: `/etc/voix.conf`).
 - `-n`: Non-interactive mode; fail if authentication is required.
 - `-s`: Execute the user's shell (ascend to shell).
