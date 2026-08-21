@@ -118,8 +118,8 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
           return false;
       }
   } else {
-      // No target specified — default to root (uid 0).
-      // This prevents rules without a target from matching arbitrary -u values.
+      // No target specified — rule applies only to root (uid 0).
+      // Users must add explicit target rules for non-root user switching.
       if (target_uid != 0) {
           return false;
       }
