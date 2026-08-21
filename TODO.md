@@ -3,7 +3,6 @@
 ## Open
 
 - [ ] **Deterministic FD Management**: Full audit of internal file descriptors (PAM handles, config streams) to ensure all are `O_CLOEXEC`. Implement strict FD-closing invariant before `execve`.
-- [ ] **Configurable Log Path**: Make `/var/log/voix.log` configurable via `voix.conf` instead of hardcoded.
 - [ ] **Negative Security Testing**: Implement a test suite that attempts to bypass seccomp filters and capability drops using known exploit patterns.
 - [ ] **Policy Validation Tool**: Expand `--check-config` to perform semantic analysis of policies (e.g., detecting redundant rules or overly permissive patterns).
 - [ ] **Split Monolithic Test File**: Break `tests/test_runner.cpp` (1108 lines, 58 tests) into per-module test files.
@@ -17,6 +16,7 @@ These items are intentionally not pursued due to Voix's use-case constraints:
 - [ ] ~~**Granular Capability Management**~~: `CAP_DAC_READ_SEARCH` is the intentional capability scope for config reading. Individual capability raises would fragment the security model.
 - [ ] ~~**Formal State Machine Verification**~~: The execution pipeline's simplicity does not warrant formal verification overhead.
 - [ ] ~~**Packaging Automation**~~: Only AUR packaging is officially supported. Distribution-specific packaging is maintained externally.
+- [ ] ~~**Configurable Log Path**~~: Hardcoded `/var/log/voix.log` is intentional for safety and easy-to-discover defaults.
 
 ## Completed
 
