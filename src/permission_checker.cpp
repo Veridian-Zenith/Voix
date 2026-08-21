@@ -117,6 +117,12 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, in
       } else {
           return false;
       }
+  } else {
+      // No target specified — default to root (uid 0).
+      // This prevents rules without a target from matching arbitrary -u values.
+      if (target_uid != 0) {
+          return false;
+      }
   }
 
   if (!rule.cmd.empty()) {
