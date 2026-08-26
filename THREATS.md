@@ -16,7 +16,7 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 | **Lines of Code** | ~180,000 | **~3,770** (`src/` + `include/`, 2,638 impl + 1,136 headers) | ~48x smaller attack surface |
 | **Test Suite** | varies | ~1,810 lines, 84 tests incl. adversarial cases | Ships with the repo |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | **~552 KB** (stripped, ThinLTO) | Clang `-O3` + ICF + `--strip-all` |
+| **Binary Size (Release)** | ~1.2 MB | **~802 KB** portable (`voix-bin`, yaml-cpp bundled) / ~549 KB distro build | Clang `-O3` + ThinLTO + ICF + `--strip-all`; static yaml-cpp removes soname drift |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 

@@ -104,7 +104,7 @@ Voix maintains a minimal Trusted Computing Base for transparency and auditabilit
 | **Lines of Code** | ~180,000 | ~3,770 | ~48x smaller attack surface |
 | **Test Suite** | varies | ~1,810 lines · 84 tests | Includes adversarial cases |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | ~552 KB | Optimized via Clang/LTO |
+| **Binary Size (Release)** | ~1.2 MB | ~802 KB portable / ~549 KB distro build | Portable release bundles yaml-cpp statically (`VOIX_STATIC_YAML_CPP`) |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 
