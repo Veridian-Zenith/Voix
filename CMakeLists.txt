@@ -35,6 +35,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ---- Options ----
 option(VOIX_ENABLE_CAP "Enable Capability support" ON)
 option(VOIX_ENABLE_SECCOMP "Enable Seccomp support" ON)
+option(VOIX_STATIC_YAML_CPP
+       "Statically link yaml-cpp (portable release binaries without a versioned soname dependency)" OFF)
 
 # ---- Architecture Selection ----
 # Allow overriding the architecture for generic binary builds (e.g., CI/CD)
@@ -91,7 +93,16 @@ list(REMOVE_ITEM VOIX_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 add_library(voix_lib STATIC ${VOIX_SOURCES})
 add_executable(voix src/main.cpp)
 
-target_link_libraries(voix_lib PUBLIC yaml-cpp::yaml-cpp)
+if(VOIX_STATIC_YAML_CPP)
+    # Link the static archive directly so the produced binary does not
+    # reference any versioned yaml-cpp soname (libyaml-cpp.so.N) and therefore
+    # runs on distributions shipping a different yaml-cpp ABI.
+    find_library(YAML_CPP_STATIC_LIBRARY NAMES libyaml-cpp.a REQUIRED)
+    message(STATUS "Linking yaml-cpp statically: ${YAML_CPP_STATIC_LIBRARY}")
+    target_link_libraries(voix_lib PUBLIC ${YAML_CPP_STATIC_LIBRARY})
+else()
+    target_link_libraries(voix_lib PUBLIC yaml-cpp::yaml-cpp)
+endif()
 target_include_directories(voix_lib PUBLIC include)
 
 # PAM is required — authentication is unconditional in the source code.

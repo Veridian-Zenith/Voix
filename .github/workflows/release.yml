@@ -34,6 +34,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=clang++-22 \
             -DCMAKE_C_COMPILER=clang-22 \
             -DVOIX_ARCH=x86-64 \
+            -DVOIX_STATIC_YAML_CPP=ON \
             -DENABLE_PERMISSIONS=OFF
 
       - name: Build

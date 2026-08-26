@@ -17,6 +17,7 @@ Voix supports optional runtime security features that can be toggled at build ti
 | `VOIX_ENABLE_CAP` | `ON` | Linux capabilities management via `libcap` |
 | `VOIX_ENABLE_SECCOMP` | `ON` | Syscall filtering via `libseccomp` |
 | `ENABLE_PERMISSIONS` | `ON` | Set `setuid` on install (disable for packaging; set manually) |
+| `VOIX_STATIC_YAML_CPP` | `OFF` | Statically link yaml-cpp so the binary carries no versioned soname requirement (used by the release workflow; recommended for prebuilt packages) |
 
 A minimal build with only `yaml-cpp` and `pam` is possible by disabling the two optional features.
 
