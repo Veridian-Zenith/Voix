@@ -34,13 +34,6 @@ public:
     ~SystemUtils() = default;
 
     /**
-     * @brief Sets the user credentials (UID and GID) for the current process.
-     * @param uid The user ID.
-     * @param gid The group ID.
-     * @return True if credentials were set successfully, false otherwise.
-     */
-    bool setUserCredentials(uid_t uid, gid_t gid) const;
-    /**
      * @brief Sets the environment variables for the current process.
      * @param env_vars A vector of environment variable strings in "KEY=VALUE" format.
      */

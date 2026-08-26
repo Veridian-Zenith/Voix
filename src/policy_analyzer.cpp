@@ -1,3 +1,12 @@
+/**
+ * @file policy_analyzer.cpp
+ * @brief Policy analyzer implementation
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
+ */
+
 #include "policy_analyzer.hpp"
 #include <algorithm>
 #include <format>
@@ -78,12 +87,11 @@ void PolicyAnalyzer::check_referenced_profiles(std::vector<PolicyFinding>& /* fi
 }
 
 void PolicyAnalyzer::check_blocklist_coverage(std::vector<PolicyFinding>& findings) const {
-    const auto& blocklist = config_.get_blocklist();
-    if (blocklist.empty()) {
+    if (config_.get_blocklist().empty() && config_.get_regex_blocklist().empty()) {
         findings.push_back({
             PolicyFinding::Severity::WARNING,
             "No blocklist defined. Consider adding entries for dangerous "
-            "commands (e.g., /bin/sh, /bin/bash)."
+            "commands (e.g., /bin/sh, /bin/bash) or \"regex:\" patterns."
         });
     }
 }

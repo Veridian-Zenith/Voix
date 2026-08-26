@@ -15,7 +15,9 @@
 #include <syslog.h>
 #include <cstring>
 #include <memory>
+#ifdef VOIX_WITH_CAP
 #include <sys/capability.h>
+#endif
 #include <getopt.h>
 #include "voix.hpp"
 #include "config.hpp"
@@ -27,10 +29,12 @@
 #include "tests/test_main.hpp"
 #endif
 
+#ifndef VOIX_VERSION
+#define VOIX_VERSION "4.11.0"
+#endif
+
 /**
  * @brief Prints the usage information for the voix command.
- * @param None No parameters.
- * @return void
  */
 void printUsage() {
     std::print("Usage: voix [options] <incantation> [args...]\n\n"
@@ -43,9 +47,9 @@ void printUsage() {
                "  -n                       Non-interactive mode (fail if proof is required)\n"
                "  -s                       Execute user's shell (ascend to shell)\n"
                "  -l, --list               List permitted commands for the current user\n"
-               "  -E, --preserve-env       Preserve the environment\n"
+               "  -E, --preserve-env       Preserve the environment (requires keepenv policy)\n"
                "  -i, --login              Execute in a login shell\n"
-               "  -k                       Invalidate timestamp (compatibility no-op)\n\n"
+               "  -k                       Invalidate persisted authentication timestamps\n\n"
                "Examples:\n"
                "  voix ls /root\n"
                "  voix -u admin systemctl restart nginx\n"
@@ -55,14 +59,12 @@ void printUsage() {
 
 /**
  * @brief Prints the version information of the voix command.
- * @param None No parameters.
- * @return void
  */
 void printVersion() {
-    std::print("Voix version 4.10.0 - The Keeper of Realms\n"
+    std::print("Voix version {} - The Keeper of Realms\n"
                "Copyright \u00a9 2026 Veridian Zenith\n"
                "Architected by Dae Euhwa <daedaevibin@ik.me>\n"
-               "Licensed under the Open Software License v3\n");
+               "Licensed under the Open Software License v3\n", VOIX_VERSION);
 }
 
 int main(int argc, char* argv[]) noexcept {
@@ -87,7 +89,7 @@ int main(int argc, char* argv[]) noexcept {
 
         if (argc > 1 && strcmp(argv[1], "--run-tests") == 0) {
 #if BUILD_TESTING
-            return run_tests(argc, argv);
+            return VoixTest::run_tests(argc, argv);
 #else
             std::println(stderr, "Tests are not enabled in this build.");
             return 1;
@@ -139,7 +141,6 @@ int main(int argc, char* argv[]) noexcept {
                     options.check_config = true;
                     break;
                 case 'k':
-                    // sudo -k: invalidate timestamp. No-op for voix.
                     clear_timestamp = true;
                     break;
                 default:
@@ -162,7 +163,8 @@ int main(int argc, char* argv[]) noexcept {
                 shell = shell_var;
             }
             command_args.push_back(shell);
-        } else if (argc < 1 && !options.list_commands && !options.check_config) {
+        } else if (argc < 1 && !options.list_commands && !options.check_config &&
+                   !clear_timestamp) {
             std::println(stderr, "Error: No command specified");
             printUsage();
             return 1;
@@ -171,7 +173,7 @@ int main(int argc, char* argv[]) noexcept {
                 command_args.push_back(argv[i]);
             }
         }
-        
+
         if (options.check_config) {
             Voix::Config config;
             if (!config.load(config_path, true) || !config.validate()) {
@@ -209,16 +211,16 @@ int main(int argc, char* argv[]) noexcept {
               args = std::vector<std::string>(command_args.begin() + 1, command_args.end());
             }
 
-            // Execute command with enhanced security
+            // `voix -k` with no command only invalidates timestamps.
+            if (clear_timestamp && command.empty()) {
+                return 0;
+            }
+
             int result = 0;
             if (options.list_commands) {
                 result = voix.list_commands();
             } else {
                 result = voix.execute(command, args, options, target_user);
-
-                // Log successful execution
-                syslog(LOG_AUTHPRIV | LOG_INFO, "Command executed: %s as %s",
-                      command.c_str(), target_user.c_str());
             }
 
 #ifdef VOIX_WITH_CAP

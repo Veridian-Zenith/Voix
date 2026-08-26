@@ -22,13 +22,84 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <optional>
+#include <cctype>
 #ifdef VOIX_WITH_SECCOMP
+#include <errno.h>
 #include <seccomp.h>
 #endif
 #include <memory>
 #include <sys/stat.h>
 
 namespace Voix {
+
+namespace {
+
+namespace fs = std::filesystem;
+
+/// Basename of a command path ("rm", "/bin/rm" -> "rm").
+std::string basename_of(std::string_view command) {
+    return fs::path(command).filename().string();
+}
+
+/// True for short options containing the given flag char (-rf, -fr, -Rf...).
+bool short_flag_has(const std::string& arg, char flag) {
+    if (arg.size() < 2 || arg[0] != '-' || arg[1] == '-') return false;
+    return arg.find(flag) != std::string::npos;
+}
+
+/// True for --flag or --flag=value long options.
+bool long_flag_is(const std::string& arg, std::string_view name) {
+    if (!arg.starts_with("--")) return false;
+    std::string_view body{arg};
+    body.remove_prefix(2);
+    const auto eq = body.find('=');
+    return body.substr(0, eq) == name;
+}
+
+std::optional<std::string> canonicalize_arg(const std::string& raw) {
+    try {
+        return fs::weakly_canonical(fs::absolute(fs::path(raw))).string();
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+// True if an rm argument targets the root filesystem itself.
+// Covers "/", "//", root globs ("/" + "*" patterns), and any relative or
+// traversal form that canonicalizes to "/" from the current directory
+// (".", "..", "./", "a/../.." with cwd=/, etc.).
+bool rm_targets_root(const std::string& raw) {
+    if (raw.empty()) return false;
+    if (raw == "/" || raw == "//") return true;
+
+    // Root-level glob: consists only of '/' and '*' characters, starts
+    // with '/', and contains at least one '*'.
+    bool glob_only = raw.front() == '/';
+    bool has_star = false;
+    for (char c : raw) {
+        if (c != '/' && c != '*') { glob_only = false; break; }
+        if (c == '*') has_star = true;
+    }
+    if (glob_only && has_star) return true;
+
+    auto canon = canonicalize_arg(raw);
+    return canon.has_value() && *canon == "/";
+}
+
+/// Destructive tools blocked by basename regardless of path prefix.
+constexpr std::string_view k_destructive_basenames[] = {
+    "fdisk", "sfdisk", "cfdisk", "parted",
+    "wipe", "wipefs", "shred", "mkswap",
+};
+
+/// Raw block-device prefixes that dd must never touch.
+constexpr std::string_view k_block_device_prefixes[] = {
+    "/dev/sd", "/dev/hd", "/dev/vd", "/dev/nvme", "/dev/mmcblk",
+    "/dev/mapper", "/dev/disk/", "/dev/dm-", "/dev/root",
+};
+
+} // namespace
 
 #ifdef VOIX_WITH_CAP
 struct CapDeleter {
@@ -57,55 +128,12 @@ bool Security::validateUser(std::string_view username) const {
     }
 
     for (char c : username) {
-        if (!std::isalnum(c) && c != '_' && c != '-') {
+        if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '-') {
             return false;
         }
     }
 
     return identity->get_user_by_name(std::string(username)).has_value();
-}
-
-bool Security::isSafePath(std::string_view path) const {
-    // Canonicalize path to prevent traversal bypasses
-    try {
-        std::filesystem::path p(path);
-        
-        // Check for path traversal attempts before canonicalization
-        for (const auto& part : p) {
-            if (part == "..") {
-                return false;
-            }
-        }
-        
-        // Use weakly_canonical to handle paths that may not exist yet
-        std::filesystem::path canonical = std::filesystem::weakly_canonical(p);
-        
-        // Check for absolute paths to sensitive locations
-        static const std::vector<std::string_view> forbidden = {
-            "/etc/shadow", "/etc/sudoers", "/root", "/etc/voix.conf"
-        };
-        
-        const auto is_same_or_descendant = [](const std::filesystem::path& candidate,
-                                           const std::filesystem::path& base) -> bool {
-            auto c_it = candidate.begin();
-            auto b_it = base.begin();
-            for (; b_it != base.end(); ++b_it, ++c_it) {
-                if (c_it == candidate.end() || *c_it != *b_it) {
-                    return false;
-                }
-            }
-            return true; // same path or candidate is within base
-        };
-        
-        for (auto target : forbidden) {
-            std::filesystem::path forbidden_path = std::filesystem::weakly_canonical(std::filesystem::path(target));
-            if (is_same_or_descendant(canonical, forbidden_path)) return false;
-        }
-        
-        return true;
-    } catch (...) {
-        return false;
-    }
 }
 
 void Security::logEvent(std::string_view event, std::string_view user) const {
@@ -127,15 +155,13 @@ std::string Security::get_root_device() const {
 
     std::string line;
     while (std::getline(mounts, line)) {
-        // mountinfo format: mount-ID parent-ID major:minor root mountpoint mount-options - fstype source mount-options
-        // Use a simple split approach: find the " - " separator, then parse from there
+        // mountinfo format: mount-ID parent-ID major:minor root mountpoint mount-options - fstype source [options]
         size_t sep = line.find(" - ");
         if (sep == std::string::npos) continue;
 
         std::string fields_part = line.substr(0, sep);
         std::string after_sep = line.substr(sep + 3);
 
-        // Parse mountpoint from fields_part (field 5, 0-indexed 4)
         std::istringstream iss_fields(fields_part);
         std::string mount_id_str, parent_id_str, major_minor_str, root_str;
         std::string mountpoint;
@@ -143,8 +169,6 @@ std::string Security::get_root_device() const {
 
         if (mountpoint != "/") continue;
 
-        // Parse fstype and source from after_sep
-        // Format: fstype source [optional mount options]
         std::istringstream iss_after(after_sep);
         std::string fstype, source;
         if (!(iss_after >> fstype >> source)) continue;
@@ -156,90 +180,85 @@ std::string Security::get_root_device() const {
     return "";
 }
 
-bool Security::isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const {
-    std::string full_command = std::string(command);
-    std::string normalized_command = std::string(command);
+bool Security::isCatastrophicCommand(std::string_view command,
+                                     const std::vector<std::string>& args,
+                                     const Config& config) const {
+    // Trim surrounding whitespace so trailing-space variants cannot evade
+    // the blocklist comparisons below.
+    std::string cmd_str{command};
+    const auto first = cmd_str.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) return false;
+    const auto last = cmd_str.find_last_not_of(" \t\r\n");
+    cmd_str = cmd_str.substr(first, last - first + 1);
+    std::string_view cmd{cmd_str};
 
+    // Full command line for admin regex entries; arguments are canonicalized
+    // where possible so regexes see absolute paths.
+    std::string full_command{cmd};
     for (const auto& arg : args) {
-        full_command += " " + arg;
-
-        // Attempt to normalize path arguments for better matching
-        try {
-            if (arg.starts_with("/") || arg.starts_with(".")) {
-                normalized_command += " " + std::filesystem::absolute(arg).string();
-            } else {
-                normalized_command += " " + arg;
-            }
-        } catch (const std::exception& e) {
-            LOG_WARN(std::format("Path normalization failed for arg '{}': {}", arg, e.what()));
-            normalized_command += " " + arg;
-        }
+        full_command += " ";
+        auto canon = canonicalize_arg(arg);
+        full_command += canon.value_or(arg);
     }
 
-    // Trim
-    auto trim = [](std::string& s) {
-        s.erase(0, s.find_first_not_of(" \t\r\n"));
-        s.erase(s.find_last_not_of(" \t\r\n") + 1);
-    };
-    trim(full_command);
-    trim(normalized_command);
+    const std::string base = basename_of(cmd);
 
-    if (command == "rm" || command == "/bin/rm" || command == "/usr/bin/rm") {
+    if (base == "rm") {
         bool recursive = false;
         bool force = false;
         bool target_root = false;
 
         for (const auto& arg : args) {
-            if (arg == "-r" || arg == "-R" || arg == "--recursive") recursive = true;
-            else if (arg == "-f" || arg == "--force") force = true;
-            else if (arg == "-rf" || arg == "-fr") { recursive = true; force = true; }
-            else if (arg == "/" || arg == "/*") target_root = true;
+            if (!arg.empty() && arg[0] == '-') {
+                recursive |= arg == "-r" || arg == "-R" ||
+                             short_flag_has(arg, 'r') || short_flag_has(arg, 'R') ||
+                             long_flag_is(arg, "recursive");
+                force |= arg == "-f" ||
+                         short_flag_has(arg, 'f') ||
+                         long_flag_is(arg, "force");
+            } else if (rm_targets_root(arg)) {
+                target_root = true;
+            }
         }
 
         if (recursive && force && target_root) {
             return true;
         }
-    } else if (command == "dd" || command == "/bin/dd" || command == "/usr/bin/dd") {
+    } else if (base == "dd") {
         std::string root_dev = get_root_device();
         for (const auto& arg : args) {
             // Block dd targeting the root filesystem device
             if (!root_dev.empty() && arg.find(root_dev) != std::string::npos) {
                 return true;
             }
-            // Still block raw disk access as before
-            if (arg.find("/dev/sd") != std::string::npos || arg.find("/dev/nvme") != std::string::npos) {
-                return true;
+            for (auto dev : k_block_device_prefixes) {
+                if (arg.find(dev) != std::string::npos) {
+                    return true;
+                }
             }
         }
     } else {
-        static const std::vector<std::string> catastrophic_exact = {
-            "fdisk", "/sbin/fdisk", "/usr/bin/fdisk",
-            "parted", "/sbin/parted", "/usr/bin/parted",
-            "wipe", "/sbin/wipe", "/usr/bin/wipe",
-            "shred", "/usr/bin/shred",
-            "mkfs", "/sbin/mkfs", "/usr/bin/mkfs",
-            "mkfs.ext2", "/sbin/mkfs.ext2", "/usr/bin/mkfs.ext2",
-            "mkfs.ext3", "/sbin/mkfs.ext3", "/usr/bin/mkfs.ext3",
-            "mkfs.ext4", "/sbin/mkfs.ext4", "/usr/bin/mkfs.ext4",
-            "mkfs.xfs", "/sbin/mkfs.xfs", "/usr/bin/mkfs.xfs",
-            "mkfs.btrfs", "/sbin/mkfs.btrfs", "/usr/bin/mkfs.btrfs",
-            "mkfs.vfat", "/sbin/mkfs.vfat", "/usr/bin/mkfs.vfat",
-            "mkfs.ntfs", "/sbin/mkfs.ntfs", "/usr/bin/mkfs.ntfs",
-            "mkswap", "/sbin/mkswap", "/usr/bin/mkswap"
-        };
-        if (std::ranges::find(catastrophic_exact, command) != catastrophic_exact.end()) {
+        // Destructive tools by basename: fdisk/sfdisk/cfdisk/parted,
+        // wipe/wipefs/shred/mkswap — any path prefix.
+        if (std::ranges::find(k_destructive_basenames, base) != std::end(k_destructive_basenames)) {
+            return true;
+        }
+        // Entire mkfs family (mkfs, mkfs.ext4, mkfs.btrfs, ...) plus paths.
+        if (base.starts_with("mkfs")) {
             return true;
         }
     }
 
-    // Check for explicit blocked commands first (faster)
+    // Admin-configured exact-path blocklist entries.
     for (const auto& forbidden_cmd : config.get_blocklist()) {
-        if (command == forbidden_cmd) return true;
+        if (cmd == forbidden_cmd) return true;
     }
 
-    // Regex check (slower)
-    for (const auto& regex : config.get_compiled_blocklist()) {
-        if (std::regex_search(full_command, regex) || std::regex_search(normalized_command, regex)) {
+    // Admin-configured regex entries ("regex:<pattern>") matched against the
+    // canonicalized full command line.
+    for (const auto& [pattern, regex] : config.get_regex_blocklist()) {
+        (void)pattern;
+        if (std::regex_search(full_command, regex)) {
             return true;
         }
     }
@@ -298,17 +317,37 @@ void Security::applySeccompBlacklist() const {
         _exit(1);
     }
 
-    if (seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(delete_module), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(init_module), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(finit_module), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(reboot), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapon), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(swapoff), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(ptrace), 0) < 0 ||
-        seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, SCMP_SYS(bpf), 0) < 0) {
-        LOG_WARN("Failed to add seccomp rules");
-        _exit(1);
+    // Kernel/module/reboot surface
+    const int syscalls[] = {
+        SCMP_SYS(kexec_load),
+        SCMP_SYS(delete_module),
+        SCMP_SYS(init_module),
+        SCMP_SYS(finit_module),
+        SCMP_SYS(reboot),
+        SCMP_SYS(swapon),
+        SCMP_SYS(swapoff),
+        SCMP_SYS(ptrace),
+        SCMP_SYS(bpf),
+        SCMP_SYS(userfaultfd),
+        SCMP_SYS(perf_event_open),
+        SCMP_SYS(keyctl),
+        SCMP_SYS(add_key),
+        SCMP_SYS(request_key),
+        SCMP_SYS(open_by_handle_at),
+        SCMP_SYS(name_to_handle_at),
+        SCMP_SYS(io_uring_setup),
+        SCMP_SYS(process_vm_readv),
+        SCMP_SYS(process_vm_writev),
+    };
+
+    for (int sc : syscalls) {
+        int rc = seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, sc, 0);
+        // Tolerate architectures where the syscall does not exist; fail
+        // closed on anything else.
+        if (rc < 0 && rc != -ENOSYS && rc != -EOPNOTSUPP) {
+            LOG_WARN(std::format("Failed to add seccomp rule for syscall {}: {}", sc, rc));
+            _exit(1);
+        }
     }
 
     if (seccomp_load(ctx.get()) < 0) {

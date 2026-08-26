@@ -1,5 +1,5 @@
 /**
- * @file permission_checker.h
+ * @file permission_checker.hpp
  * @copyright Copyright (C) 2026 Veridian Zenith
  * @author Dae Euhwa <daedaevibin@ik.me>
  *
@@ -24,6 +24,10 @@ class Rule;
 
 /**
  * @brief Handles permission checks for command execution based on rules.
+ *
+ * Rules use first-match semantics: the first rule (in configuration order)
+ * that matches the identity, target, command and arguments decides the
+ * outcome. A matching DENY rule terminates evaluation with denial.
  */
 class PermissionChecker {
 public:
@@ -40,11 +44,6 @@ public:
     ~PermissionChecker() = default;
 
     /**
-     * @brief Checks if the current action is allowed based on the configuration.
-     * @return True if allowed, false otherwise.
-     */
-    bool isAllowed() const;
-    /**
      * @brief Finds a matching rule that permits the execution of a command.
      * @param command The command to check.
      * @param args The arguments for the command.
@@ -55,7 +54,13 @@ public:
                 uid_t target_uid) const;
 
     /**
-     * @brief Returns all rules that permit actions for the current user.
+     * @brief Returns rules that permit actions for the current user.
+     *
+     * Mirrors runtime first-match semantics: a PERMIT rule whose scope is
+     * already covered by an earlier identity-matching DENY rule (same
+     * command, argument pattern and target) is suppressed, because at run
+     * time the DENY would win.
+     *
      * @return Vector of permitted rules for the current user.
      */
     std::vector<Rule> list_permitted_rules() const;
@@ -93,7 +98,7 @@ private:
      * @param args The arguments for the command.
      * @return True if the rule matches, false otherwise.
      */
-    bool matchRule(const Rule& rule, uid_t uid, gid_t* groups, int ngroups,
+    bool matchRule(const Rule& rule, uid_t uid, const std::vector<gid_t>& groups,
                    std::string_view command, uid_t target_uid,
                    const std::vector<std::string>& args) const;
 };

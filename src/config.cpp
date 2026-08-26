@@ -19,32 +19,18 @@
 #include <numeric>
 #include <format>
 #include <regex>
+#include <cctype>
 #include <string_view>
 
 namespace Voix {
 
 Config::Config() : sanctuary_("/tmp"), path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}), unconfined_targets_({"root", "alpm"}) {}
 
-
 namespace {
-
-std::string regex_escape(std::string_view s) {
-    static const std::string metachars = ".^$*+?()[]{}|\\";
-    std::string result;
-    result.reserve(s.size() * 2);
-    for (char c : s) {
-        if (metachars.find(c) != std::string::npos) {
-            result += '\\';
-        }
-        result += c;
-    }
-    return result;
-}
 
 using IdentitySetter = std::function<void(Voix::Rule&, const std::string&)>;
 
     void parse_acl_section(const YAML::Node& section,
-                           const std::map<std::string, std::vector<Voix::Rule>>& profiles,
                            const IdentitySetter& set_identity,
                            std::vector<Voix::Rule>& rules);
 
@@ -75,7 +61,24 @@ using IdentitySetter = std::function<void(Voix::Rule&, const std::string&)>;
 
         if (rule_node["env"]) {
             for (auto env_entry : rule_node["env"]) {
-                rule.envlist.push_back(env_entry.as<std::string>());
+                std::string env_val = env_entry.as<std::string>();
+                const size_t eq = env_val.find('=');
+                bool valid = eq != std::string::npos && eq > 0;
+                if (valid) {
+                    const std::string key = env_val.substr(0, eq);
+                    valid = (std::isalpha(static_cast<unsigned char>(key[0])) || key[0] == '_');
+                    for (size_t i = 1; valid && i < key.size(); ++i) {
+                        valid = std::isalnum(static_cast<unsigned char>(key[i])) || key[i] == '_';
+                    }
+                }
+                if (!valid) {
+                    LOG_ERROR(std::format(
+                        "Invalid rule env entry '{}': expected KEY=VALUE with a C identifier key",
+                        env_val));
+                    throw YAML::Exception(YAML::Mark::null_mark(),
+                                          "invalid rule env entry: " + env_val);
+                }
+                rule.envlist.push_back(env_val);
             }
         }
 
@@ -104,26 +107,18 @@ using IdentitySetter = std::function<void(Voix::Rule&, const std::string&)>;
     }
 
     void parse_acl_section(const YAML::Node& section,
-                           const std::map<std::string, std::vector<Voix::Rule>>& profiles,
                            const IdentitySetter& set_identity,
                            std::vector<Voix::Rule>& rules) {
         for (auto it = section.begin(); it != section.end(); ++it) {
             std::string name = it->first.as<std::string>();
             for (auto rule_node : it->second) {
-                if (rule_node["profile"]) {
-                    std::string profile_name = rule_node["profile"].as<std::string>();
-                    if (profiles.count(profile_name)) {
-                        for (const auto& p_rule : profiles.at(profile_name)) {
-                            Voix::Rule rule = p_rule;
-                            set_identity(rule, name);
-                            rules.push_back(std::move(rule));
-                        }
-                    }
-                } else {
-                    Voix::Rule rule = parse_rule(rule_node);
-                    set_identity(rule, name);
-                    rules.push_back(std::move(rule));
-                }
+                // NOTE: a rule's `profile:` key references a *security*
+                // profile (security.profiles) and is resolved at execution
+                // time by Command::resolve_profile(). It must not be
+                // conflated with any other namespace.
+                Voix::Rule rule = parse_rule(rule_node);
+                set_identity(rule, name);
+                rules.push_back(std::move(rule));
             }
         }
     }
@@ -140,15 +135,12 @@ bool Config::load(std::string_view config_path, bool verify_security) {
     }
 
     if (verify_security) {
-        // Reject symlinks to prevent TOCTOU attacks on config file
+        // Reject symlinks early; read_file_secure then re-verifies ownership,
+        // permissions and regular-file type on the opened descriptor itself,
+        // closing the TOCTOU window entirely.
         std::error_code ec;
         if (std::filesystem::is_symlink(path_str, ec)) {
             logger.log("ERROR", std::format("Config file is a symlink (rejected): {}", path_str));
-            return false;
-        }
-
-        if (!file_utils.isSecurePath(path_str)) {
-            logger.log("ERROR", std::format("Config file security check failed: {}", path_str));
             return false;
         }
     }
@@ -204,22 +196,10 @@ bool Config::load(std::string_view config_path, bool verify_security) {
         }
 
 
-        if (config["profiles"]) {
-            profiles_.clear();
-            for (auto it = config["profiles"].begin(); it != config["profiles"].end(); ++it) {
-                std::string profile_name = it->first.as<std::string>();
-                std::vector<Rule> profile_rules;
-                for (auto rule_node : it->second) {
-                     profile_rules.push_back(parse_rule(rule_node));
-                }
-                profiles_[profile_name] = std::move(profile_rules);
-            }
-        }
-
         if (config["acl"]) {
             rules_.clear();
             if (config["acl"]["user"]) {
-                parse_acl_section(config["acl"]["user"], profiles_,
+                parse_acl_section(config["acl"]["user"],
                     [&logger](Rule& rule, const std::string& name) {
                         rule.ident = name;
                         rule.ident_uid = SystemUtils::getUidByName(name);
@@ -229,7 +209,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                     }, rules_);
             }
             if (config["acl"]["group"]) {
-                parse_acl_section(config["acl"]["group"], profiles_,
+                parse_acl_section(config["acl"]["group"],
                     [&logger](Rule& rule, const std::string& name) {
                         rule.ident = ":" + name;
                         rule.ident_gid = SystemUtils::getGidByName(name);
@@ -259,11 +239,19 @@ bool Config::load(std::string_view config_path, bool verify_security) {
             }
             if (config["security"]["blocklist"]) {
                 for (auto block_item : config["security"]["blocklist"]) {
-                    if (block_item.IsScalar()) {
-                        std::string exact = block_item.as<std::string>();
-                        std::string pattern = "^" + regex_escape(exact) + "$";
-                        blocklist_.push_back(exact);
-                        compiled_blocklist_.emplace_back(pattern, std::regex::optimize);
+                    if (!block_item.IsScalar()) continue;
+                    std::string entry = block_item.as<std::string>();
+                    constexpr std::string_view k_regex_prefix = "regex:";
+                    if (entry.starts_with(k_regex_prefix)) {
+                        std::string pattern = entry.substr(k_regex_prefix.size());
+                        try {
+                            regex_blocklist_.emplace_back(pattern, std::regex(pattern, std::regex::optimize));
+                        } catch (const std::regex_error& e) {
+                            LOG_ERROR(std::format("Invalid blocklist regex '{}': {}", pattern, e.what()));
+                            return false;
+                        }
+                    } else {
+                        blocklist_.push_back(entry);
                     }
                 }
             }

@@ -10,8 +10,7 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.10.0 LANGUAGES CXX)
-
+project(Voix VERSION 4.11.0 LANGUAGES CXX)
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
 # (disabled during CodeQL analysis to allow proper build tracing)
@@ -116,6 +115,9 @@ endif()
 
 target_link_libraries(voix PRIVATE voix_lib)
 
+# Single-source version string for printVersion()
+target_compile_definitions(voix PRIVATE VOIX_VERSION="${PROJECT_VERSION}")
+
 target_compile_options(voix_lib PRIVATE -Wall -Wextra)
 target_compile_options(voix PRIVATE -Wall -Wextra)
 
@@ -132,7 +134,11 @@ endif()
 if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)
-    add_dependencies(voix run_tests)
+    # Wire the test harness into the main binary so `voix --run-tests` works
+    # in test builds (Debug) while remaining fully absent from Release.
+    target_include_directories(voix PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_definitions(voix PRIVATE BUILD_TESTING=1)
+    target_link_libraries(voix PRIVATE voix_tests)
 endif()
 
 # ---- Installation ----
@@ -162,12 +168,34 @@ else()
             PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 endif()
 
-install(FILES config/voix.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
-        RENAME voix.conf
-        PERMISSIONS OWNER_READ OWNER_WRITE)
-
-install(FILES pam.d/voix DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/pam.d
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+# Never overwrite an administrator's live configuration: if /etc/voix.conf
+# already exists, the shipped sample lands as voix.conf.new instead.
+install(CODE [[
+    if(DEFINED ENV{DESTDIR})
+        set(_voix_sysconf "$ENV{DESTDIR}/etc")
+    else()
+        set(_voix_sysconf "/etc")
+    endif()
+    get_filename_component(_voix_conf_src "${CMAKE_CURRENT_SOURCE_DIR}/config/voix.conf" ABSOLUTE)
+    get_filename_component(_voix_pam_src "${CMAKE_CURRENT_SOURCE_DIR}/pam.d/voix" ABSOLUTE)
+    file(MAKE_DIRECTORY "${_voix_sysconf}/pam.d")
+    foreach(item IN ITEMS "voix.conf;${_voix_conf_src}" "pam.d/voix;${_voix_pam_src}")
+        list(GET item 0 _rel)
+        list(GET item 1 _src)
+        if(EXISTS "${_voix_sysconf}/${_rel}")
+            file(COPY_FILE "${_src}" "${_voix_sysconf}/${_rel}.new")
+            message(STATUS "Existing ${_rel} preserved; new sample installed as ${_rel}.new")
+        else()
+            file(COPY_FILE "${_src}" "${_voix_sysconf}/${_rel}")
+        endif()
+    endforeach()
+    file(CHMOD "${_voix_sysconf}/voix.conf" PERMISSIONS OWNER_READ OWNER_WRITE)
+    file(CHMOD "${_voix_sysconf}/pam.d/voix" PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+    # Sanctuary directory used for persisted authentication timestamps
+    # (see core.sanctuary in the configuration guide).
+    file(MAKE_DIRECTORY "/var/lib/voix")
+    file(CHMOD "/var/lib/voix" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+]])
 
 install(FILES docs/voix.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 

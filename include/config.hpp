@@ -82,15 +82,20 @@ public:
      */
     bool should_suppress_stderr() const { return suppress_stderr_; }
     /**
-     * @brief Gets the blocklist of commands.
+     * @brief Gets the blocklist of exact command paths.
      * @return A reference to the blocklist vector.
      */
     const std::vector<std::string>& get_blocklist() const { return blocklist_; }
     /**
-     * @brief Gets the compiled blocklist of regular expressions.
-     * @return A reference to the compiled blocklist vector.
+     * @brief Gets the compiled admin regex blocklist ("regex:" entries).
+     *
+     * Each pair holds the original pattern text (for diagnostics) and the
+     * compiled ECMAScript regex, matched against the canonicalized full
+     * command line.
      */
-    const std::vector<std::regex>& get_compiled_blocklist() const { return compiled_blocklist_; }
+    const std::vector<std::pair<std::string, std::regex>>& get_regex_blocklist() const {
+        return regex_blocklist_;
+    }
     /**
      * @brief Gets the security profile associated with a name.
      * @param name The profile name.
@@ -124,10 +129,9 @@ private:
     std::string sanctuary_;
     std::vector<std::string> path_list_;
     std::vector<Rule> rules_;
-    std::map<std::string, std::vector<Rule>> profiles_;
     std::map<std::string, SecurityProfile> security_profiles_;
     std::vector<std::string> blocklist_;
-    std::vector<std::regex> compiled_blocklist_;
+    std::vector<std::pair<std::string, std::regex>> regex_blocklist_;
     std::vector<std::string> unconfined_targets_;
     bool seccomp_enabled_ = true;
     bool login_shell_default_ = false;

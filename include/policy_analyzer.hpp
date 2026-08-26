@@ -1,3 +1,12 @@
+/**
+ * @file policy_analyzer.hpp
+ * @brief Semantic policy analysis for --check-config.
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
+ */
+
 #pragma once
 
 #include "config.hpp"
@@ -7,7 +16,7 @@
 namespace Voix {
 
 struct PolicyFinding {
-    enum class Severity { WARNING, ERROR };
+    enum class Severity : std::uint8_t { WARNING, ERROR };
     Severity severity;
     std::string message;
 };

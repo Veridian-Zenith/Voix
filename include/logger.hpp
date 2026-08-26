@@ -12,11 +12,14 @@
 #include <string>
 #include <string_view>
 
+namespace Voix {
+
+/// Fixed audit log location (intentionally not configurable).
+constexpr const char* k_log_path = "/var/log/voix.log";
+
 #define LOG_ERROR(msg) Voix::Logger().log("ERROR", msg)
 #define LOG_WARN(msg) Voix::Logger().log("WARN", msg)
 #define LOG_INFO(msg) Voix::Logger().log("INFO", msg)
-
-namespace Voix {
 
 class Logger {
 public:
@@ -40,7 +43,15 @@ public:
      */
     std::string getTimestamp() const;
     /**
-     * @brief Logs a message with a specified level.
+     * @brief Escapes control characters in a message so untrusted strings
+     *        cannot forge additional log lines.
+     * @param message The raw message.
+     * @return The sanitized message.
+     */
+    static std::string sanitize_message(std::string_view message);
+    /**
+     * @brief Logs a message with a specified level to /var/log/voix.log,
+     *        falling back to syslog if the file cannot be opened securely.
      * @param level The log level (e.g., "INFO", "WARN", "ERROR").
      * @param message The message to log.
      */

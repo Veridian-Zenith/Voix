@@ -1,3 +1,12 @@
+/**
+ * @file test_assert.hpp
+ * @brief Test module
+ * @copyright Copyright (C) 2026 Veridian Zenith
+ * @author Dae Euhwa <daedaevibin@ik.me>
+ *
+ * All code in this repository is licensed under OSL v3.
+ */
+
 #pragma once
 #include <iostream>
 #include <string>

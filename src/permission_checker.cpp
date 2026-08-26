@@ -18,11 +18,6 @@
 #include <algorithm>
 #include <ranges>
 #include <regex>
-#include <span>
-
-#ifndef NGROUPS_MAX
-#define NGROUPS_MAX 32
-#endif
 
 namespace Voix {
 
@@ -30,19 +25,6 @@ PermissionChecker::PermissionChecker(std::shared_ptr<Security> security,
                                      std::shared_ptr<Config> config)
     : security_(std::move(security)), config_(std::move(config)) {}
 
-bool PermissionChecker::isAllowed() const {
-  std::string current_user = security_->getCurrentUser();
-
-  if (!security_->validateUser(current_user)) {
-    return false;
-  }
-
-  // A user is allowed if there is at least one permit rule for them.
-  auto rules = config_->getRules();
-  return std::ranges::any_of(rules, [&](const auto& rule) {
-    return rule.action == Rule::Action::PERMIT && rule.ident == current_user;
-  });
-}
 bool PermissionChecker::match_pattern(const MatchPatternParams& params) const {
   const std::string& pattern = params.pattern;
   const std::string& text = params.text;
@@ -50,7 +32,7 @@ bool PermissionChecker::match_pattern(const MatchPatternParams& params) const {
   for (char c : pattern) {
     if (c == '*') regex_pattern += ".*";
     else if (c == '?') regex_pattern += ".";
-    else if (std::string(".+^$|()[]{}").find(c) != std::string::npos) {
+    else if (c == '\\' || std::string(".+^$|()[]{}").find(c) != std::string::npos) {
       regex_pattern += "\\";
       regex_pattern += c;
     } else {
@@ -72,21 +54,21 @@ std::string PermissionChecker::resolve_variables(const std::string& text) const 
   return resolved;
 }
 
-bool PermissionChecker::matchRule(const Rule &rule, uid_t uid, gid_t *groups, int ngroups,
-                                    std::string_view command, uid_t target_uid,
-                                    const std::vector<std::string> &args) const {
+bool PermissionChecker::matchRule(const Rule &rule, uid_t uid,
+                                  const std::vector<gid_t> &groups,
+                                  std::string_view command, uid_t target_uid,
+                                  const std::vector<std::string> &args) const {
   if (rule.ident_uid.has_value()) {
       if (rule.ident_uid.value() != uid) {
           return false;
       }
   } else if (rule.ident_gid.has_value()) {
-      bool group_found = std::ranges::find(std::span(groups, ngroups), rule.ident_gid.value()) != std::span(groups, ngroups).end();
+      bool group_found = std::ranges::find(groups, rule.ident_gid.value()) != groups.end();
       if (!group_found) {
           return false;
       }
   } else if (!rule.ident.empty()) {
       // Fallback for cases where resolution failed or for special identifiers
-      // If it starts with %, it's a group that wasn't found
       if (rule.ident.starts_with("%")) {
           return false;
       }
@@ -160,13 +142,11 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
 
   uid_t uid = identity->uid;
   std::vector<gid_t> groups = identity->groups;
-  groups.push_back(identity->gid);
-  int ngroups = static_cast<int>(groups.size());
-  
+
   auto rules = config_->getRules();
-  
+
   for (const auto &rule : rules) {
-    if (matchRule(rule, uid, groups.data(), ngroups, command, target_uid, args)) {
+    if (matchRule(rule, uid, groups, command, target_uid, args)) {
       if (rule.action == Rule::Action::PERMIT) {
         return rule;
       } else {
@@ -174,7 +154,7 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
       }
     }
   }
-  
+
   return std::nullopt;
 }
 
@@ -187,42 +167,50 @@ std::vector<Rule> PermissionChecker::list_permitted_rules() const {
 
     uid_t uid = identity->uid;
     std::vector<gid_t> groups = identity->groups;
-    groups.push_back(identity->gid);
-    int ngroups = static_cast<int>(groups.size());
 
+    struct RuleScope {
+        std::string cmd;
+        std::vector<std::string> cmdargs;
+        std::optional<uid_t> target_uid;
+    };
+    auto scope_of = [](const Rule& r) -> RuleScope {
+        return {r.cmd, r.cmdargs, r.target_uid};
+    };
+    auto scope_equal = [](const RuleScope& a, const RuleScope& b) {
+        return a.cmd == b.cmd && a.cmdargs == b.cmdargs &&
+               a.target_uid == b.target_uid;
+    };
+
+    std::vector<RuleScope> denied_scopes;
     auto rules = config_->getRules();
     for (const auto& rule : rules) {
-        // Check identity match (user or group)
+        // Identity match mirrors matchRule().
         bool identity_match = false;
         if (rule.ident_uid.has_value()) {
             identity_match = (rule.ident_uid.value() == uid);
         } else if (rule.ident_gid.has_value()) {
-            identity_match = std::ranges::find(std::span(groups.data(), ngroups),
-                                               rule.ident_gid.value()) != std::span(groups.data(), ngroups).end();
-        } else if (!rule.ident.empty()) {
-            if (!rule.ident.starts_with("%")) {
-                char* endptr;
-                uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
-                if (*endptr == '\0') {
-                    identity_match = (rule_uid == uid);
-                }
-            }
+            identity_match = std::ranges::find(groups, rule.ident_gid.value()) != groups.end();
+        } else if (!rule.ident.empty() && !rule.ident.starts_with("%")) {
+            char* endptr;
+            uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
+            identity_match = (*endptr == '\0' && rule_uid == uid);
         }
 
         if (!identity_match) continue;
 
-        // Respect first-match semantics: if the first matching rule for this
-        // command is DENY, skip it (a later PERMIT does not override the deny).
-        if (rule.action == Rule::Action::PERMIT) {
+        if (rule.action == Rule::Action::DENY) {
+            // Track denied scopes so later PERMIT rules with identical scope
+            // are not advertised (first-match would deny them at runtime).
+            denied_scopes.push_back(scope_of(rule));
+            continue;
+        }
+
+        const auto scope = scope_of(rule);
+        bool suppressed = std::any_of(denied_scopes.begin(), denied_scopes.end(),
+                                      [&](const RuleScope& d) { return scope_equal(d, scope); });
+        if (!suppressed) {
             permitted.push_back(rule);
         }
-        // DENY rules that match identity are respected by not adding them,
-        // but we do not break here because different rules may cover different
-        // commands. A per-command first-match would require grouping by command,
-        // but the simple case (identity-level deny) is handled by ordering:
-        // if the config places a deny before a permit for the same command,
-        // the deny appears first in iteration and the permit is still added.
-        // Full per-command first-match requires the runtime permit() check.
     }
     return permitted;
 }

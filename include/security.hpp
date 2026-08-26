@@ -42,15 +42,6 @@ public:
      */
     bool validateUser(std::string_view username) const;
 
-
-
-    /**
-     * @brief Checks if a path is safe (e.g., no directory traversal, no sensitive locations).
-     * @param path Path to check.
-     * @return True if safe, false otherwise.
-     */
-    bool isSafePath(std::string_view path) const;
-
     /**
      * @brief Logs a security-related event.
      * @param event Description of the event.
@@ -71,12 +62,19 @@ public:
 
     /**
      * @brief Prevents unequivocally destructive commands (e.g., 'rm -rf /').
+     *
+     * Detection is basename-based for known destructive tools and
+     * canonicalization-aware for filesystem targets (a relative argument that
+     * resolves to "/" from the current working directory is caught).
+     *
      * @param command Command to check.
      * @param args Command arguments.
      * @param config Configuration instance for the blocklist.
      * @return True if the command is catastrophic, false otherwise.
      */
-    bool isCatastrophicCommand(std::string_view command, const std::vector<std::string>& args, const Config& config) const;
+    bool isCatastrophicCommand(std::string_view command,
+                               const std::vector<std::string>& args,
+                               const Config& config) const;
 
 private:
     /**

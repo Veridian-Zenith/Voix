@@ -1,5 +1,5 @@
 /**
- * @file command.h
+ * @file command.hpp
  * @copyright Copyright (C) 2026 Veridian Zenith
  * @author Dae Euhwa <daedaevibin@ik.me>
  *
@@ -11,6 +11,7 @@
 
 #include "config.hpp"
 #include "rule.hpp"
+#include "system_identity.hpp"
 #include <string>
 #include <string_view>
 #include <vector>
@@ -43,11 +44,16 @@ public:
 
     /**
      * @brief Executes a command with given arguments and options.
+     *
+     * All identity resolution happens in the parent before fork(); the child
+     * performs no name-service lookups between fork() and execve().
+     *
      * @param command The command to execute.
      * @param args The arguments for the command.
      * @param config The configuration to use.
      * @param options The options for command execution.
-     * @param user The user to execute the command as.
+     * @param rule The matched authorization rule.
+     * @param target Fully resolved identity of the target user.
      * @return The return code of the command, or a non-zero value on failure.
      */
     int execute(std::string_view command,
@@ -55,19 +61,19 @@ public:
                  const Config& config,
                  const CommandOptions& options,
                  const Rule& rule,
-                 std::string_view user = "root") const;
+                 const UserIdentity& target) const;
 
     /**
      * @brief Resolves the security profile to apply for a matched rule and target.
      *
      * Resolution order:
      *   1. An explicit profile named on the rule (administrator's decision).
-     *   2. The target is a configured unconfined system target (e.g. the package
-     *      manager user) -> the full "system" profile is applied.
+     *   2. The target is a configured unconfined system target (e.g. the
+     *      package manager user) -> the full "system" profile is applied.
      *   3. Otherwise the safe restricted default is applied.
      *
-     * Unconfined targets always keep their full environment independently of the
-     * selected profile, since package managers and AUR helpers require it.
+     * Unconfined targets always keep their full environment independently of
+     * the selected profile, since package managers and AUR helpers require it.
      *
      * @param config The configuration.
      * @param rule The matched rule.
@@ -77,17 +83,6 @@ public:
     static SecurityProfile resolve_profile(const Config& config,
                                           const Rule& rule,
                                           std::string_view target_user);
-
-    /**
-     * @brief Builds a command string for logging or debugging.
-     * @param command The command.
-     * @param args The arguments.
-     * @param user The user.
-     * @return The built command string.
-     */
-    std::string buildCommandString(std::string_view command,
-                                    const std::vector<std::string>& args,
-                                    std::string_view user) const;
 
 private:
     /**

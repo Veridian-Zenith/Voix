@@ -20,6 +20,7 @@ namespace Voix {
 
 class Security;
 class Rule;
+class Config;
 
 /**
  * @brief Interface for user authentication.
@@ -29,6 +30,11 @@ public:
     virtual ~IAuthenticator() = default;
     /**
      * @brief Authenticates the user.
+     *
+     * Account validation (pam_acct_mgmt) is always performed, even when the
+     * rule carries a trust/nopass option or a fresh persisted timestamp —
+     * only the interactive credential check may be skipped.
+     *
      * @param rule Optional rule to consider during authentication.
      * @return True if authentication succeeded, false otherwise.
      */
@@ -42,6 +48,10 @@ public:
      * @brief Closes the current session.
      */
     virtual void closeSession() = 0;
+    /**
+     * @brief Invalidates any persisted authentication timestamp (-k).
+     */
+    virtual void clear_timestamp() = 0;
 };
 
 /**
@@ -52,9 +62,12 @@ public:
     /**
      * @brief Constructor for PamAuthenticator.
      * @param security Pointer to the security manager.
+     * @param config Loaded configuration (sanctuary for timestamp storage).
      * @param non_interactive Whether authentication should be non-interactive.
      */
-    PamAuthenticator(std::shared_ptr<Security> security, bool non_interactive);
+    PamAuthenticator(std::shared_ptr<Security> security,
+                     const Config& config,
+                     bool non_interactive);
     /**
      * @brief Destructor for PamAuthenticator.
      */
@@ -63,9 +76,11 @@ public:
     bool authenticate(const std::optional<Rule>& rule) override;
     bool openSession() override;
     void closeSession() override;
+    void clear_timestamp() override;
 
 private:
     std::shared_ptr<Security> security_;
+    const Config& config_;
     bool non_interactive_;
     struct pam_handle* pamh_ = nullptr;
 };

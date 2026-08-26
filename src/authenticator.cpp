@@ -8,27 +8,23 @@
 
 #include "authenticator.hpp"
 #include "security.hpp"
+#include "config.hpp"
 #include "rule.hpp"
+#include "ticket_store.hpp"
 #include "pam_utils.hpp"
 #include "logger.hpp"
-#include <pwd.h>
-#include <grp.h>
 #include <unistd.h>
-#include <cstring>
 #include <format>
 #include <print>
 #include <utility>
 #include <security/pam_appl.h>
 
-#ifndef NGROUPS_MAX
-#define NGROUPS_MAX 32
-#endif
-
 namespace Voix {
 
 PamAuthenticator::PamAuthenticator(std::shared_ptr<Security> security,
+                             const Config& config,
                              bool non_interactive)
-    : security_(std::move(security)), non_interactive_(non_interactive) {}
+    : security_(std::move(security)), config_(config), non_interactive_(non_interactive) {}
 
 PamAuthenticator::~PamAuthenticator() {
     if (pamh_) {
@@ -36,60 +32,101 @@ PamAuthenticator::~PamAuthenticator() {
     }
 }
 
+void PamAuthenticator::clear_timestamp() {
+    TicketStore tickets(config_.getSanctuary());
+    const uid_t uid = getuid();
+    tickets.clear(uid);
+    LOG_INFO(std::format("Cleared persisted authentication timestamp for uid {}", uid));
+}
+
 bool PamAuthenticator::authenticate(const std::optional<Rule>& rule) {
-  if (rule && (rule->options & Rule::NOPASS)) {
-    return true;
-  }
-
   std::string current_user = security_->getCurrentUser();
-  if (current_user == "root") {
-    return true;
+  const bool nopass = rule && (rule->options & Rule::NOPASS);
+  const bool persist_rule = rule && (rule->options & Rule::PERSIST);
+
+  // Interactive credential check can be skipped for root, trusted rules and
+  // fresh persisted timestamps. Account validation below always runs.
+  bool skip_credential_check = nopass;
+  if (!skip_credential_check && current_user == "root") {
+    skip_credential_check = true;
   }
 
-  if (non_interactive_) {
+  if (!skip_credential_check && non_interactive_) {
     return false;
   }
 
-  if (pamh_) {
-      pam_end(pamh_, 0);
-      pamh_ = nullptr;
+  TicketStore tickets(config_.getSanctuary());
+  const uid_t caller_uid = getuid();
+
+  if (!skip_credential_check && persist_rule && tickets.valid(caller_uid)) {
+    LOG_INFO("Using persisted authentication timestamp");
+    skip_credential_check = true;
   }
 
-  struct pam_conv conv = {
-      pam_conversation,
-      nullptr
+  auto fail = [this](int pam_result, std::string_view what) {
+      std::println(stderr, "{}: {}", what, pam_strerror(pamh_, pam_result));
+      security_->logEvent(std::format("{} failed", what), "user");
+      pam_end(pamh_, pam_result);
+      pamh_ = nullptr;
   };
 
-  int pam_result = pam_start("voix", current_user.c_str(), &conv, &pamh_);
-  if (pam_result != PAM_SUCCESS) {
-    std::println(stderr, "PAM initialization failed: {}",
-                 pam_strerror(nullptr, pam_result));
-    return false;
-  }
+  if (!skip_credential_check) {
+    if (pamh_) {
+        pam_end(pamh_, 0);
+        pamh_ = nullptr;
+    }
 
-  pam_result = pam_authenticate(pamh_, 0);
-  bool auth_success = (pam_result == PAM_SUCCESS);
+    struct pam_conv conv = {
+        pam_conversation,
+        nullptr
+    };
 
-  if (!auth_success) {
-    std::println(stderr, "Authentication failed: {}", pam_strerror(pamh_, pam_result));
-    security_->logEvent("PAM authentication failed", current_user);
-  } else {
-    pam_result = pam_acct_mgmt(pamh_, 0);
-    auth_success = (pam_result == PAM_SUCCESS);
-    if (!auth_success) {
-      std::println(stderr, "Account validation failed: {}",
-                   pam_strerror(pamh_, pam_result));
+    int pam_result = pam_start("voix", current_user.c_str(), &conv, &pamh_);
+    if (pam_result != PAM_SUCCESS) {
+      std::println(stderr, "PAM initialization failed: {}",
+                   pam_strerror(nullptr, pam_result));
+      return false;
+    }
+
+    pam_result = pam_authenticate(pamh_, 0);
+    if (pam_result != PAM_SUCCESS) {
+      security_->logEvent("PAM authentication failed", current_user);
+      fail(pam_result, "Authentication failed");
+      return false;
+    }
+  } else if (!pamh_) {
+    // No credential check needed, but the PAM handle is still required for
+    // account validation and session management.
+    struct pam_conv conv = {
+        pam_conversation,
+        nullptr
+    };
+    int pam_result = pam_start("voix", current_user.c_str(), &conv, &pamh_);
+    if (pam_result != PAM_SUCCESS) {
+      std::println(stderr, "PAM initialization failed: {}",
+                   pam_strerror(nullptr, pam_result));
+      return false;
     }
   }
 
-  if (!auth_success) {
-    pam_end(pamh_, pam_result);
-    pamh_ = nullptr;
-  } else {
-    security_->logEvent("PAM authentication successful", current_user);
+  // Account validation always runs: expired or disabled accounts must not
+  // execute commands even under trust/nopass rules.
+  int pam_result = pam_acct_mgmt(pamh_, 0);
+  if (pam_result != PAM_SUCCESS) {
+    fail(pam_result, "Account validation failed");
+    return false;
   }
 
-  return auth_success;
+  if (persist_rule) {
+    if (tickets.record(caller_uid)) {
+      LOG_INFO("Recorded persisted authentication timestamp");
+    } else {
+      LOG_WARN("Failed to record persisted authentication timestamp");
+    }
+  }
+
+  security_->logEvent("PAM authentication successful", current_user);
+  return true;
 }
 
 bool PamAuthenticator::openSession() {
