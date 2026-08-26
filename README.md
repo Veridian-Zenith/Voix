@@ -1,5 +1,11 @@
 # Voix
 
+![Tests](https://github.com/Veridian-Zenith/Voix/actions/workflows/tests.yml/badge.svg)
+![CodeQL](https://github.com/Veridian-Zenith/Voix/actions/workflows/codeql.yml/badge.svg)
+![Release](https://img.shields.io/github/v/release/Veridian-Zenith/Voix)
+![AUR version](https://img.shields.io/aur/version/voix)
+![License](https://img.shields.io/badge/license-OSL--3.0-blue)
+
 ## Privilege Policy Enforcement Runtime
 
 Voix is a user-space Privilege Policy Enforcement Runtime designed to evaluate authorization policies, construct controlled execution contexts, and enforce privilege and syscall-level boundaries during command execution on Unix-like systems.
@@ -12,17 +18,23 @@ It operates as a deterministic execution broker between user intent and privileg
 
 Voix implements a staged execution pipeline for privileged command invocation:
 
-```
-Policy Evaluation
-→ Authentication (PAM, optional)
-→ Privilege Transition (setuid/setgid)
-→ Capability Reduction (libcap)
-→ Syscall Confinement (seccomp)
-→ Environment Sanitization
-→ Process Execution (execve)
+```mermaid
+flowchart TB
+    A[CLI Parsing] --> B[Policy Evaluation<br/>first-match ACL]
+    B --> C[Authentication<br/>PAM · acct_mgmt always]
+    C --> D[Persisted Ticket Check<br/>persist option]
+    D --> E[Privilege Transition<br/>setgroups / setgid / setuid]
+    E --> F[Capability Reduction<br/>libcap]
+    F --> G[Syscall Confinement<br/>NNP always · seccomp]
+    G --> H[Environment Sanitization<br/>whitelist + umask 022]
+    H --> I[Process Execution<br/>execve]
 ```
 
 Each stage is strictly ordered and failure-atomic where applicable. Any violation of required invariants results in termination prior to execution.
+
+> [!NOTE]
+> All identity resolution happens **before** `fork()`; the child performs no
+> name-service lookups between `fork()` and `execve()`.
 
 ---
 
@@ -209,18 +221,45 @@ voix <command> [args...]
 ```
 
 **Common Options:**
-- `-u USER`: Execute as a specific target user.
-- `-n`: Non-interactive mode (fail if authentication is required).
-- `-C`: Clear authentication tokens.
+
+- <kbd>-u</kbd> `USER`: Execute as a specific target user.
+- <kbd>-n</kbd>: Non-interactive mode (fail if authentication is required).
+- <kbd>-k</kbd>: Invalidate the persisted authentication timestamp (`persist` tickets).
+- <kbd>-C</kbd> `FILE`: Use an alternative configuration file.
+- <kbd>-l</kbd>: List permitted commands for the current user.
 
 ---
 
 ## Troubleshooting
 
-- **"PAM authentication failed"**: Verify that the PAM configuration at `/etc/pam.d/voix` is correct.
-- **"Permission denied"**: Verify the user/group authorization rules in `/etc/voix.conf`.
+<details>
+<summary><b>"PAM authentication failed"</b></summary>
+
+Verify that the PAM configuration at `/etc/pam.d/voix` matches your system's
+authentication stack (most distributions can `include system-auth`).
+Account-level failures (expired password, locked account) are also reported
+here — account validation always runs, even for `trust` rules.
+</details>
+
+<details>
+<summary><b>"Permission denied"</b></summary>
+
+Check the user/group authorization rules in `/etc/voix.conf`. Remember that
+rules without a `target:` field only apply to the default target
+(<code>root</code>); switching users requires an explicit
+<code>target: USER</code> rule. Validate your policy with
+<code>voix -c</code>.
+</details>
+
+<details>
+<summary><b>"Insufficient privileges" at startup</b></summary>
+
+The binary must be setuid root (mode <code>4755</code>) or carry equivalent
+file capabilities. Reinstall with
+<code>sudo cmake --install build</code>.
+</details>
 
 ---
 
 ## License
-Voix is distributed under the Open Software License v3.0 (OSL-3.0). See `[LICENSE](./LICENSE)` for details.
+Voix is distributed under the Open Software License v3.0 (OSL-3.0). See [`LICENSE`](./LICENSE) for details.

@@ -1,37 +1,90 @@
-# Voix configuration
+# Voix configuration — annotated example covering every supported key.
+# The canonical shipped sample lives at config/voix.conf in the repository.
 
 # Core system settings
 core:
-  # The sacred path to the temporary directory where Voix performs its rites.
-  sanctuary: /tmp
-  # Trusted paths to seek out incantations (executables).
+  # Working directory for Voix runtime state (persisted authentication
+  # timestamps live under <sanctuary>/timestamp/).
+  sanctuary: /var/lib/voix
+
+  # Trusted directories used to resolve non-absolute command names.
   paths:
     - /bin
     - /sbin
     - /usr/bin
     - /usr/sbin
 
-# Access Control List
+  # Default every execution to a login shell (default: false).
+  login_shell: false
+
+  # Silence voix's own log lines on stderr (audit files/syslog unaffected).
+  suppress_stderr: true
+
+  # Targets receiving the full "system" tier: retained capabilities, no
+  # seccomp, no FD scrubbing, fully preserved environment. Required for
+  # package-manager workflows (pacman needs CAP_CHOWN and its hooks).
+  unconfined_targets:
+    - root
+    - alpm
+
+# Access Control List — rules use first-match semantics.
 acl:
-  # Ordain members of the 'wheel' group to perform any rite without a token of proof.
   group:
+    # Ordain members of 'wheel' to perform any rite without proof.
     wheel:
       - action: permit
         options: [trust]
 
   user:
-    # Allow 'initiate' to restart a service as 'root' without a password.
+    # Restart one service as root without a password, with a persisted
+    # timestamp so repeat invocations skip the prompt for 15 minutes.
     initiate:
       - action: permit
         target: root
         command: /usr/bin/systemctl
         args: [restart, nginx]
+        options: [nopass, persist]
 
-    # Shun 'exiled' users from performing any rite.
+    # Inject environment variables into an authorized command.
+    builder:
+      - action: permit
+        command: /usr/bin/make
+        env: [MAKEFLAGS=-j8]
+
+    # Suppress audit records containing the command text for this rule.
+    auditor:
+      - action: permit
+        options: [trust, nolog]
+        command: id
+
+    # Confine to the restricted security profile explicitly.
+    chrooted:
+      - action: permit
+        options: [trust]
+        profile: restricted
+
+    # Shun entirely: deny rules win by first-match order.
     exiled:
       - action: deny
 
 # Security Policies
 security:
+  # Named confinement tiers applied via a rule's `profile:` key.
+  profiles:
+    restricted:
+      retain_full_capabilities: false
+      enable_seccomp: true
+      enable_resource_limits: true
+      scrub_environment: true
+    privileged:
+      retain_full_capabilities: true
+      enable_seccomp: false
+      enable_resource_limits: false
+      scrub_environment: false
+      preserve_full_environment: false
+
+  # Global blocklist: exact paths, or "regex:" patterns matched against the
+  # canonicalized full command line. Malformed regexes are rejected at load.
   blocklist:
     - /bin/sh
+    - regex:^cat /etc/(shadow|sudoers)

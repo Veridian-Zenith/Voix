@@ -36,23 +36,34 @@ sequenceDiagram
 
 ### 3. Blacklist Strategy
 
-The following syscalls are identified for the initial blacklist:
+Voix blocks the following syscalls for non-privileged targets:
 
-- `kexec_load`
-- `delete_module`
-- `init_module`
-- `finit_module`
-- `reboot`
-- `swapon`
-- `swapoff`
-- `ptrace`
-- `bpf`
+| Category | Syscalls |
+| :--- | :--- |
+| Kernel/image | `kexec_load`, `bpf` |
+| Loadable modules | `init_module`, `finit_module`, `delete_module` |
+| System state | `reboot`, `swapon`, `swapoff` |
+| Process inspection / injection | `ptrace`, `process_vm_readv`, `process_vm_writev` |
+| Kernel-object attack surface | `userfaultfd`, `perf_event_open`, `io_uring_setup` |
+| Keyring | `keyctl`, `add_key`, `request_key` |
+| Handle-based filesystem escape | `open_by_handle_at`, `name_to_handle_at` |
 
-These syscalls are often targets for privilege escalation or system disruption.
+These syscalls are frequent targets for privilege escalation, container
+escapes, or system disruption.
+
+> [!NOTE]
+> `PR_SET_NO_NEW_PRIVS` is applied **unconditionally** for non-privileged
+> targets — even when seccomp is disabled by policy (`security.seccomp: false`
+> or a profile with `enable_seccomp: false`). Executed setuid binaries can
+> therefore never regain privileges regardless of filter configuration.
 
 ### 4. Error Handling
 
-If `Security::applySeccompBlacklist()` fails to initialize the filter or apply the rules, the child process must immediately call `_exit(1)` to ensure it does not execute the command in an un-sandboxed state.
+Filter construction is fail-closed:
+
+- If the filter context cannot be initialized or loaded, the child immediately calls `_exit(1)` rather than executing unsandboxed.
+- Per-rule additions returning `-ENOSYS` or `-EOPNOTSUPP` (the syscall does not exist on this architecture) are tolerated so a single filter definition serves every supported architecture.
+- Any other rule-addition error is fatal.
 
 ## Future Considerations
 

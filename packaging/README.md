@@ -43,11 +43,11 @@ Installs pre-built binaries from GitHub Releases. No compiler toolchain needed a
 
 ### Updating AUR packages
 
-1. Bump `pkgver`/`pkgrel` in both `AUR/voix/PKGBUILD` and `AUR/voix-bin/PKGBUILD`
+1. Bump `pkgver`/`pkgrel` in both `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD`
 2. Update `source` URLs to the new release tag
 3. Regenerate `.SRCINFO` (`makepkg --printsrcinfo > .SRCINFO`)
 4. Compute checksums for source tarball (`makepkg --printsrcinfo` or `updpkgsums`)
-5. Commit and push to the `AUR/voix` and `AUR/voix-bin` git repos
+5. Commit and push to the `pkg/voix` and `pkg/voix-bin` AUR git checkouts
 
 ## Debian/Ubuntu (.deb)
 
@@ -70,4 +70,11 @@ Regardless of packaging format, the following paths are standard:
 | `/usr/bin/voix` | Binary (setuid root, mode 4755) |
 | `/etc/voix.conf` | Configuration file (root-owned, mode 0600) |
 | `/etc/pam.d/voix` | PAM service configuration |
+| `/var/lib/voix` | Sanctuary directory (persisted authentication timestamps) |
 | `/usr/share/man/man1/voix.1` | Man page (if packaged) |
+
+> [!IMPORTANT]
+> Never overwrite a live `/etc/voix.conf` on upgrade: install the shipped
+> sample as `/etc/voix.conf.new` instead (the CMake install step already does
+> this). Pacman-based packaging achieves the same via `backup=('etc/voix.conf'
+> 'etc/pam.d/voix')` in the PKGBUILD.

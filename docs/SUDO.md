@@ -33,8 +33,10 @@ Voix includes several flags to support `sudo`-like behavior. See [`docs/CLI.md`]
 Important flags include:
 
 * `-i, --login`: Executes the command in a login shell environment.
-* `-E, --preserve-env`: Preserves the user's environment variables.
-* `-l, --list`: Lists commands permitted for the current user.
+* `-E, --preserve-env`: Requests preservation of the user's environment variables. Effective only when the matched rule carries a `keepenv` policy grant.
+* `-l, --list`: Lists commands permitted for the current user (deny-aware, mirroring runtime first-match semantics).
+* `-k`: Invalidates the persisted authentication timestamp for the invoking user.
+* `-n`: Non-interactive mode; fails instead of prompting for authentication.
 
 ## 4. Limitations
 

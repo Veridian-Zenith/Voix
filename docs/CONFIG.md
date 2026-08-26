@@ -2,6 +2,22 @@
 
 Voix uses a structured YAML configuration file to define execution policies.
 
+> [!TIP]
+> Validate any policy change before deploying it:
+>
+> ```bash
+> voix -c
+> ```
+>
+> `--check-config` verifies the schema, path permissions **and** runs semantic
+> policy linting (empty ACL, unconfined root, redundant rules, open permits,
+> missing blocklist).
+
+> [!WARNING]
+> Package upgrades never overwrite a live `/etc/voix.conf`. When the file
+> already exists, the shipped sample is installed as `/etc/voix.conf.new`
+> instead — merge it manually.
+
 ## Configuration File Structure
 
 The configuration file (default: `/etc/voix.conf`) is composed of three main sections:
@@ -43,9 +59,18 @@ A mapping of users or groups to rules that govern execution authorization.
 - `action`: `permit` to allow the action, or `deny` to block it.
 - `options`: List of modifiers for the rule:
     - `trust` or `nopass`: Allow execution without authentication.
-    - `keepenv`: Preserve the user's environment variables.
-    - `persist`: Maintain a session to avoid repeated authentication.
-    - `nolog`: Suppress logging of this execution.
+    - `keepenv`: Preserve the user's environment variables (minus known
+      dangerous loader/interpreter variables). The CLI `-E` flag can only
+      request what a `keepenv` policy grant already allows.
+    - `persist`: Maintain an authentication timestamp (default TTL: 15
+      minutes, stored under `<sanctuary>/timestamp/`) so subsequent runs skip
+      the password prompt. Account validation still runs every time.
+      Invalidate with `voix -k`.
+    - `nolog`: Suppress audit-log records containing the command text. An
+      outcome-only summary ("execution completed, details withheld") is still
+      recorded, and catastrophic-command blocks are always logged in full.
+- `env`: (Optional) List of `KEY=VALUE` entries applied to the executed
+  command's environment after sanitization. Keys must be valid C identifiers.
 - `profile`: (Optional) Name of a security profile to apply (see `security.profiles`). If omitted, Voix uses the `restricted` profile, unless the target is listed in `core.unconfined_targets`, in which case the unconfined "system" profile is applied.
 - `target`: (Optional) The user identity to assume during execution (defaults to `root`). Rules without a `target` field only match when executing as root (uid 0). To allow user switching via `-u`, add explicit `target` rules (e.g., `target: postgres`).
 - `command`: (Optional) The specific command (full path) being allowed.
@@ -68,7 +93,24 @@ Defines named execution profiles that control confinement behavior:
 
 #### `blocklist` (optional)
 
-A list of commands and regex patterns that are globally forbidden.
+A list of entries that are globally forbidden, checked before policy
+evaluation. Two entry forms are supported:
+
+- **Exact paths** (default): a scalar entry matches the command path exactly,
+  e.g. `/bin/sh`.
+- **Regex patterns**: prefix an entry with `regex:` to have the remainder
+  treated as an ECMAScript regex matched against the full command line
+  (command plus arguments, with path-like arguments canonicalized), e.g.
+  `regex:^cat /etc/(shadow|sudoers)`. Malformed patterns are rejected at load
+  time.
+
+Independent of the blocklist, Voix hardcodes catastrophic-command detection:
+`rm -rf` targeting `/` (including globs, double slashes, long options and
+cwd-relative paths that resolve to `/`), `dd` writing to raw block devices
+(sd/hd/vd/nvme/mmcblk/dm/mapper/disk aliases or the root device), the whole
+`mkfs*` family, `mkswap`, and the partition/destruction tools `fdisk`,
+`sfdisk`, `cfdisk`, `parted`, `wipe`, `wipefs`, `shred` — matched by basename,
+so alternate path prefixes are covered too.
 
 Example:
 
@@ -91,6 +133,9 @@ security:
 ```
 
 ### Complete Example
+
+<details>
+<summary>Full annotated example (click to expand)</summary>
 
 ```yaml
 core:
@@ -129,5 +174,7 @@ security:
   blocklist:
     - /bin/sh
 ```
+
+</details>
 
 For the canonical example, see [`config/voix.conf`](config/voix.conf).

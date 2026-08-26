@@ -1,4 +1,4 @@
-.TH VOIX 1 "August 2026" "Voix 4.10.0" "User Commands"
+.TH VOIX 1 "August 2026" "Voix 4.11.0" "User Commands"
 .SH NAME
 voix \- a Privilege Policy Enforcement Runtime
 .SH SYNOPSIS
@@ -10,38 +10,53 @@ Voix is a Privilege Policy Enforcement Runtime for Unix-like operating systems. 
 .SH OPTIONS
 .TP
 .B \-C, \-\-config \fIFILE\fR
-Use the specified file as the configuration sanctuary (default: /etc/voix.conf).
+Use the specified file as the configuration source (default: /etc/voix.conf). The file must pass the same root-ownership and permission checks as the default configuration.
 .TP
 .B \-c, \-\-check-config
-Validate the configuration file and exit.
+Validate the configuration file and exit. Also runs semantic policy linting (empty ACL, unconfined root target, redundant rules, open permits, missing blocklist).
 .TP
 .B \-E, \-\-preserve-env
-Preserve the user's environment variables.
+Request preservation of the user's environment variables. Effective only when the matched rule carries a \fIkeepenv\fR policy grant; the flag alone cannot widen what the policy allows.
 .TP
 .B \-i, \-\-login
 Execute the command in a login shell environment.
 .TP
 .B \-l, \-\-list
-List the commands that the current user is permitted to execute.
+List the commands that the current user is permitted to execute. Mirrors runtime first-match semantics: a permit whose scope an earlier matching deny rule already wins is not listed.
 .TP
 .B \-n
 Non-interactive mode; fail if proof (authentication) is required.
 .TP
-.B \-s, \-\-shell
+.B \-s
 Execute the user's login shell (ascend to shell).
 .TP
 .B \-u \fIUSER\fR
 Execute command as the specified target user (default: root). Requires an explicit target rule in the ACL for non-root users.
+.TP
+.B \-k
+Invalidate the persisted authentication timestamp for the invoking user (see the \fIpersist\fR rule option). Works standalone without a command.
 .TP
 .B \-v, \-\-version
 Show the version of this artifact.
 .TP
 .B \-h, \-\-help
 Show the help message.
-.SH CONFIGURATION
-The Voix configuration file, located at \fI/etc/voix.conf\fR, is a YAML file that defines rules for command execution.
+.SH EXIT CODES
+.TP
+.B 0
+The command ran successfully (or listing/validation succeeded).
+.TP
+.B 1
+Authorization denied, authentication failed, configuration invalid, or a catastrophic command was blocked.
+.TP
+.B 127
+The command could not be resolved or executed.
 .PP
-See \fIdocs/CONFIG.md\fR for details on the YAML format.
+Otherwise, the exit status of the executed command is propagated verbatim.
+.SH CONFIGURATION
+The Voix configuration file, located at \fI/etc/voix.conf\fR, is a YAML file that defines rules for command execution. Rules support per-rule options (\fItrust\fR/\fInopass\fR, \fIkeepenv\fR, \fIpersist\fR, \fInolog\fR), argument wildcards, named security profiles, environment injection via \fIenv\fR lists, and an administrator blocklist of exact paths plus \fBregex:\fR patterns.
+.PP
+See \fIdocs/CONFIG.md\fR for details on the YAML format. Package upgrades never overwrite a live configuration; the shipped sample is installed as \fI/etc/voix.conf.new\fR instead.
 .SH SECURITY MODEL
 Voix applies a tiered hardening strategy based on the target user's privilege level.
 .PP
@@ -54,19 +69,44 @@ ensures legitimate root operations (package manager hooks, process management)
 work without restriction.
 .PP
 .B Non-privileged targets:
-all capabilities are dropped, resource limits are enforced (RLIMIT_NOFILE,
-RLIMIT_NPROC, RLIMIT_CORE), PR_SET_NO_NEW_PRIVS is set, and a seccomp syscall
-blacklist is applied (if enabled in configuration). This provides maximum
-containment for commands running as unprivileged users.
+all capabilities are dropped, resource limits are enforced fail-closed
+(RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_CORE),
+.B PR_SET_NO_NEW_PRIVS
+is always set (independently of seccomp), a seccomp syscall
+blacklist is applied when enabled in configuration, the environment is fully
+scrubbed (clearenv) and rebuilt from a safe whitelist with PATH overridden to
+trusted directories, a umask of 022 is forced, and inherited file descriptors
+(3+) are closed.
 .PP
-.B Non-privileged targets:
-the environment is fully scrubbed (clearenv) and rebuilt from a safe whitelist,
-and inherited file descriptors (3+) are closed.
 .B All targets:
-signal handlers are reset to SIG_DFL.
+signal handlers are reset to SIG_DFL, the umask is forced to 022,
+and all identity resolution (UID/GID/supplementary groups/home/shell) happens
+in the parent before fork(); the child performs no name-service lookups prior
+to execve.
+.SH CATASTROPHIC COMMAND DETECTION
+Independent of any configuration, Voix blocks unequivocally destructive
+operations: \fBrm -rf\fR variants targeting / (including globs, long options,
+combined short flags and cwd-relative paths that canonicalize to /),
+\fBdd\fR writing to raw block devices (sd/hd/vd/nvme/mmcblk/device-mapper/
+disk aliases or the detected root device), the entire \fBmkfs*\fR family,
+\fBmkswap\fR, and the basename-matched tools fdisk, sfdisk, cfdisk, parted,
+wipe, wipefs and shred. Blocked attempts are always audited in full,
+regardless of any nolog rule option.
 .SH AUTHENTICATION
 Voix uses the Pluggable Authentication Modules (PAM) framework for authentication.
 The service name is \fBvoix\fR, and its configuration can be found in \fI/etc/pam.d/voix\fR.
+Account validation (\fBpam_acct_mgmt\fR) runs on every invocation \-\- expired or
+disabled accounts are denied even under trust/nopass rules.
+.PP
+Rules carrying the \fIpersist\fR option store an authentication timestamp for
+15 minutes under \fI<sanctuary>/timestamp/\fR (strictly permission-checked);
+subsequent invocations skip the password prompt while account validation still
+runs. Use
+.B voix -k
+to invalidate immediately.
+.PP
+Rules carrying the \fInolog\fR option suppress audit records containing the
+command text; an outcome-only summary remains in the audit trail.
 .SH EXAMPLES
 Execute \fBwhoami\fR as root:
 .IP
@@ -76,11 +116,21 @@ Execute \fBwhoami\fR as a specific user:
 .IP
 voix -u user whoami
 .PP
+List permitted commands:
+.IP
+voix -l
+.PP
+Invalidate persisted authentication:
+.IP
+voix -k
+.PP
 Start an interactive shell ascension:
 .IP
 voix -s
 .SH AUTHOR
 Veridian-Zenith 2026 (Dae Euhwa - daedaevibin@ik.me)
+.SH LICENSE
+Open Software License version 3.0 (OSL-3.0).
 .SH SEE ALSO
 .BR sudo (8),
 .BR doas (1),

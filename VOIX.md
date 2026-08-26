@@ -12,15 +12,18 @@ It operates as a deterministic execution broker between user intent and privileg
 
 Voix implements a staged execution pipeline for privileged command invocation:
 
-```
-CLI Parsing
-  → Policy Evaluation
-    → Authentication (PAM, optional)
-      → Privilege Transition (setuid/setgid)
-        → Capability Reduction (libcap)
-          → Syscall Confinement (seccomp)
-            → Environment Sanitization
-              → Process Execution (execve)
+```mermaid
+flowchart TB
+    A[CLI Parsing] --> B[Policy Evaluation<br/>first-match ACL]
+    B --> C{Catastrophic?<br/>blocklist / heuristics}
+    C -- yes --> X[Audit + Deny]
+    C -- no --> D[PAM Authentication<br/>acct_mgmt always]
+    D --> E[Ticket Check<br/>persist option]
+    E --> F[Privilege Transition<br/>setgroups · setgid · setuid]
+    F --> G[Capability Reduction<br/>libcap]
+    G --> H[NNP + Seccomp<br/>non-privileged tier]
+    H --> I[Environment Sanitization<br/>whitelist · umask 022]
+    I --> J[Process Execution<br/>execve]
 ```
 
 Each stage is strictly ordered and failure-atomic where applicable. Any violation of required invariants results in termination prior to execution.
@@ -77,15 +80,16 @@ All other execution targets.
 Voix follows a defense-in-depth model consisting of:
 
 * **Policy-driven authorization** -- ACL evaluation with first-match semantics
-* **System authentication delegation** -- PAM integration under the `voix` service
-* **Privilege separation** -- fork/exec transition prevents the parent from retaining elevated state
+* **System authentication delegation** -- PAM integration under the `voix` service; account validation (`pam_acct_mgmt`) runs on every invocation, even for `trust`/`nopass` rules
+* **Persisted authentication timestamps** -- optional per-rule `persist` option stores a 15-minute ticket under `<sanctuary>/timestamp/` (TOCTOU-hardened); `-k` invalidates
+* **Privilege separation** -- fork/exec transition prevents the parent from retaining elevated state; all identity resolution happens before `fork()` (no name-service activity in the child)
 * **Capability reduction** -- `libcap` strips all capabilities for non-privileged targets
-* **Syscall filtering** -- `libseccomp` blocks dangerous syscalls (`kexec_load`, `ptrace`, `reboot`, `bpf`, etc.)
-* **Environment sanitization** -- eliminates injection vectors (`LD_PRELOAD`, `BASH_ENV`, `ENV`)
+* **Syscall filtering** -- `libseccomp` blocks dangerous syscalls (`kexec_load`, `ptrace`, `bpf`, `userfaultfd`, `keyctl`, `io_uring_setup`, etc.); `PR_SET_NO_NEW_PRIVS` is enforced unconditionally for non-privileged targets, independent of seccomp
+* **Environment sanitization** -- eliminates injection vectors (`LD_PRELOAD`, `BASH_ENV`, `ENV`); `keepenv` grants are required for any environment preservation, and a forced `umask 022` stops callers influencing file modes of privileged operations
 * **Signal blocking** -- `pthread_sigmask` blocks all signals before `fork()` to prevent signal-based attacks
-* **Secure file I/O** -- `O_NOFOLLOW`, root-ownership verification, symlink rejection (TOCTOU protection)
-* **Catastrophic command detection** -- hardcoded blocklist prevents `rm -rf /`, `dd` to root device, `mkfs`, `fdisk`, `parted`, `shred`
-* **Audit logging** -- dual output to `/var/log/voix.log` and syslog (`LOG_AUTHPRIV`)
+* **Secure file I/O** -- `O_NOFOLLOW`, effective-UID ownership verification, symlink rejection (TOCTOU protection) for configuration, logs, and timestamp tickets alike
+* **Catastrophic command detection** -- basename- and canonicalization-aware blocking of `rm -rf /` variants, `dd` to raw block devices, the `mkfs*` family, and partition/destruction tools, plus admin exact-path and `regex:` blocklist entries
+* **Audit logging** -- dual output to `/var/log/voix.log` (symlink-resistant append with control-character escaping to defeat log forging) and syslog (`LOG_AUTHPRIV`); the `nolog` rule option suppresses command text while preserving an outcome-only audit trail
 
 The security boundary is enforced at process creation time and is not dynamically adjusted after execution begins.
 
@@ -97,9 +101,10 @@ Voix maintains a minimal Trusted Computing Base for transparency and auditabilit
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | ~3,515 | ~51x smaller attack surface |
+| **Lines of Code** | ~180,000 | ~3,770 | ~48x smaller attack surface |
+| **Test Suite** | varies | ~1,810 lines · 84 tests | Includes adversarial cases |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | ~544 KB | Optimized via Clang/LTO |
+| **Binary Size (Release)** | ~1.2 MB | ~552 KB | Optimized via Clang/LTO |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 
@@ -205,11 +210,13 @@ security:
 
 Authentication is delegated to the system PAM stack under the `voix` service context.
 
-* Authentication is required unless explicitly bypassed via policy-level `trust`/`nopass` options
+* Authentication is required unless explicitly bypassed via policy-level `trust`/`nopass` options **or** a fresh `persist` timestamp ticket (TTL: 15 minutes)
+* **Account validation (`pam_acct_mgmt`) always runs** — expired or disabled accounts are denied even under `trust`/`nopass` rules
 * Voix does not implement its own credential storage or verification
-* PAM lifecycle: `start` → `authenticate` → `acct_mgmt` → `setcred` → `open_session` → `close_session`
-* Password buffers are zeroed via volatile pointer writes with compiler barrier after use
+* PAM lifecycle: `start` → `authenticate` → `acct_mgmt` → `setcred` → `open_session` → `close_session`; an RAII guard closes the session even when command execution throws
+* Password buffers are zeroed via volatile pointer writes with a compiler barrier after use
 * Non-interactive mode (`-n`) fails immediately if authentication is required
+* `-k` removes the invoking user's persisted ticket; tickets live in `<sanctuary>/timestamp/` with strict owner/mode verification (`O_NOFOLLOW`, mode `0600`, root-only parent directory)
 
 ---
 
@@ -225,15 +232,15 @@ voix [options] <command> [args...]
 | :--- | :--- | :--- |
 | `-h` | `--help` | Show help message |
 | `-v` | `--version` | Show version information |
-| `-u USER` | | Execute as the specified target user (default: root). Requires an explicit `target` rule for non-root users. |
+| `-u USER` | | Execute as a specific target user (default: root). Requires an explicit `target` rule for non-root users. |
 | `-C FILE` | `--config FILE` | Use the specified configuration file (default: `/etc/voix.conf`) |
 | `-c` | `--check-config` | Validate the configuration file and exit |
 | `-n` | | Non-interactive mode; fail if authentication is required |
 | `-s` | | Execute the user's shell (ascend to shell) |
-| `-l` | `--list` | List commands permitted for the current user |
-| `-E` | `--preserve-env` | Preserve the user's environment variables |
+| `-l` | `--list` | List commands permitted for the current user (deny-aware) |
+| `-E` | `--preserve-env` | Request environment preservation (requires a `keepenv` policy grant) |
 | `-i` | `--login` | Execute in a login shell environment |
-| `-k` | | Invalidate timestamp (compatibility no-op with `sudo`) |
+| `-k` | | Invalidate the persisted authentication timestamp (`persist` tickets) |
 
 ### Examples
 
@@ -360,30 +367,36 @@ Local authenticated users attempting to gain unauthorized root privileges or exe
 
 ### Catastrophic Command Blocklist
 
-The following commands are hardcoded and cannot be overridden:
+The following are hardcoded and cannot be overridden:
 
-* `rm -rf /` and variants targeting root filesystem
-* `dd` writing to raw block devices
-* `mkfs*`, `mkswap` -- filesystem creation
-* `fdisk`, `parted` -- partition manipulation
-* `wipe`, `shred` -- secure deletion
+* `rm -rf` targeting `/` and variants: root globs (`/*`, `/**`), `//`,
+  GNU long options (`--recursive`, `--force`), combined short flags
+  (`-Rf`, `-fr`, ...), and cwd-relative arguments that canonicalize to `/`
+  (e.g. `.` or `..` executed from `/`)
+* `dd` writing to raw block devices: sd/hd/vd/nvme/mmcblk, device-mapper
+  (`/dev/mapper`, `/dev/dm-`), `/dev/disk/*` aliases, `/dev/root`, or the
+  detected root filesystem device
+* The entire `mkfs*` family and `mkswap`
+* Partition/destruction tools matched by basename regardless of path prefix:
+  `fdisk`, `sfdisk`, `cfdisk`, `parted`, `wipe`, `wipefs`, `shred`
 
-Administrators can extend this via the `security.blocklist` YAML configuration.
+Administrators can extend this via the `security.blocklist` YAML
+configuration, using exact paths or `regex:` pattern entries.
 
 ---
 
 ## 12. Testing
 
-Voix includes 80 unit tests covering:
+Voix includes 84 unit tests covering:
 
-* Permission checking (allow, deny, group rules, command-specific, pattern matching, listing, target defaulting to root)
-* Configuration loading (valid, invalid YAML, nonexistent files, blocklist, unconfined targets, validation)
-* Security (user validation, safe paths, path traversal, catastrophic commands)
-* Command (profile resolution, command string building)
-* Logger (timestamp format, empty messages)
-* FileUtils (read, write, overwrite, command resolution)
-* SystemUtils (UID/GID lookup, environment management)
-* Negative security testing (catastrophic command evasion, path traversal, config tampering, permission bypass, blocklist evasion, command injection, environment injection, user validation injection)
+* Permission checking (allow, deny, group rules, command-specific, first-match deny precedence, pattern matching, listing with deny suppression, target defaulting to root)
+* Configuration loading (valid, invalid YAML, nonexistent files, blocklist exact + `regex:` entries + malformed-regex rejection, envlist validation, rule options, unconfined targets, validation)
+* Security (user validation, catastrophic commands: rm variants incl. cwd-relative targets, dd device coverage, mkfs family, partition tools; ticket store roundtrip/tampering)
+* Command (profile resolution matrix)
+* Logger (timestamp format, empty messages, control-character/log-forging sanitization)
+* FileUtils (read/write, secure O_NOFOLLOW I/O, symlink rejection, private-directory enforcement, command resolution)
+* SystemUtils (UID/GID lookup, passwd lookups, environment management)
+* Negative security testing (catastrophic command evasion, path traversal, config tampering, permission bypass, group spoofing, blocklist evasion, command injection, environment injection, user validation injection)
 
 ### Running Tests
 
@@ -411,41 +424,44 @@ clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26
 
 | Module | Class | Role |
 | :--- | :--- | :--- |
-| `voix.hpp/cpp` | `Voix` | Main orchestrator: config load, auth, permission, execution |
-| `command.hpp/cpp` | `Command` | Fork/exec engine, privilege transition, env sanitization, profile resolution |
-| `config.hpp/cpp` | `Config` | YAML config loading, rule parsing, security profiles, blocklist |
-| `security.hpp/cpp` | `Security` | User validation, path safety, catastrophic commands, capabilities, seccomp |
-| `authenticator.hpp/cpp` | `PamAuthenticator` | PAM authentication lifecycle |
-| `permission_checker.hpp/cpp` | `PermissionChecker` | ACL rule evaluation, UID/GID matching, pattern matching |
-| `rule.hpp` | `Rule` | Data model for authorization rules |
-| `file_utils.hpp/cpp` | `FileUtils` | Secure file I/O, path validation, command resolution |
-| `logger.hpp/cpp` | `Logger` | Dual-output audit logging |
+| `voix.hpp/cpp` | `Voix` | Main orchestrator: config load, auth, permission, execution, audit gating (`nolog`) |
+| `command.hpp/cpp` | `Command` | Fork/exec engine, privilege transition (pre-fork identity), env sanitization, profile resolution |
+| `config.hpp/cpp` | `Config` | YAML config loading, rule parsing, security profiles, exact + `regex:` blocklist |
+| `security.hpp/cpp` | `Security` | User validation, catastrophic commands, capabilities, seccomp blacklist |
+| `authenticator.hpp/cpp` | `PamAuthenticator` | PAM lifecycle (acct_mgmt always), persisted timestamps |
+| `ticket_store.hpp/cpp` | `TicketStore` | TOCTOU-hardened per-UID authentication tickets under `<sanctuary>/timestamp/` |
+| `permission_checker.hpp/cpp` | `PermissionChecker` | ACL rule evaluation, UID/GID matching, pattern matching, deny-aware listing |
+| `rule.hpp` | `Rule` | Data model for authorization rules (incl. `envlist`, `nolog`, `persist`, `pattern`) |
+| `file_utils.hpp/cpp` | `FileUtils` | Secure file I/O (`O_NOFOLLOW` reads/writes, private directories), path validation, command resolution |
+| `logger.hpp/cpp` | `Logger` | Dual-output audit logging with control-character escaping and syslog fallback |
+| `policy_analyzer.hpp/cpp` | `PolicyAnalyzer` | Semantic policy linting for `--check-config` |
 | `pam_utils.hpp/cpp` | `pam_conversation` | PAM conversation with echo control |
 | `system_identity.hpp/cpp` | `SystemIdentity` | System identity lookups (testable abstraction) |
-| `system_utils.hpp/cpp` | `SystemUtils` | UID/GID resolution, environment helpers |
+| `system_utils.hpp/cpp` | `SystemUtils` | UID/GID resolution, passwd lookups, environment helpers |
 
 ### Execution Flow (Child Process)
 
+```mermaid
+flowchart TB
+    F[fork · signals blocked] --> C1[Restore signal mask<br/>reset handlers to SIG_DFL]
+    C1 --> C2["umask(022)"]
+    C2 --> C3[setgroups/setgid/setuid<br/>identity resolved pre-fork]
+    C3 --> C4{Privileged tier?}
+    C4 -- yes --> C7
+    C4 -- no --> C5[Drop all capabilities]
+    C5 --> C6[Resource limits<br/>fail-closed]
+    C6 -.-> C7[cleanenviron + rebuild<br/>PATH/USER/LOGNAME/HOME + rule envlist]
+    C6 --> C8[Close inherited FDs 3+<br/>close_range or loop]
+    C7 --> C8
+    C8 --> C9[Resolve command path<br/>root-owned regular file only]
+    C9 --> C10["PR_SET_NO_NEW_PRIVS<br/>+ seccomp blacklist"]
+    C10 --> C11["execv() · login shells via argv[0] dash convention"]
 ```
-fork()
-  └─ child:
-       1. Restore signal mask
-       2. Reset signal handlers to SIG_DFL
-       3. Resolve target identity (passwd lookup)
-       4. Resolve security profile (explicit → unconfined → restricted)
-       5. Collect environment based on policy
-       6. Drop privileges (initgroups, setgid, setuid)
-       7. Drop capabilities [non-privileged only]
-       8. Clear and rebuild environment
-       9. Set PATH, USER, LOGNAME, HOME
-      10. Apply resource limits [non-privileged only]
-      11. Close inherited file descriptors [non-privileged only]
-      12. Resolve command path
-      13. Apply seccomp + PR_SET_NO_NEW_PRIVS [non-privileged only]
-      14. execv() or login shell execution
-  └─ parent:
-       waitpid → restore signals → return exit code
-```
+
+> [!NOTE]
+> Steps 5, 6, 8 and 10 apply only to the **non-privileged tier**. Privileged
+> targets (package-manager workflows) retain full capabilities, an unrestricted
+> syscall surface and their inherited environment by design.
 
 ### Design Patterns
 
