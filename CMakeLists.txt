@@ -58,13 +58,13 @@ endif()
 #   -ftrivial-auto-var-init=zero : deterministic stack (kills uninit-read UAF/info-leak)
 #   -fcf-protection=full : CET indirect-branch + return landing-pad protection
 #   -fexperimental-library : C++26 experimental features
-set(COMMON_FLAGS "-march=${VOIX_ARCH} -Oz -pipe -fno-plt -fstack-protector-strong \
+set(COMMON_FLAGS "-march=${VOIX_ARCH} -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
--ftrivial-auto-var-init=zero -fcf-protection=full \
+-ftrivial-auto-var-init=zero -fcf-protection=full -ffunction-sections -fdata-sections -fstrict-flex-arrays=3 \
 -fexperimental-library -std=c++26")
 
-set(DEBUG_FLAGS "-g -fstandalone-debug -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS")
-set(RELEASE_FLAGS "-O3 -DNDEBUG")
+set(DEBUG_FLAGS "-Og -g -fstandalone-debug -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS")
+set(RELEASE_FLAGS "-O2 -DNDEBUG")
 
 set(CMAKE_CXX_FLAGS "${COMMON_FLAGS} ${DEBUG_FLAGS}" CACHE STRING "" FORCE)
 string(APPEND CMAKE_CXX_FLAGS_DEBUG " ${COMMON_FLAGS} ${DEBUG_FLAGS}")
@@ -74,8 +74,8 @@ string(APPEND CMAKE_CXX_FLAGS_RELEASE " ${COMMON_FLAGS} ${RELEASE_FLAGS}")
 # LLVM LLD, ThinLTO, full RELRO. (CET/IBT+Shadow-Stack linker flags are
 # omitted because some lld versions reject -z ibt/-z shstk; the compiler-side
 # -fcf-protection=full still emits endbr landing pads for CET-capable targets.)
-set(LINKER_FLAGS "-fuse-ld=lld -Wl,-O3 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now \
--Wl,-z,noexecstack \
+set(LINKER_FLAGS "-fuse-ld=lld -Wl,-O3 -Wl,--as-needed -Wl,--gc-sections -Wl,-z,relro -Wl,-z,now \
+-Wl,-z,noexecstack -Wl,-z,pack-relative-relocs \
 -Wl,--icf=all \
 -pie -flto=thin")
 

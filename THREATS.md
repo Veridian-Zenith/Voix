@@ -16,7 +16,7 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 | **Lines of Code** | ~180,000 | **~3,770** (`src/` + `include/`, 2,638 impl + 1,136 headers) | ~48x smaller attack surface |
 | **Test Suite** | varies | ~1,810 lines, 84 tests incl. adversarial cases | Ships with the repo |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | **~802 KB** portable (`voix-bin`, yaml-cpp bundled) / ~549 KB distro build | Clang `-O3` + ThinLTO + ICF + `--strip-all`; static yaml-cpp removes soname drift |
+| **Binary Size (Release)** | ~1.2 MB | **~802 KB** portable (`voix-bin`, yaml-cpp bundled) / ~490 KB distro build | Clang `-O2` + ThinLTO + ICF + `--gc-sections` + `--strip-all`; static yaml-cpp removes soname drift |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 
@@ -75,7 +75,7 @@ To transition from a standard user to root, Voix must be installed as setuid roo
 - **Risk**: Memory-safety issues (buffer overflows, use-after-free) in C++ code.
 - **Mitigation**:
     - **Modern Toolchain**: Clang 22+, LLD, ThinLTO, C++26.
-    - **Hardening Flags**: `-fstack-protector-strong`, `-fstack-clash-protection`, `-D_FORTIFY_SOURCE=3`, `-fcf-protection=full`, `-ftrivial-auto-var-init=zero`, PIE + full RELRO.
+    - **Hardening Flags**: `-fstack-protector-strong`, `-fstack-clash-protection`, `-D_FORTIFY_SOURCE=3`, `-fcf-protection=full`, `-ftrivial-auto-var-init=zero`, `-fstrict-flex-arrays=3`, `-ffunction-sections`/`-fdata-sections` + `--gc-sections`, PIE + full RELRO (+ `pack-relative-relocs`).
     - **Minimal Dependencies**: limited external libraries to reduce the TCB.
 
 ### PAM Authentication

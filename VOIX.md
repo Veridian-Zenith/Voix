@@ -104,7 +104,7 @@ Voix maintains a minimal Trusted Computing Base for transparency and auditabilit
 | **Lines of Code** | ~180,000 | ~3,770 | ~48x smaller attack surface |
 | **Test Suite** | varies | ~1,810 lines · 84 tests | Includes adversarial cases |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | ~802 KB portable / ~549 KB distro build | Portable release bundles yaml-cpp statically (`VOIX_STATIC_YAML_CPP`) |
+| **Binary Size (Release)** | ~1.2 MB | ~802 KB portable / ~490 KB distro build | Portable release bundles yaml-cpp statically (`VOIX_STATIC_YAML_CPP`) |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 
@@ -332,6 +332,8 @@ The build system applies extensive compiler and linker hardening:
 | `-D_FORTIFY_SOURCE=3` | Fortified libc functions |
 | `-ftrivial-auto-var-init=zero` | Deterministic stack initialization (prevents UAF/info-leak) |
 | `-fcf-protection=full` | CET indirect-branch + return landing-pad protection |
+| `-fstrict-flex-arrays=3` | Strict flexible-array bound checking |
+| `-ffunction-sections` + `-fdata-sections` | Per-function/data GC |
 | `-fvisibility=hidden` | Minimal exported symbol surface |
 | `-flto=thin` | Link-Time Optimization |
 | `-fPIE` + `-pie` | Position-independent executable |
@@ -341,8 +343,10 @@ The build system applies extensive compiler and linker hardening:
 | Flag | Purpose |
 | :--- | :--- |
 | `--as-needed` | Eliminate unused library dependencies |
+| `--gc-sections` | Remove unused sections (pairs with `-ffunction-sections`) |
 | `-z relro -z now` | Full RELRO (read-only GOT) |
 | `-z noexecstack` | Non-executable stack |
+| `-z pack-relative-relocs` | Compact relative relocations |
 | `--icf=all` | Identical Code Folding |
 | `--strip-all` | Strip all symbols (release) |
 

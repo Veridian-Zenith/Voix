@@ -5,6 +5,7 @@
 - [ ] **Deterministic FD Management**: Full audit of internal file descriptors (PAM handles, config streams) to ensure all are `O_CLOEXEC`. Implement strict FD-closing invariant before `execve`.
 - [ ] **Decompose `Command::execute()`**: Split the method into smaller focused functions (signal setup, privilege transition, env sanitization, FD closing, seccomp).
 - [ ] **Seccomp Allowlist Mode**: Optional default-deny allowlist profile alongside the existing blacklist (see THREATS.md future considerations).
+- [ ] **Multi-arch Artifacts (aarch64/arm64)**: Extend `release.yml` to a matrix (`x86_64` `x86-64` + `aarch64` `armv8-a`/`native`) via `ubuntu-24.04-arm` runners or `qemu` cross, publish `voix-aarch64-bin.tar.gz`, and expand AUR `arch` (`x86_64` → `x86_64 aarch64`) with `VOIX_ARCH` overrides; document `VOIX_ARCH` as GitHub-release knob (portable `x86-64`) vs AUR (`native` host-optimized, `arch=` declares compatibility).
 
 ## Deferred (by design)
 
