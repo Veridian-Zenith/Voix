@@ -153,7 +153,7 @@ To prevent non-privileged commands from compromising the kernel, Voix implements
 - **NNP Decoupling**: `PR_SET_NO_NEW_PRIVS` is enforced unconditionally for non-privileged targets — even when seccomp is disabled by policy, executed setuid binaries can never regain privileges.
 - **Enforcement**: the filter loads in the child after the privilege transition but before `execv`; per-rule `ENOSYS`/`EOPNOTSUPP` responses (architectures lacking a syscall) are tolerated while any other filter error fails closed via `_exit(1)`.
 
-While a blacklist provides immediate security benefits, a default-deny **allowlist policy** remains the recommended future enhancement.
+Default-deny allowlist (`profile.seccomp_mode: allowlist`) is available as of v4.12.0: `SCMP_ACT_KILL` as default, with the 19 previously blacklisted syscalls permitted via `SCMP_ACT_ALLOW`. Profile-level opt-in; backward-compatible with `blacklist` default.
 
 ---
 
