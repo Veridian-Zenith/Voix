@@ -88,6 +88,8 @@ ctest --test-dir build-debug --output-on-failure
 - Don't invent separate AUR packages for each architecture — AUR's `arch=` handles native vs cross natively.
 - When updating version, change ALL 4 locations (`CMakeLists.txt`, `src/main.cpp`, `docs/voix.1`, `PKGBUILD` `pkgver`) atomically — partial updates break packaging and binary identity.
 - `.gitignore` covers `build*` / `.cache` / `compile_commands.json`; `build/` artifacts don't appear in `git status --short`, but `git status --ignored --untracked-files=all` shows them. Don't treat untracked build artifacts as a dirty tree.
+- `clang-tidy` `.clang-tidy` `ExtraArgs` (`['-std=c++26', '-x', 'c++']`) conflicts with `clang-tidy ... -- -Iinclude -std=c++26`; only verify zero NEW structural warnings (pre-existing naming/narrowing ignored). Never claim tidy passes fully when config prevents it.
+- `build/` is Release (tests NOT linked); `build-debug/` is Debug (tests linked, 84/84). Don't expect `build/voix --run-tests` to work in Release builds (`BUILD_TESTING=OFF` by default).
 
 ## Verification
 

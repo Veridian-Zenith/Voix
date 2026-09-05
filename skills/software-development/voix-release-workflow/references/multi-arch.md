@@ -34,3 +34,16 @@ The `.github/workflows/release.yml` defines two independent jobs:
 - `build-aarch64`: `ubuntu-latest`, cross-compile (`--target=aarch64-linux-gnu`), verifies binary architecture (`file ... | grep aarch64`), produces `voix-aarch64-bin.tar.gz`
 
 Both upload artifacts and create releases (only on `v*` tag push). No 32-bit (`i386`/`i686`) job exists (intentionally excluded — see `packaging/README.md`).
+
+## Verified Build Sizes (v4.12.1)
+
+Measured from actual `build/voix` binary (release, `-O2` + ThinLTO + stripped):
+
+|| Metric | Value | Source |
+||---|---|---|
+|| Native x86_64 binary (`build/`) | **~494 KB** | `ls -lh build/voix` (495K) |
+|| Portable (`VOIX_STATIC_YAML_CPP=ON`, pre-v4.12.0 ref) | **~802 KB** (historical) / current portable also ~490 KB (shared yaml-cpp) | `packaging/README.md` |
+|| LOC (`src/*.cpp` + `include/*.hpp`) | **~2,662** (2,212 impl + 450 hdr) | `cloc` / manual count |
+|| LOC pre-v4.12.0 (pre-refactor docs claim) | **~3,770** (stale; updated in `THREATS.md`, `VOIX.md`) | `docs/TESTING.md` reference |
+
+Cross-compiled `aarch64` binary produces equivalent stripped size (`~494 KB` estimated; same compiler flags). Size difference between native and cross is <10 KB.
