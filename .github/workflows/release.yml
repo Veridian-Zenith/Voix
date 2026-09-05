@@ -7,6 +7,61 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-aarch64:
+    name: Build aarch64-bin
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install LLVM 22
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          sudo apt-get install -y clang-22 lld-22 libpam0g-dev libcap-dev libyaml-cpp-dev libseccomp-dev ninja-build
+      - name: Configure CMake (cross)
+        run: |
+          cmake -B build-aarch64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DCMAKE_C_COMPILER=clang-22 \
+            -DVOIX_ARCH=native \
+            -DVOIX_STATIC_YAML_CPP=ON \
+            -DENABLE_PERMISSIONS=OFF \
+            -DCMAKE_C_FLAGS="--target=aarch64-linux-gnu" \
+            -DCMAKE_CXX_FLAGS="--target=aarch64-linux-gnu -std=c++26 -fexperimental-library"
+      - name: Build (cross)
+        run: cmake --build build-aarch64
+      - name: Verify binary architecture
+        run: file build-aarch64/voix | grep -q aarch64 || (echo "Cross-compile did not produce aarch64 binary" && exit 1)
+      - name: Prepare Package
+        run: |
+          mkdir -p voix-aarch64-bin
+          cp build-aarch64/voix voix-aarch64-bin/
+          cp pam.d/voix voix-aarch64-bin/voix.pam
+          cp config/voix.conf voix-aarch64-bin/
+          cp docs/voix.1 voix-aarch64-bin/
+          cp README.md voix-aarch64-bin/
+          cp LICENSE voix-aarch64-bin/
+          tar -czf voix-aarch64-bin.tar.gz voix-aarch64-bin/
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: voix-aarch64-bin
+          path: voix-aarch64-bin.tar.gz
+      - name: Create Release (aarch64)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: voix-aarch64-bin.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-linux:
     name: Build x86_64-bin
     runs-on: ubuntu-latest
