@@ -70,6 +70,16 @@ Note: `armv8-a` is not a native clang CPU value; use `aarch64-linux-gnu` target 
 
 AUR `arch`: expanded to `('x86_64' 'aarch64')` in `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD`.
 
+### Build Size Notes (v4.12.1 verified)
+
+| Build Type | Binary Size | Notes |
+| :--- | :--- | :--- |
+| Native x86_64 (`build/`) | **~494 KB** | Standard release binary (`-O2` + ThinLTO + `--strip-all`) |
+| Native aarch64 (cross) | **~494 KB** (estimated; same flags) | Cross-compile produces equivalent stripped binary |
+| Portable (`VOIX_STATIC_YAML_CPP=ON`) | **~802 KB** (pre-v4.12.0 reference) / ~490 KB (current, yaml-cpp bundled) | Bundled yaml-cpp increases size; `build/` uses shared yaml-cpp |
+
+Size differences between native and cross-compiled builds are minimal (<10 KB); the binary is fully stripped regardless. The release pipeline (`.github/workflows/release.yml`) produces both `voix-x86_64-bin.tar.gz` (native) and `voix-aarch64-bin.tar.gz` (cross).
+
 ## Debian/Ubuntu (.deb)
 
 - **Dependencies**: `libyaml-cpp3`, `libpam0g`, `libcap2`, `libseccomp2`

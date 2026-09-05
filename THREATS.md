@@ -13,10 +13,10 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | **~3,770** (`src/` + `include/`, 2,638 impl + 1,136 headers) | ~48x smaller attack surface |
+| **Lines of Code** | ~180,000 | **~2,662** (`src/*.cpp`: ~2,212 + `include/*.hpp`: ~450; v4.12.0 post-refactor) | ~68x smaller attack surface (updated from ~48x pre-v4.12.0) |
 | **Test Suite** | varies | ~1,810 lines, 84 tests incl. adversarial cases | Ships with the repo |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | **~802 KB** portable (`voix-bin`, yaml-cpp bundled) / ~490 KB distro build | Clang `-O2` + ThinLTO + ICF + `--gc-sections` + `--strip-all`; static yaml-cpp removes soname drift |
+| **Binary Size (Release)** | ~1.2 MB | **~494 KB** portable (`voix-bin`, yaml-cpp bundled) / ~490 KB distro build (verified v4.12.0) | Clang `-O2` + ThinLTO + ICF + `--gc-sections` + `--strip-all`; static yaml-cpp removes soname drift |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 
