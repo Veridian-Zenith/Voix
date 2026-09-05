@@ -50,6 +50,26 @@ Installs pre-built binaries from GitHub Releases. No compiler toolchain needed a
 4. Compute checksums for source tarball (`makepkg --printsrcinfo` or `updpkgsums`)
 5. Commit and push to the `pkg/voix` and `pkg/voix-bin` AUR git checkouts
 
+## Multi-Arch Notes
+
+Supported architectures: `x86_64` (primary) and `aarch64` (AUR expanded, cross-compile via `clang --target=aarch64-linux-gnu`).
+
+32-bit (`i386`/`i686`) is intentionally not supported: the minimal TCB, modern C++26 toolchain (clang 22+), `libcap`, `libseccomp`, PIE + full RELRO hardening, and the setuid-root execution model assume a 64-bit environment. No CI job, AUR entry, or release artifact is provided for 32-bit.
+
+## Multi-Arch Cross-Compile
+
+Direct mechanism (verified, v4.12.0):
+
+```bash
+clang++ --target=aarch64-linux-gnu -std=c++26 -fexperimental-library \
+  -Iinclude $(find src -name '*.cpp' | grep -v main | tr '\n' ' ') \
+  -lpam -lcap -lseccomp -lyaml-cpp -fPIE -flto=thin
+```
+
+Note: `armv8-a` is not a native clang CPU value; use `aarch64-linux-gnu` target triple. CMake `VOIX_ARCH=native` applies `-march=native` which overrides cross-target; disable or override for multi-arch builds.
+
+AUR `arch`: expanded to `('x86_64' 'aarch64')` in `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD`.
+
 ## Debian/Ubuntu (.deb)
 
 - **Dependencies**: `libyaml-cpp3`, `libpam0g`, `libcap2`, `libseccomp2`
