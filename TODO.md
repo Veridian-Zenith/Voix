@@ -2,8 +2,8 @@
 
 ## Open
 
-- [ ] **Deterministic FD Management**: Full audit of internal file descriptors (PAM handles, config streams) to ensure all are `O_CLOEXEC`. Implement strict FD-closing invariant before `execve`.
-- [ ] **Decompose `Command::execute()`**: Split the method into smaller focused functions (signal setup, privilege transition, env sanitization, FD closing, seccomp).
+- [x] **Decompose `Command::execute()`**: Split the 355-line method into ten focused pipeline-stage methods (`block_signals_for_fork`, `reset_child_signals_and_umask`, `collect_sanitized_environment`, `apply_privilege_transition`, `apply_capability_drop`, `apply_environment`, `apply_resource_limits_and_close_fds`, `resolve_absolute_command`, `apply_kernel_confinement`, `do_exec`). `execute()` is now a ~30-line orchestrator. See commit 32b796d; 84/84 tests preserved (v4.12.0).
+- [x] **Deterministic FD Management**: PAM session (RAII `SessionCloser` in `voix.cpp`) is opened before `fork()` and never inherited by the child; restricted-tier FD scrubbing (close_range / loop) and privileged-tier FD preservation (intentional, for pacman D-Bus hooks) are both preserved verbatim in `apply_resource_limits_and_close_fds` with an inline invariant comment. See commit 32b796d.
 - [ ] **Seccomp Allowlist Mode**: Optional default-deny allowlist profile alongside the existing blacklist (see THREATS.md future considerations).
 - [ ] **Multi-arch Artifacts (aarch64/arm64)**: Extend `release.yml` to a matrix (`x86_64` `x86-64` + `aarch64` `armv8-a`/`native`) via `ubuntu-24.04-arm` runners or `qemu` cross, publish `voix-aarch64-bin.tar.gz`, and expand AUR `arch` (`x86_64` → `x86_64 aarch64`) with `VOIX_ARCH` overrides; document `VOIX_ARCH` as GitHub-release knob (portable `x86-64`) vs AUR (`native` host-optimized, `arch=` declares compatibility).
 
