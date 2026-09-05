@@ -90,6 +90,9 @@ Defines named execution profiles that control confinement behavior:
   verbatim, without stripping loader/interpreter variables (`true`), or apply
   the normal sanitization (`false`). Intended only for unconfined system
   targets.
+- `seccomp_mode`: `blacklist` (default, allow-all then kill 19 dangerous
+  syscalls) or `allowlist` (default-deny `SCMP_ACT_KILL`, only the same 19
+  permitted via `SCMP_ACT_ALLOW`). See `docs/SECCOMP.md`.
 
 #### `blocklist` (optional)
 

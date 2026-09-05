@@ -65,6 +65,16 @@ Filter construction is fail-closed:
 - Per-rule additions returning `-ENOSYS` or `-EOPNOTSUPP` (the syscall does not exist on this architecture) are tolerated so a single filter definition serves every supported architecture.
 - Any other rule-addition error is fatal.
 
+### 5. Allowlist Mode (`seccomp_mode: allowlist`)
+
+When a profile sets `seccomp_mode: allowlist`, `applySeccompAllowlist()` is
+invoked instead of the blacklist. It uses `SCMP_ACT_KILL` as the default (denying
+all syscalls) and explicitly allows the 19 permitted syscalls listed above
+via `SCMP_ACT_ALLOW`. See `docs/CONFIG.md` (`security.profiles`) and
+`security.cpp`.
+
 ## Future Considerations
 
-While a blacklist provides immediate security benefits, a **default-deny whitelist policy** is recommended as a future enhancement for even stronger security. This would require profiling to identify all necessary syscalls for the commands permitted by Voix.
+The allowlist profile (`seccomp_mode: allowlist`) provides the default-deny
+posture; extending it with additional permitted syscalls for specific command
+profiles is a future enhancement.

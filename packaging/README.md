@@ -75,7 +75,7 @@ AUR `arch`: expanded to `('x86_64' 'aarch64')` in `pkg/voix/PKGBUILD` and `pkg/v
 | Build Type | Binary Size | Notes |
 | :--- | :--- | :--- |
 + **Native x86_64 (stock 64)**: `build/voix` → `494.9 KB` (verified binary)
-+ **Cross aarch64 (stock arm64)**: `clang --target=aarch64-linux-gnu` → `~494.9 KB` (same flags; measured `build-arm64` confirms equivalent stripped binary; estimated within ±5 KB of native due to architecture-specific code generation)
++ **Cross aarch64 (direct clang)**: `clang++ --target=aarch64-linux-gnu` mechanism verified; requires aarch64 sysroot (`libc++` for target) for full link. Binary size estimated within ±5 KB of native. Actual binary produced by CI pipeline (`build-aarch64` with proper compiler identity).
 | Portable (`VOIX_STATIC_YAML_CPP=ON`) | **~802 KB** (pre-v4.12.0 reference) / ~490 KB (current, yaml-cpp bundled) | Bundled yaml-cpp increases size; `build/` uses shared yaml-cpp |
 
 Size differences between native and cross-compiled builds are minimal (<10 KB); the binary is fully stripped regardless. The release pipeline (`.github/workflows/release.yml`) produces both `voix-x86_64-bin.tar.gz` (native) and `voix-aarch64-bin.tar.gz` (cross).
