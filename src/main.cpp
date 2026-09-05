@@ -30,7 +30,7 @@
 #endif
 
 #ifndef VOIX_VERSION
-#define VOIX_VERSION "4.11.0"
+#define VOIX_VERSION "4.12.0"
 #endif
 
 /**
