@@ -70,7 +70,7 @@ Note: `armv8-a` is not a native clang CPU value; use `aarch64-linux-gnu` target 
 
 AUR `arch`: expanded to `('x86_64' 'aarch64')` in `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD`.
 
-### Build Size Notes (v4.13.0 verified)
+### Build Size Notes (v4.13.1 verified)
 
 | Build Type | Binary Size | Notes |
 | :--- | :--- | :--- |

@@ -35,7 +35,7 @@ The `.github/workflows/release.yml` defines two independent jobs:
 
 Both upload artifacts and create releases (only on `v*` tag push). No 32-bit (`i386`/`i686`) job exists (intentionally excluded — see `packaging/README.md`).
 
-## Verified Build Sizes (v4.13.0)
+## Verified Build Sizes (v4.13.1)
 
 Measured from actual `build/voix` binary (release, `-O2` + ThinLTO + stripped):
 
