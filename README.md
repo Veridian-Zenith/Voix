@@ -263,3 +263,8 @@ file capabilities. Reinstall with
 
 ## License
 Voix is distributed under the Open Software License v3.0 (OSL-3.0). See [`LICENSE`](./LICENSE) for details.
+
+
+## CLI Options (v4.13.0)
+- `-C/--config FILE`  - `-c/--check-config`  - `-n` (non-interactive)
+- `-s` (shell ascension)  - `-l/--list` (permitted commands)  - `-E/--preserve-env`  - `-H/--home`  - `-i/--login`  - `-k` (invalidate auth timestamps)
