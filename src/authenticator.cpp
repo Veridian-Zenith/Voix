@@ -12,6 +12,7 @@
 #include "rule.hpp"
 #include "ticket_store.hpp"
 #include "pam_utils.hpp"
+#include "system_utils.hpp"
 #include "logger.hpp"
 #include <unistd.h>
 #include <format>
@@ -39,15 +40,23 @@ void PamAuthenticator::clear_timestamp() {
     LOG_INFO(std::format("Cleared persisted authentication timestamp for uid {}", uid));
 }
 
-bool PamAuthenticator::authenticate(const std::optional<Rule>& rule) {
+bool PamAuthenticator::authenticate(const std::optional<Rule>& rule,
+                                    std::string_view target_user) {
   std::string current_user = security_->getCurrentUser();
   const bool nopass = rule && (rule->options & Rule::NOPASS);
   const bool persist_rule = rule && (rule->options & Rule::PERSIST);
 
-  // Interactive credential check can be skipped for root, trusted rules and
-  // fresh persisted timestamps. Account validation below always runs.
+  // Skip credential check when:
+  //  1. Rule grants trust/nopass, OR
+  //  2. Caller is root, OR
+  //  3. Target user has no usable password (locked/service account)
   bool skip_credential_check = nopass;
   if (!skip_credential_check && current_user == "root") {
+    skip_credential_check = true;
+  }
+  if (!skip_credential_check && !user_has_password(target_user)) {
+    LOG_INFO(std::format("Target user '{}' has no password — skipping credential check",
+                         std::string(target_user)));
     skip_credential_check = true;
   }
 

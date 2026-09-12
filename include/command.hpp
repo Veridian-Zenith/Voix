@@ -26,6 +26,8 @@ struct CommandOptions {
       false; /**< Whether to preserve the environment variables. */
   bool login_shell =
       false; /**< Whether to execute the command as a login shell. */
+  bool set_home =
+      false; /**< Whether to set HOME to the target user's home directory. */
   bool list_commands = false; /**< Whether to list available commands. */
   bool check_config = false;  /**< Whether to check configuration. */
 };

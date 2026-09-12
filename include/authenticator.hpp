@@ -35,10 +35,15 @@ public:
      * rule carries a trust/nopass option or a fresh persisted timestamp —
      * only the interactive credential check may be skipped.
      *
+     * When the target user has no password (locked/service account), the
+     * credential check is also skipped regardless of the rule's trust setting.
+     *
      * @param rule Optional rule to consider during authentication.
+     * @param target_user The target user being switched to (for password check).
      * @return True if authentication succeeded, false otherwise.
      */
-    virtual bool authenticate(const std::optional<Rule>& rule) = 0;
+    virtual bool authenticate(const std::optional<Rule>& rule,
+                              std::string_view target_user = "root") = 0;
     /**
      * @brief Opens a session for the authenticated user.
      * @return True if session was opened successfully, false otherwise.
@@ -73,7 +78,8 @@ public:
      */
     ~PamAuthenticator() override;
 
-    bool authenticate(const std::optional<Rule>& rule) override;
+    bool authenticate(const std::optional<Rule>& rule,
+                      std::string_view target_user = "root") override;
     bool openSession() override;
     void closeSession() override;
     void clear_timestamp() override;

@@ -78,6 +78,21 @@ std::optional<PasswdEntry> lookup_passwd_by_name(std::string_view name);
  */
 std::optional<PasswdEntry> lookup_passwd_by_uid(uid_t uid);
 
+/**
+ * @brief Checks whether a user has a usable password.
+ *
+ * Reads the shadow entry for the given username and returns false when
+ * the password field is empty, disabled (starts with '!' or '*'), or
+ * the entry is missing entirely.  Returns true when a real password
+ * hash is present.
+ *
+ * Requires root privileges (setuid) to read /etc/shadow.
+ *
+ * @param username The username to check.
+ * @return True if the user has a password, false otherwise.
+ */
+bool user_has_password(std::string_view username);
+
 } // namespace Voix
 
 #endif // SYSTEM_UTILS_H

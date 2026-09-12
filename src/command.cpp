@@ -243,7 +243,9 @@ void Command::apply_environment(
   }
   setenv("USER", target.username.c_str(), 1);
   setenv("LOGNAME", target.username.c_str(), 1);
-  setenv("HOME", target.home_dir.c_str(), 1);
+  if (options.set_home) {
+    setenv("HOME", target.home_dir.c_str(), 1);
+  }
 
   if (options.login_shell) {
     setenv("SHELL", target.shell.c_str(), 1);

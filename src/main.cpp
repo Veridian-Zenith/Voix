@@ -48,6 +48,7 @@ void printUsage() {
                "  -s                       Execute user's shell (ascend to shell)\n"
                "  -l, --list               List permitted commands for the current user\n"
                "  -E, --preserve-env       Preserve the environment (requires keepenv policy)\n"
+               "  -H, --home               Set HOME to the target user's home directory\n"
                "  -i, --login              Execute in a login shell\n"
                "  -k                       Invalidate persisted authentication timestamps\n\n"
                "Examples:\n"
@@ -100,6 +101,7 @@ int main(int argc, char* argv[]) noexcept {
         static struct option long_options[] = {
             {"login", no_argument, nullptr, 'i'},
             {"preserve-env", no_argument, nullptr, 'E'},
+            {"home", no_argument, nullptr, 'H'},
             {"list", no_argument, nullptr, 'l'},
             {"help", no_argument, nullptr, 'h'},
             {"version", no_argument, nullptr, 'v'},
@@ -108,13 +110,16 @@ int main(int argc, char* argv[]) noexcept {
             {nullptr, 0, nullptr, 0}
         };
 
-        while ((ch = getopt_long(argc, argv, "+C:Eilnsu:vhck", long_options, nullptr)) != -1) {
+        while ((ch = getopt_long(argc, argv, "+C:EiHlnsu:vhck", long_options, nullptr)) != -1) {
             switch (ch) {
                 case 'C':
                     config_path = optarg;
                     break;
                 case 'E':
                     options.preserve_env = true;
+                    break;
+                case 'H':
+                    options.set_home = true;
                     break;
                 case 'i':
                     options.login_shell = true;
@@ -163,8 +168,13 @@ int main(int argc, char* argv[]) noexcept {
                 shell = shell_var;
             }
             command_args.push_back(shell);
+        } else if (options.login_shell && argc < 1) {
+            // -i without a command: open interactive login shell as target
+            auto pw_entry = Voix::lookup_passwd_by_name(target_user);
+            std::string shell = pw_entry ? pw_entry->shell : "/bin/sh";
+            command_args.push_back(shell);
         } else if (argc < 1 && !options.list_commands && !options.check_config &&
-                   !clear_timestamp) {
+                   !clear_timestamp && !options.login_shell) {
             std::println(stderr, "Error: No command specified");
             printUsage();
             return 1;

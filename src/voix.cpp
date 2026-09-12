@@ -109,7 +109,7 @@ int Voix::execute(std::string_view command,
     return 1;
   }
 
-  if (!authenticator_->authenticate(rule)) {
+  if (!authenticator_->authenticate(rule, user_str)) {
     emit("Authentication failed", LOG_AUTHPRIV | LOG_NOTICE, /*always=*/true);
     return 1;
   }
