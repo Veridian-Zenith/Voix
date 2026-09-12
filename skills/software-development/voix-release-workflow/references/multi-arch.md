@@ -35,7 +35,7 @@ The `.github/workflows/release.yml` defines two independent jobs:
 
 Both upload artifacts and create releases (only on `v*` tag push). No 32-bit (`i386`/`i686`) job exists (intentionally excluded — see `packaging/README.md`).
 
-## Verified Build Sizes (v4.12.1)
+## Verified Build Sizes (v4.13.0)
 
 Measured from actual `build/voix` binary (release, `-O2` + ThinLTO + stripped):
 
@@ -47,3 +47,5 @@ Measured from actual `build/voix` binary (release, `-O2` + ThinLTO + stripped):
 || LOC pre-v4.12.0 (pre-refactor docs claim) | **~3,770** (stale; updated in `THREATS.md`, `VOIX.md`) | `docs/TESTING.md` reference |
 
 Cross-compiled `aarch64` binary produces equivalent stripped size (`~494 KB` estimated; same compiler flags). Size difference between native and cross is <10 KB.
+
+CLI options: -C/--config, -c/--check-config, -n, -s (shell), -l/--list, -E/--preserve-env, -H/--home, -i/--login, -k (invalidate auth)

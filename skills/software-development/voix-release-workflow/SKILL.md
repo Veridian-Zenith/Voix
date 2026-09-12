@@ -61,7 +61,7 @@ ctest --test-dir build-debug --output-on-failure
 |---|---|---|
 | Release build clean | `cmake --build build` | `Linking CXX executable voix`, binary executable |
 | Debug tests pass | `cmake --build build-debug` | `Tests passed: 84, Failed: 0` |
-| Binary executable + version | `./build/voix --version` | `Voix version 4.12.1 ...` |
+| Binary executable + version | `./build/voix --version` | `Voix version 4.13.0 ...` |
 | clang-tidy clean (new errors) | `clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26` | Only pre-existing `readability-identifier-naming` (method naming convention) and `bugprone-narrowing-conversions` (cap_set_flag) warnings |
 | clang-format applied | `clang-format -i src/*.cpp include/*.hpp` | No functional change |
 | AUR arch expanded | `grep arch pkg/*/PKGBUILD` | `('x86_64' 'aarch64')` |
@@ -73,7 +73,7 @@ ctest --test-dir build-debug --output-on-failure
 2. **After code changes**, build both: `cmake --build build` (release) and `cmake --build build-debug` (tests). Confirm 84/84.
 3. **Run clang-tidy** (with `.clang-tidy` config loaded): `clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26`. Filter out pre-existing naming/narrowing warnings; confirm zero new structural errors.
 4. **Run clang-format** (`clang-format -i` on changed `.cpp`/`.hpp` files) — applied, no style-only noise.
-5. **Verify binary**: `./build/voix --version` returns `v4.12.1` (version string must match `CMakeLists.txt` + `src/main.cpp` + `docs/voix.1` + `PKGBUILD` — sync them together, never individually).
+5. **Verify binary**: `./build/voix --version` returns `v4.13.0` (version string must match `CMakeLists.txt` + `src/main.cpp` + `docs/voix.1` + `PKGBUILD` — sync them together, never individually).
 6. **Tag release**: `git tag -a vX.Y.Z -m "message"`; `git push origin vX.Y.Z`. Don't delete/re-tag existing releases (version bump to new number instead).
 7. **Update `.github/workflows/release.yml`** for multi-arch: `build-aarch64` job uses `--target=aarch64-linux-gnu` with `clang++-22` / `clang-22`, verifies binary architecture (`file ... | grep aarch64`), produces `voix-aarch64-bin.tar.gz` artifact.
 8. **32-bit** (`i386`/`i686`) is intentionally unsupported: modern C++26 + clang-only + `libcap`/`libseccomp`/PIE + setuid-root model requires 64-bit. Documented in `packaging/README.md`.
@@ -122,3 +122,5 @@ clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26 2>&1 |
 - `pkg/voix/PKGBUILD` + `pkg/voix-bin/PKGBUILD` — AUR packaging (ARCH-triggered `build()` / `source()`)
 - `docs/TESTING.md` — test harness description, 3 entry points (`test_runner`, `ctest`, `voix --run-tests`)
 - `THREATS.md` §3 — seccomp black/allow profile documentation (`v4.12.0` milestone reference)
+
+CLI options: -C/--config, -c/--check-config, -n, -s (shell), -l/--list, -E/--preserve-env, -H/--home, -i/--login, -k (invalidate auth)
