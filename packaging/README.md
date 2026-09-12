@@ -70,7 +70,7 @@ Note: `armv8-a` is not a native clang CPU value; use `aarch64-linux-gnu` target 
 
 AUR `arch`: expanded to `('x86_64' 'aarch64')` in `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD`.
 
-### Build Size Notes (v4.12.1 verified)
+### Build Size Notes (v4.13.0 verified)
 
 | Build Type | Binary Size | Notes |
 | :--- | :--- | :--- |
@@ -109,3 +109,5 @@ Regardless of packaging format, the following paths are standard:
 > sample as `/etc/voix.conf.new` instead (the CMake install step already does
 > this). Pacman-based packaging achieves the same via `backup=('etc/voix.conf'
 > 'etc/pam.d/voix')` in the PKGBUILD.
+
+CLI options: -C/--config, -c/--check-config, -n, -s (shell), -l/--list, -E/--preserve-env, -H/--home, -i/--login, -k (invalidate auth)
