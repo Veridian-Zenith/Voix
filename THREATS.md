@@ -31,7 +31,7 @@ wc -l src/*.cpp include/*.hpp | tail -1
 wc -l tests/*.cpp tests/*.hpp | tail -1
 
 # Stripped release binary size
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build -j$(nproc)
 ls -la build/voix
 ```
 
@@ -121,6 +121,20 @@ Once authenticated, Voix executes the target command with elevated privileges.
     - **Catastrophic Detection** (hardcoded): basename-matched destruction tools (`fdisk`, `sfdisk`, `cfdisk`, `parted`, `wipe`, `wipefs`, `shred`, `mkswap`, `mkfs*` family), `dd` to raw block devices (sd/hd/vd/nvme/mmcblk/dm/mapper/disk aliases/root device), and `rm -rf` variants targeting `/` — including globs, long options, combined short flags, and cwd-relative paths that canonicalize to `/`.
     - **Configurable Blocklist**: exact-path entries plus `regex:` patterns matched against the canonicalized command line.
     - **Root-Owned Resolution**: resolved executables must be regular files owned by `root` with no group/world write bits, verified via `O_NOFOLLOW` + `fstat`.
+
+> [!NOTE]
+> **Catastrophic detection is unconditional and not overridable.** It runs
+> before policy evaluation, so no ACL rule, group membership, or profile
+> setting can permit those tools. Running them requires a direct root login —
+> TTY login, `su -`, or `sudo -u root -i` — because the gate applies to
+> requests Voix brokers, not to a shell already authenticated as root.
+> See [`docs/SUDO.md`](docs/SUDO.md#3-destructive-operations-require-a-direct-root-login).
+
+> [!NOTE]
+> Exact-path blocklist entries are literal string comparisons rather than
+> canonicalized paths, so an entry of `/bin/sh` matches `/bin/sh` but not
+> `sh`, `/usr/bin/./bash`, or `/bin/../bin/sh`. `regex:` entries close that
+> gap where the policy intent is to match a tool regardless of spelling.
 
 ---
 

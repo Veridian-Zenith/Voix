@@ -85,6 +85,14 @@ security:
 
   # Global blocklist: exact paths, or "regex:" patterns matched against the
   # canonicalized full command line. Malformed regexes are rejected at load.
+  #
+  # Exact-path entries are literal string comparisons, not canonicalized
+  # paths: `/bin/sh` below catches `/bin/sh` but not `sh`, `/usr/bin/./bash`,
+  # or `/bin/../bin/sh`. Use a `regex:` entry when the intent is to match a
+  # tool regardless of how its path is spelled.
+  #
+  # Independent of this list, destructive disk and partition operations are
+  # always refused and cannot be permitted from here. See the header.
   blocklist:
     - /bin/sh
     - regex:^cat /etc/(shadow|sudoers)

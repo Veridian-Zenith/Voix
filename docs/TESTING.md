@@ -27,27 +27,27 @@ When `BUILD_TESTING` is enabled (default for Debug builds):
 ### Building and Running Tests (Debug Mode)
 
 ```bash
-cmake -B build-debug -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && cmake --build build-debug
+cmake -B build-dbg -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug && ninja -C build-dbg -j$(nproc)
 ```
 
 ### Force-enabling Tests (Release Mode)
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -G Ninja
-cmake --build build
+ninja -C build -j$(nproc)
 ```
 
 ## Running the Suite Manually
 
 ```bash
 # Via the standalone runner
-./build-debug/test_runner
+./build-dbg/test_runner
 
 # Via CTest
-ctest --test-dir build-debug --output-on-failure
+ctest --test-dir build-dbg --output-on-failure
 
 # Via the voix binary itself (Debug/test builds only)
-./build-debug/voix --run-tests
+./build-dbg/voix --run-tests
 ```
 
 All three entry points execute the identical registered suite (84 tests).

@@ -185,7 +185,7 @@ Voix may be used in workflows similar to `sudo` or `doas` for operational famili
 2. **Configure and Build**:
     ```bash
     cmake -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
-    cmake --build build
+    ninja -C build -j$(nproc)
     ```
 3. **Install**:
     ```bash

@@ -17,7 +17,7 @@ Build, test, release verification, packaging, and multi-arch workflow for the Vo
 
 ## When to Use
 
-- Building `build/` (release) and `build-debug/` (tests) after code changes.
+- Building `build/` (release) and `build-dbg/` (tests) after code changes.
 - Running `clang-tidy` / `clang-format` before pushing.
 - Creating/releasing `v*` tags with build artifacts.
 - Adding multi-arch artifacts (`aarch64`) or packaging updates (AUR, `.github/workflows/release.yml`).
@@ -40,29 +40,29 @@ Don't use for: debugging individual security rules (see `security.cpp` directly)
 ```bash
 # Release binary (setuid stripped; install handles permissions)
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+ninja -C build -j$(nproc)
 
 # Debug with tests (tests linked; 84 tests)
-cmake -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build build-debug
+cmake -B build-dbg -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+ninja -C build-dbg -j$(nproc)
 ```
 
 ### Tests (all 3 entry points identical suite)
 
 ```bash
-./build-debug/voix --run-tests    # via binary
-./build-debug/test_runner         # standalone
-ctest --test-dir build-debug --output-on-failure
+./build-dbg/voix --run-tests    # via binary
+./build-dbg/test_runner         # standalone
+ctest --test-dir build-dbg --output-on-failure
 ```
 
 ## Quick Reference
 
 | Check | Command | Expected result |
 |---|---|---|
-| Release build clean | `cmake --build build` | `Linking CXX executable voix`, binary executable |
-| Debug tests pass | `cmake --build build-debug` | `Tests passed: 84, Failed: 0` |
+| Release build clean | `ninja -C build -j$(nproc)` | `Linking CXX executable voix`, binary executable |
+| Debug tests pass | `ninja -C build-dbg -j$(nproc)` | `Tests passed: 84, Failed: 0` |
 | Binary executable + version | `./build/voix --version` | `Voix version 4.13.1 ...` |
-| clang-tidy clean (new errors) | `clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26` | Only pre-existing `readability-identifier-naming` (method naming convention) and `bugprone-narrowing-conversions` (cap_set_flag) warnings |
+| clang-tidy clean (new errors) | `clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26` | Only pre-existing `readability-identifier-naming` (method naming convention) and `bugprone-narrowing-conversions` (cap_set_flag) warnings |
 | clang-format applied | `clang-format -i src/*.cpp include/*.hpp` | No functional change |
 | AUR arch expanded | `grep arch pkg/*/PKGBUILD` | `('x86_64' 'aarch64')` |
 | Cross-compile mechanism | `clang++ --target=aarch64-linux-gnu ...` | Produces `ELF 64-bit LSB ... aarch64`; `armv8-a` is NOT a native clang CPU value — use target triple |
@@ -70,8 +70,8 @@ ctest --test-dir build-debug --output-on-failure
 ## Procedure
 
 1. **Before changing anything**, run `git log --oneline -3` and confirm you're on `master` with clean working tree (`git status --short` clean except build artifacts, which `.gitignore` covers).
-2. **After code changes**, build both: `cmake --build build` (release) and `cmake --build build-debug` (tests). Confirm 84/84.
-3. **Run clang-tidy** (with `.clang-tidy` config loaded): `clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26`. Filter out pre-existing naming/narrowing warnings; confirm zero new structural errors.
+2. **After code changes**, build both: `ninja -C build -j$(nproc)` (release) and `ninja -C build-dbg -j$(nproc)` (tests). Confirm 84/84.
+3. **Run clang-tidy** (with `.clang-tidy` config loaded): `clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26`. Filter out pre-existing naming/narrowing warnings; confirm zero new structural errors.
 4. **Run clang-format** (`clang-format -i` on changed `.cpp`/`.hpp` files) — applied, no style-only noise.
 5. **Verify binary**: `./build/voix --version` returns `v4.13.1` (version string must match `CMakeLists.txt` + `src/main.cpp` + `docs/voix.1` + `PKGBUILD` — sync them together, never individually).
 6. **Tag release**: `git tag -a vX.Y.Z -m "message"`; `git push origin vX.Y.Z`. Don't delete/re-tag existing releases (version bump to new number instead).
@@ -89,14 +89,14 @@ ctest --test-dir build-debug --output-on-failure
 - When updating version, change ALL 4 locations (`CMakeLists.txt`, `src/main.cpp`, `docs/voix.1`, `PKGBUILD` `pkgver`) atomically — partial updates break packaging and binary identity.
 - `.gitignore` covers `build*` / `.cache` / `compile_commands.json`; `build/` artifacts don't appear in `git status --short`, but `git status --ignored --untracked-files=all` shows them. Don't treat untracked build artifacts as a dirty tree.
 - `clang-tidy` `.clang-tidy` `ExtraArgs` (`['-std=c++26', '-x', 'c++']`) conflicts with `clang-tidy ... -- -Iinclude -std=c++26`; only verify zero NEW structural warnings (pre-existing naming/narrowing ignored). Never claim tidy passes fully when config prevents it.
-- `build/` is Release (tests NOT linked); `build-debug/` is Debug (tests linked, 84/84). Don't expect `build/voix --run-tests` to work in Release builds (`BUILD_TESTING=OFF` by default).
+- `build/` is Release (tests NOT linked); `build-dbg/` is Debug (tests linked, 84/84). Don't expect `build/voix --run-tests` to work in Release builds (`BUILD_TESTING=OFF` by default).
 
 ## Verification
 
 ```bash
 # Build both targets (release + debug)
-cmake --build build && echo "release OK"
-cmake --build build-debug && echo "tests OK (expect 84 passed, 0 failed)"
+ninja -C build -j$(nproc) && echo "release OK"
+ninja -C build-dbg -j$(nproc) && echo "tests OK (expect 84 passed, 0 failed)"
 
 # Binary identity
 ./build/voix --version         # should match CMakeLists VERSION + main.cpp macro
@@ -109,7 +109,7 @@ clang++ --target=aarch64-linux-gnu --version   # confirms target available
 
 # Format / lint gate
 clang-format -i src/*.cpp include/*.hpp
-clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26 2>&1 | grep -v "non-user" | grep -v "system-headers"
+clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26 2>&1 | grep -v "non-user" | grep -v "system-headers"
 # Confirm zero new errors beyond pre-existing naming/narrowing.
 ```
 

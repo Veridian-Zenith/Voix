@@ -285,7 +285,7 @@ cmake -B build -G Ninja \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_INSTALL_PREFIX=/usr \
   -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+ninja -C build -j$(nproc)
 
 # Install (requires root for setuid)
 sudo cmake --install build
@@ -294,11 +294,11 @@ sudo cmake --install build
 ### Debug Build (with tests)
 
 ```bash
-cmake -B build-debug -G Ninja \
+cmake -B build-dbg -G Ninja \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_INSTALL_PREFIX=/usr \
   -DCMAKE_BUILD_TYPE=Debug
-cmake --build build-debug
+ninja -C build-dbg -j$(nproc)
 ```
 
 Tests run automatically during Debug builds. If any test fails, the build fails.
@@ -406,18 +406,18 @@ Voix includes 84 unit tests covering:
 
 ```bash
 # Debug build (tests run automatically)
-cmake -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build build-debug
+cmake -B build-dbg -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja -C build-dbg -j$(nproc)
 
 # Force-enable tests in Release
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -G Ninja
-cmake --build build
+ninja -C build -j$(nproc)
 ```
 
 ### Code Quality
 
 ```bash
-clang-tidy -p build-debug src/*.cpp include/*.hpp -- -Iinclude -std=c++26
+clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26
 ```
 
 ---

@@ -115,6 +115,19 @@ cwd-relative paths that resolve to `/`), `dd` writing to raw block devices
 `sfdisk`, `cfdisk`, `parted`, `wipe`, `wipefs`, `shred` — matched by basename,
 so alternate path prefixes are covered too.
 
+> [!IMPORTANT]
+> Catastrophic detection is **unconditional and not overridable**. It runs
+> before policy evaluation, so no `permit` rule, no privileged group
+> membership, and no `seccomp`/`profile:` setting can permit these tools.
+> Running them requires a direct root login — TTY login, `su -`, or
+> `sudo -u root -i`. See [`docs/SUDO.md`](SUDO.md#3-destructive-operations-require-a-direct-root-login).
+
+> [!NOTE]
+> Exact-path blocklist entries are compared as literal strings, not
+> canonicalized paths. An entry of `/bin/sh` matches `/bin/sh` but not
+> `sh`, `/usr/bin/./bash`, or `/bin/../bin/sh`. Use a `regex:` entry when
+> the intent is to match a tool regardless of how its path is spelled.
+
 Example:
 
 ```yaml

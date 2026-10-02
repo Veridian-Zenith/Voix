@@ -10,7 +10,7 @@ Usage: `voix [options] <incantation> [args...]`
 - `-C FILE`, `--config FILE`: Use the specified file as the configuration source (default: `/etc/voix.conf`). The file must pass the same root-ownership and permission checks as the default configuration.
 - `-n`: Non-interactive mode; fail if authentication is required.
 - `-s`: Execute the user's shell (ascend to shell).
-- `-i, --login`: Execute the incantation in a login shell environment.
+- `-i, --login`: Execute the incantation in a login shell environment. With a named command the request stays brokered by Voix, so the destructive-command gate still applies (`voix -u root -i cfdisk /dev/sda` is refused). Used bare — `voix -u root -i` — it opens a standalone root shell instead; that requires the target's login shell to be absent from `security.blocklist`, which by default it is not.
 - `-E, --preserve-env`: Request preservation of the user's environment variables. Effective only when the matched rule carries a `keepenv` policy grant; the flag alone cannot widen what the policy allows.
 - `-l, --list`: List the rites permitted for the current user. Mirrors runtime first-match semantics: a permit whose scope is already denied by an earlier matching deny rule is not listed.
 - `-c, --check-config`: Validate the configuration file.

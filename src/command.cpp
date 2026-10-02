@@ -112,8 +112,13 @@ int Command::execute(std::string_view command,
     _exit(127); // unreachable; do_exec either succeeds or _exit()s itself
   } else {
     // Parent process
-    int status;
-    waitpid(pid, &status, 0);
+    int status = 0;
+    if (waitpid(pid, &status, 0) != pid) {
+      LOG_ERROR(std::format("waitpid() failed for pid {}: {}", pid,
+                            std::strerror(errno)));
+      (void)pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
+      return -1;
+    }
 
     if (pthread_sigmask(SIG_SETMASK, &old_mask, nullptr) != 0) {
       LOG_ERROR("Parent failed to restore signal mask");
@@ -122,6 +127,11 @@ int Command::execute(std::string_view command,
 
     if (WIFEXITED(status)) {
       return WEXITSTATUS(status);
+    }
+    // A child killed by a signal reports 128+signum, matching sudo/doas
+    // convention, instead of collapsing every signal death to -1/255.
+    if (WIFSIGNALED(status)) {
+      return 128 + WTERMSIG(status);
     }
     return -1;
   }
