@@ -31,15 +31,15 @@ bool PermissionChecker::match_pattern(const MatchPatternParams& params) const {
   std::string regex_pattern = "^";
   for (char c : pattern) {
     if (c == '*') regex_pattern += ".*";
-    else if (c == '?') regex_pattern += ".";
+    else if (c == '?') regex_pattern += '.';
     else if (c == '\\' || std::string(".+^$|()[]{}").find(c) != std::string::npos) {
-      regex_pattern += "\\";
+      regex_pattern += '\\';
       regex_pattern += c;
     } else {
       regex_pattern += c;
     }
   }
-  regex_pattern += "$";
+  regex_pattern += '$';
   return std::regex_match(text, std::regex(regex_pattern));
 }
 
@@ -69,7 +69,7 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid,
       }
   } else if (!rule.ident.empty()) {
       // Fallback for cases where resolution failed or for special identifiers
-      if (rule.ident.starts_with("%")) {
+      if (rule.ident.starts_with('%')) {
           return false;
       }
       // Otherwise try numeric UID match if it's a number
@@ -190,7 +190,7 @@ std::vector<Rule> PermissionChecker::list_permitted_rules() const {
             identity_match = (rule.ident_uid.value() == uid);
         } else if (rule.ident_gid.has_value()) {
             identity_match = std::ranges::find(groups, rule.ident_gid.value()) != groups.end();
-        } else if (!rule.ident.empty() && !rule.ident.starts_with("%")) {
+        } else if (!rule.ident.empty() && !rule.ident.starts_with('%')) {
             char* endptr;
             uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
             identity_match = (*endptr == '\0' && rule_uid == uid);

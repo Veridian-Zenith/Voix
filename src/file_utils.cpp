@@ -39,7 +39,7 @@ static bool is_file_safe(int fd) {
     if (st.st_uid != geteuid()) return false;
 
     // Must not be group or world writable
-    if (st.st_mode & (S_IWOTH | S_IWGRP)) return false;
+    if (st.st_mode & static_cast<mode_t>(S_IWOTH | S_IWGRP)) return false;
 
     return true;
 }
@@ -175,7 +175,7 @@ bool FileUtils::ensure_private_directory(const fs::path& path) const {
     // Must be a directory owned by the effective UID with mode exactly 0700.
     if (!S_ISDIR(st.st_mode)) return false;
     if (st.st_uid != geteuid()) return false;
-    if (st.st_mode & ~(S_IFMT | S_IRWXU)) return false;
+    if (st.st_mode & ~static_cast<mode_t>(S_IFMT | S_IRWXU)) return false;
 
     return true;
 }
@@ -201,7 +201,7 @@ std::string FileUtils::resolve_command(const ResolveCommandParams& params) const
         bool safe = false;
         if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) &&
             st.st_uid == 0 &&
-            !(st.st_mode & (S_IWOTH | S_IWGRP))) {
+            !(st.st_mode & static_cast<mode_t>(S_IWOTH | S_IWGRP))) {
             safe = true;
         }
         close(fd);

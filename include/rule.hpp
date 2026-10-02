@@ -50,7 +50,7 @@ public:
     std::vector<std::string> envlist;  /**< Environment variables to set. */
     std::string profile;                  /**< Security profile to apply. */
     Action action;                     /**< Action to take on match. */
-    int options;                       /**< Combined options flags. */
+    std::uint8_t options;               /**< Combined options flags. */
 
     /**
      * @brief Default constructor for Rule.

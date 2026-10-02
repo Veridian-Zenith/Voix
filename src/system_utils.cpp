@@ -132,8 +132,8 @@ bool user_has_password(std::string_view username) {
         // If pw_passwd is 'x', shadow is used but entry was missing —
         // treat as no password.
         if (pw_passwd.empty() || pw_passwd == "x" || pw_passwd == "!*" ||
-            pw_passwd == "!!" || pw_passwd.starts_with("!") ||
-            pw_passwd.starts_with("*")) {
+            pw_passwd == "!!" || pw_passwd.starts_with('!') ||
+            pw_passwd.starts_with('*')) {
             return false;
         }
         return true;
@@ -142,7 +142,7 @@ bool user_has_password(std::string_view username) {
     std::string_view hash = sp->sp_pwdp;
     // Disabled/locked accounts: empty, "!", "*", "!!", or "!..." prefix
     return !hash.empty() && hash != "!" && hash != "*" && hash != "!!" &&
-           !hash.starts_with("!") && !hash.starts_with("*");
+           !hash.starts_with('!') && !hash.starts_with('*');
 }
 
 } // namespace Voix

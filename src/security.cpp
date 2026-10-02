@@ -213,7 +213,7 @@ bool Security::isCatastrophicCommand(std::string_view command,
   // where possible so regexes see absolute paths.
   std::string full_command{cmd};
   for (const auto &arg : args) {
-    full_command += " ";
+    full_command += ' ';
     auto canon = canonicalize_arg(arg);
     full_command += canon.value_or(arg);
   }

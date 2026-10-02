@@ -94,7 +94,7 @@ int Voix::execute(std::string_view command,
   const bool nolog = rule && (rule->options & Rule::NOLOG);
   auto emit = [&](std::string_view event, int priority, bool always) {
       if (!nolog || always) {
-          security_->logEvent(std::string(event), current_user);
+          security_->logEvent(event, current_user);
           syslog(priority, "%s", Logger::sanitize_message(event).c_str());
       }
   };

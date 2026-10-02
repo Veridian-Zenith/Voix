@@ -369,7 +369,7 @@ void Command::do_exec(const std::string &cmd_str,
       else
         escaped += c;
     }
-    escaped += "'";
+    escaped += '\'';
     return escaped;
   };
 

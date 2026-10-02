@@ -43,7 +43,7 @@ int pam_conversation(int num_msg, const struct pam_message **msg,
       bool have_term = (tcgetattr(STDIN_FILENO, &old_term) == 0);
       if (have_term) {
         new_term = old_term;
-        new_term.c_lflag &= ~ECHO;
+        new_term.c_lflag &= ~static_cast<tcflag_t>(ECHO);
         if (tcsetattr(STDIN_FILENO, TCSANOW, &new_term) != 0) {
           std::println(stderr, "voix: warning: failed to disable terminal echo");
         }
