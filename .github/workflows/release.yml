@@ -5,18 +5,58 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to rebuild and sign (e.g. v4.13.2). Leave empty for a build-only run (no release)."
+        required: false
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # Full 40-character fingerprint of the primary GPG release-signing key (ed25519).
+  GPG_FINGERPRINT: "7887165D6B07DE7785BD536E5239ACB42207EE03"
+
+permissions:
+  contents: read
 
 jobs:
+  resolve:
+    name: Resolve release tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - name: Determine target tag
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            tag="$REF_NAME"
+          else
+            tag="$INPUT_TAG"
+          fi
+          if [[ -n "$tag" ]]; then
+            publish=true
+          else
+            publish=false
+          fi
+          echo "tag=$tag" >>"$GITHUB_OUTPUT"
+          echo "publish=$publish" >>"$GITHUB_OUTPUT"
+          echo "Resolved tag='${tag}' publish='${publish}'"
+
   build-aarch64:
     name: Build aarch64-bin
+    needs: resolve
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.resolve.outputs.tag || github.ref }}
           fetch-depth: 0
       - name: Install LLVM 22
         run: |
@@ -54,25 +94,16 @@ jobs:
         with:
           name: voix-aarch64-bin
           path: voix-aarch64-bin.tar.gz
-      - name: Create Release (aarch64)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          files: voix-aarch64-bin.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-linux:
     name: Build x86_64-bin
+    needs: resolve
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    permissions:
-      contents: write
 
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.resolve.outputs.tag || github.ref }}
           fetch-depth: 0
 
       - name: Install LLVM 22
@@ -112,11 +143,76 @@ jobs:
           name: voix-x86_64-bin
           path: voix-x86_64-bin.tar.gz
 
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
+  publish:
+    name: Sign and publish release
+    needs: [resolve, build-aarch64, build-linux]
+    if: needs.resolve.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: voix-*-bin
+          merge-multiple: true
+          path: dist
+
+      - name: Import GPG signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.gnupg"
+          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --quiet --import
+          gpg --batch --with-colons --list-secret-keys \
+            | grep -q "^fpr:::::::::${GPG_FINGERPRINT}:$" \
+            || { echo "::error::signing key ${GPG_FINGERPRINT} missing after import"; exit 1; }
+
+      - name: Fetch source archive for the tag
+        run: |
+          set -euo pipefail
+          ver="${RELEASE_TAG#v}"
+          archive="dist/voix-src-${ver}.tar.gz"
+          curl -fsSL -o "$archive" \
+            "https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${RELEASE_TAG}.tar.gz"
+          tar -tzf "$archive" >"$RUNNER_TEMP/entries.txt"
+          # The `voix` PKGBUILD does `cd Voix-$pkgver`, so the tag archive must unpack under that prefix.
+          grep -qx "Voix-${ver}/" "$RUNNER_TEMP/entries.txt" \
+            || { echo "::error::source archive is not prefixed with Voix-${ver}/"; exit 1; }
+
+      - name: Sign artifacts (detached, armored)
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          sign() {
+            local file="$1"
+            printf '%s' "$GPG_PASSPHRASE" | gpg --batch --yes \
+              --pinentry-mode loopback --passphrase-fd 0 \
+              --local-user "$GPG_FINGERPRINT" \
+              --armor --detach-sign --output "${file}.asc" "$file"
+            gpg --batch --verify "${file}.asc" "$file"
+          }
+          ver="${RELEASE_TAG#v}"
+          sign "dist/voix-x86_64-bin.tar.gz"
+          sign "dist/voix-aarch64-bin.tar.gz"
+          sign "dist/voix-src-${ver}.tar.gz"
+          ls -l dist
+
+      - name: Create / update release
         uses: softprops/action-gh-release@v3
         with:
-          files: voix-x86_64-bin.tar.gz
-          generate_release_notes: true
+          tag_name: ${{ needs.resolve.outputs.tag }}
+          generate_release_notes: ${{ github.event_name == 'push' }}
+          files: |
+            dist/voix-x86_64-bin.tar.gz
+            dist/voix-x86_64-bin.tar.gz.asc
+            dist/voix-aarch64-bin.tar.gz
+            dist/voix-aarch64-bin.tar.gz.asc
+            dist/voix-src-*.tar.gz
+            dist/voix-src-*.tar.gz.asc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

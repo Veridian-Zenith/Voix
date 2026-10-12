@@ -30,6 +30,7 @@ Two AUR packages are provided:
 Builds from source. Requires the full LLVM toolchain at build time.
 
 - **AUR path**: `AUR/voix/`
+- **Source**: signed tagged source archive `voix-src-<ver>.tar.gz` (+ detached `.asc`) from the GitHub release
 - **makedepends**: `cmake>=3.30`, `clang`, `lld`, `ninja`, `pkgconf`, `ccache`
 - **provides/conflicts**: `sudo`, `doas` (Voix replaces these entirely)
 
@@ -38,16 +39,43 @@ Builds from source. Requires the full LLVM toolchain at build time.
 Installs pre-built binaries from GitHub Releases. No compiler toolchain needed at build time.
 
 - **AUR path**: `AUR/voix-bin/`
-- **Source**: Built binary uploaded to GitHub Releases as `voix-x86_64-bin.tar.gz`
+- **Source**: Built binary uploaded to GitHub Releases as `voix-x86_64-bin.tar.gz` (+ detached `voix-x86_64-bin.tar.gz.asc`)
 - **makedepends**: None (no compilation required)
 - **provides/conflicts**: `sudo`, `doas`, and `voix` (use `voix-bin` when you do not want to compile)
+
+### Release signing (GPG)
+
+Every release artifact — both prebuilt tarballs and the tagged source archive —
+is published together with a detached, armored GPG signature (`<artifact>.asc`).
+Both PKGBUILDs pin the signing key via `validpgpkeys`, so `makepkg` verifies the
+signature *in addition to* the SHA-256 checksum before it extracts or builds
+anything. This gives two independent trust chains: the checksum proves the bytes
+were not altered, and the signature proves who produced them.
+
+- **Key**: primary ed25519 release key
+- **Fingerprint**: `7887165D6B07DE7785BD536E5239ACB42207EE03` (Dae Euhwa `<daedaevibin@ik.me>`)
+- **Public key**: published on keys.openpgp.org
+- **CI secrets**: armored private key as `GPG_PRIVATE_KEY`, its passphrase as `GPG_PASSPHRASE`
+- **Workflow**: `.github/workflows/release.yml` signs each artifact and uploads the `.asc` next to its tarball
+
+Verify a downloaded artifact by hand:
+
+```bash
+gpg --recv-keys 7887165D6B07DE7785BD536E5239ACB42207EE03
+gpg --verify voix-x86_64-bin.tar.gz.asc voix-x86_64-bin.tar.gz
+sha256sum -c <(printf '%s  %s\n' "<sha256 from .SRCINFO>" voix-x86_64-bin.tar.gz)
+```
+
+> AUR helpers (`paru`, `yay`) fetch a missing `validpgpkeys` entry automatically
+> from a keyserver. Plain `makepkg` does not, so import the key once by hand
+> (command above) before the first build.
 
 ### Updating AUR packages
 
 1. Bump `pkgver`/`pkgrel` in both `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD`
-2. Update `source` URLs to the new release tag
-3. Regenerate `.SRCINFO` (`makepkg --printsrcinfo > .SRCINFO`)
-4. Compute checksums for source tarball (`makepkg --printsrcinfo` or `updpkgsums`)
+2. Update the `source` / `source_<arch>` URLs to the new release tag
+3. Recompute checksums with `updpkgsums` (the `.asc` entries stay `SKIP`)
+4. Regenerate `.SRCINFO` (`makepkg --printsrcinfo > .SRCINFO`)
 5. Commit and push to the `pkg/voix` and `pkg/voix-bin` AUR git checkouts
 
 ## Multi-Arch Notes
