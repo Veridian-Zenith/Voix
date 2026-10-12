@@ -52,7 +52,11 @@ jobs:
   build-aarch64:
     name: Build aarch64-bin
     needs: resolve
-    runs-on: ubuntu-latest
+    # Native arm64 runner (free for public repositories). Building on real aarch64
+    # hardware replaces the old x86_64 "cross" job, which silently produced an
+    # x86-64 binary: CMakeLists.txt FORCE-clears the CMAKE_C/CXX_FLAGS cache, so
+    # the --target=aarch64-linux-gnu it passed never reached the compiler.
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
         with:
@@ -64,21 +68,26 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 22
           sudo apt-get install -y clang-22 lld-22 libpam0g-dev libcap-dev libyaml-cpp-dev libseccomp-dev ninja-build
-      - name: Configure CMake (cross)
+      - name: Configure CMake (native arm64)
         run: |
           cmake -B build-aarch64 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=clang++-22 \
             -DCMAKE_C_COMPILER=clang-22 \
-            -DVOIX_ARCH=native \
+            -DVOIX_ARCH=armv8-a \
             -DVOIX_STATIC_YAML_CPP=ON \
-            -DENABLE_PERMISSIONS=OFF \
-            -DCMAKE_C_FLAGS="--target=aarch64-linux-gnu" \
-            -DCMAKE_CXX_FLAGS="--target=aarch64-linux-gnu -std=c++26 -fexperimental-library"
-      - name: Build (cross)
+            -DENABLE_PERMISSIONS=OFF
+      - name: Build (native arm64)
         run: cmake --build build-aarch64
       - name: Verify binary architecture
-        run: file build-aarch64/voix | grep -q aarch64 || (echo "Cross-compile did not produce aarch64 binary" && exit 1)
+        run: |
+          set -euo pipefail
+          machine=$(readelf -h build-aarch64/voix | sed -n 's/^ *Machine: *//p')
+          echo "ELF machine: ${machine}"
+          # Check the ELF machine type, never `file <path> | grep aarch64`:
+          # the path `build-aarch64/voix` contains "aarch64", so that guard
+          # matched the filename and green-lit x86-64 artifacts.
+          [ "${machine}" = "AArch64" ] || { echo "::error::expected AArch64 binary, got '${machine}'"; exit 1; }
       - name: Prepare Package
         run: |
           mkdir -p voix-aarch64-bin
@@ -125,6 +134,13 @@ jobs:
 
       - name: Build
         run: cmake --build build
+
+      - name: Verify binary architecture
+        run: |
+          set -euo pipefail
+          machine=$(readelf -h build/voix | sed -n 's/^ *Machine: *//p')
+          echo "ELF machine: ${machine}"
+          [ "${machine}" = "Advanced Micro Devices X86-64" ] || { echo "::error::expected x86-64 binary, got '${machine}'"; exit 1; }
 
       - name: Prepare Package
         run: |

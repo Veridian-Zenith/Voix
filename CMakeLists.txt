@@ -49,6 +49,19 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "Clang required. Found: ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
+# ---- Architecture-Conditioned Control-Flow Hardening ----
+# x86_64 and aarch64 hardening flags are mutually exclusive, and the wrong one
+# is a hard error rather than a warning:
+#   x86_64 + -mbranch-protection : unsupported option '-mbranch-protection=' for target 'x86_64-...'
+#   aarch64 + -fcf-protection    : option 'cf-protection=return' cannot be specified on this target
+# Select on the *target* processor so native and cross builds both compile.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+    set(VOIX_CTRL_FLOW_FLAGS "-mbranch-protection=standard")
+else()
+    set(VOIX_CTRL_FLOW_FLAGS "-fcf-protection=full")
+endif()
+message(STATUS "Control-flow hardening: ${VOIX_CTRL_FLOW_FLAGS}")
+
 # ---- Compiler & Feature Flags ----
 # Optimized for the chosen architecture and C++26 experimental features.
 # LLVM-only toolchain (Clang + LLD). Hardening notes:
@@ -56,11 +69,11 @@ endif()
 #   -fstack-protector-strong / -fstack-clash-protection : stack safety
 #   -D_FORTIFY_SOURCE=3 : fortified libc functions
 #   -ftrivial-auto-var-init=zero : deterministic stack (kills uninit-read UAF/info-leak)
-#   -fcf-protection=full : CET indirect-branch + return landing-pad protection
+#   ${VOIX_CTRL_FLOW_FLAGS} : CET (x86_64) or BTI+PAC (aarch64) control-flow integrity
 #   -fexperimental-library : C++26 experimental features
 set(COMMON_FLAGS "-march=${VOIX_ARCH} -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \
--ftrivial-auto-var-init=zero -fcf-protection=full -ffunction-sections -fdata-sections -fstrict-flex-arrays=3 \
+-ftrivial-auto-var-init=zero ${VOIX_CTRL_FLOW_FLAGS} -ffunction-sections -fdata-sections -fstrict-flex-arrays=3 \
 -fexperimental-library -std=c++26")
 
 set(DEBUG_FLAGS "-Og -g -fstandalone-debug -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS")
