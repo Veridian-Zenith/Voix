@@ -56,6 +56,10 @@ endif()
 #   aarch64 + -fcf-protection    : option 'cf-protection=return' cannot be specified on this target
 # Select on the *target* processor so native and cross builds both compile.
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+    # Inert at the armv8-a baseline the release workflow requests: BTI needs
+    # ARMv8.5 (or an explicit +bti feature) and PAC needs +pauth, so clang
+    # accepts this and emits neither. Raise VOIX_ARCH to armv8-a+bti+pauth (or
+    # armv8.5-a) to get the CET analogue, accepting a higher CPU baseline.
     set(VOIX_CTRL_FLOW_FLAGS "-mbranch-protection=standard")
 else()
     set(VOIX_CTRL_FLOW_FLAGS "-fcf-protection=full")

@@ -65,7 +65,7 @@ ctest --test-dir build-dbg --output-on-failure
 | clang-tidy clean (new errors) | `clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26` | Only pre-existing `readability-identifier-naming` (method naming convention) and `bugprone-narrowing-conversions` (cap_set_flag) warnings |
 | clang-format applied | `clang-format -i src/*.cpp include/*.hpp` | No functional change |
 | AUR arch expanded | `grep arch pkg/*/PKGBUILD` | `('x86_64' 'aarch64')` |
-| Cross-compile mechanism | `clang++ --target=aarch64-linux-gnu ...` | Produces `ELF 64-bit LSB ... aarch64`; `armv8-a` is NOT a native clang CPU value — use target triple |
+| Artifact architecture | `readelf -h <binary> \| sed -n 's/^ *Machine: *//p'` — never `file <path> \| grep aarch64`, which matches the `build-aarch64` *path* and can never fail | `AArch64` for the arm64-runner artifact, `Advanced Micro Devices X86-64` for the x86_64 one |
 
 ## Procedure
 
@@ -74,15 +74,19 @@ ctest --test-dir build-dbg --output-on-failure
 3. **Run clang-tidy** (with `.clang-tidy` config loaded): `clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26`. Filter out pre-existing naming/narrowing warnings; confirm zero new structural errors.
 4. **Run clang-format** (`clang-format -i` on changed `.cpp`/`.hpp` files) — applied, no style-only noise.
 5. **Verify binary**: `./build/voix --version` returns `v4.13.3` (version string must match `CMakeLists.txt` + `src/main.cpp` + `docs/voix.1` + `PKGBUILD` — sync them together, never individually).
-6. **Tag release**: `git tag -a vX.Y.Z -m "message"`; `git push origin vX.Y.Z`. Don't delete/re-tag existing releases (version bump to new number instead).
-7. **Update `.github/workflows/release.yml`** for multi-arch: `build-aarch64` job uses `--target=aarch64-linux-gnu` with `clang++-22` / `clang-22`, verifies binary architecture (`file ... | grep aarch64`), produces `voix-aarch64-bin.tar.gz` artifact.
+6. **Tag release**: `git tag -a vX.Y.Z -m "message"`; `git push origin vX.Y.Z`. Don't delete/re-tag existing releases (version bump to new number instead). The one sanctioned exception is a tag whose tree shipped the wrong version string: a coordinated `git tag -f -a vX.Y.Z` + `git push --force origin vX.Y.Z` repairs it, after which **both** PKGBUILDs' `sha256sums*` must be recomputed and `pkgrel` bumped, since every published artifact (including GitHub's own tag tarball) changes.
+7. **Multi-arch in `.github/workflows/release.yml`**: the `build-aarch64` job builds **natively on `ubuntu-24.04-arm`** (free for public repos) with `clang++-22` and `-DVOIX_ARCH=armv8-a`, and asserts `readelf`'s `Machine:` field. Do **not** cross-compile from the x86_64 runner: the triple passed via `CMAKE_C/CXX_FLAGS` is discarded (CMakeLists `FORCE`-sets those cache entries), the runner has no aarch64 sysroot, and `-fcf-protection=full`/`-march=native` are x86-only — that combination silently shipped x86-64 binaries as "aarch64".
 8. **32-bit** (`i386`/`i686`) is intentionally unsupported: modern C++26 + clang-only + `libcap`/`libseccomp`/PIE + setuid-root model requires 64-bit. Documented in `packaging/README.md`.
 9. **No split AUR package**: single `PKGBUILD` with `arch=('x86_64' 'aarch64')` and ARCH-triggered `build()` logic (native for x86_64, cross-compile flags for aarch64). `voix-bin` uses ARCH-triggered `source` selection (`x86_64-bin.tar.gz` vs `aarch64-bin.tar.gz`).
 10. **AUR files handled by user**; this skill covers the repository-side workflow only (build/test/release/docs/version sync). Don't commit PKGBUILD changes unless explicitly directed.
 
 ## Pitfalls
 
-- `armv8-a` is NOT a native clang CPU value: `clang --target=aarch64-linux-gnu` requires the full target triple; CMake's `-march=${VOIX_ARCH}` applies `-march=native` which overrides cross-compile. Don't mix both.
+- `armv8-a` is a valid clang CPU name **for an aarch64 target**, but not on the native x86_64 target, where clang expects x86 names and `-march=native` resolves to `alderlake`. Choose the architecture by target and pass `-DVOIX_ARCH=armv8-a` explicitly; never leave `VOIX_ARCH=native` on a foreign target.
+- Control-flow hardening is architecture-specific and the wrong flag is a hard error, not a warning: `-fcf-protection=full` is x86-only (`option 'cf-protection=return' cannot be specified on this target`), and `-mbranch-protection=standard` is rejected on x86_64. `CMakeLists.txt` selects between them via `CMAKE_SYSTEM_PROCESSOR`.
+- `-mbranch-protection=standard` on an `armv8-a` baseline is silently inert — BTI needs ARMv8.5/`+bti` and PAC needs `+pauth`, so an aarch64 artifact built that way has no CET analogue (verify with `objdump -d | grep -cE '\bbti\b'`). Do not claim aarch64 control-flow hardening without checking the disassembly.
+- `CMakeLists.txt` lines 8-11 `FORCE`-set `CMAKE_C_FLAGS` / `CMAKE_CXX_FLAGS` to empty and line 69 re-sets `CMAKE_CXX_FLAGS`, so `-DCMAKE_C_FLAGS="--target=..."` passed on the command line is silently discarded. Deliver a cross triple via `CMAKE_<LANG>_COMPILER_TARGET` or a `CMAKE_TOOLCHAIN_FILE` instead.
+- Never verify architecture with `file <path> | grep aarch64` when the path itself contains `aarch64` (e.g. `build-aarch64/voix`) — the grep matches the path and always passes, so the check is a no-op that green-lights wrong-arch artifacts. Inspect `readelf -h`'s `Machine:` field (or the raw `e_machine` bytes at ELF offset 18) instead.
 - `clang-tidy`'s `.clang-tidy` `ExtraArgs` uses quoted arrays (`['-std=c++26', '-x', 'c++']`) that conflict with the `clang-tidy ... -- -Iinclude -std=c++26` syntax; this is pre-existing, not fixable by this skill. The practical fix: verify only that NO NEW structural warnings appear beyond naming/narrowing.
 - Never use machine-local paths (`/home/<user>/...`) in committed skills, docs, or scripts. All files here use repo-relative paths.
 - Don't invent separate AUR packages for each architecture — AUR's `arch=` handles native vs cross natively.

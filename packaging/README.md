@@ -117,7 +117,15 @@ sha256sum -c <(printf '%s  %s\n' "<sha256 from .SRCINFO>" voix-x86_64-bin.tar.gz
 
 ### Supported architectures
 
-`x86_64` (primary) and `aarch64` (cross-compile via `clang --target=aarch64-linux-gnu`).
+`x86_64` (primary) and `aarch64` (built natively on GitHub's arm64 runner).
+
+> [!WARNING]
+> Any `voix-aarch64-bin.tar.gz` published *before* the native-arm64 fix contains
+> an **x86-64** ELF. The old `build-aarch64` job's `--target` flag was discarded
+> by `CMakeLists.txt`'s `FORCE`-set `CMAKE_C_FLAGS`/`CMAKE_CXX_FLAGS`, and its
+> `file ... | grep aarch64` guard matched the path `build-aarch64/...` instead of
+> the ELF machine type, so it could never fail. The v4.13.3 asset is affected.
+> Do not pin an AUR `aarch64` checksum against it — re-cut the release.
 
 > [!IMPORTANT]
 > 32-bit (`i386`/`i686`) is intentionally **not** supported: the minimal TCB,
@@ -125,20 +133,38 @@ sha256sum -c <(printf '%s  %s\n' "<sha256 from .SRCINFO>" voix-x86_64-bin.tar.gz
 > hardening, and the setuid-root execution model all assume a 64-bit
 > environment. No CI job, AUR entry, or release artifact is provided for 32-bit.
 
-### Cross-compile
+### Native arm64 build
 
-Direct mechanism (verified, v4.12.0):
+The release pipeline builds aarch64 natively on `ubuntu-24.04-arm` (free for
+public repositories), so no cross toolchain or sysroot is involved:
 
 ```bash
-clang++ --target=aarch64-linux-gnu -std=c++26 -fexperimental-library \
-  -Iinclude $(find src -name '*.cpp' | grep -v main | tr '\n' ' ') \
-  -lpam -lcap -lseccomp -lyaml-cpp -fPIE -flto=thin
+cmake -B build-aarch64 -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_COMPILER=clang++-22 -DCMAKE_C_COMPILER=clang-22 \
+  -DVOIX_ARCH=armv8-a -DVOIX_STATIC_YAML_CPP=ON -DENABLE_PERMISSIONS=OFF
+cmake --build build-aarch64
+readelf -h build-aarch64/voix | sed -n 's/^ *Machine: *//p'   # must print AArch64
 ```
 
+Cross-compiling from x86_64 with `clang++ --target=aarch64-linux-gnu` is **not**
+used and cannot work as written: the x86_64 runners carry no aarch64 sysroot or
+aarch64 `PAM`/`libcap`/`libseccomp`/`libyaml-cpp`, and two project flags are
+x86-only. It compiles objects happily, which is exactly why the old job looked
+healthy while shipping x86-64 binaries.
+
 > [!NOTE]
-> `armv8-a` is not a native clang CPU value; use the `aarch64-linux-gnu` target
-> triple. CMake's `VOIX_ARCH=native` applies `-march=native`, which overrides the
-> cross-target — disable or override it for multi-arch builds.
+> `armv8-a` is a valid clang CPU name **for an aarch64 target**; it fails only on
+> the native x86_64 target, where clang expects x86 CPU names (`-march=native`
+> there resolves to `alderlake`). Select the architecture by target and pass an
+> explicit `-DVOIX_ARCH=armv8-a` rather than `native`, so the portable artifact
+> targets the ARMv8-A baseline instead of host-specific tuning.
+>
+> `-mbranch-protection=standard` is accepted at that baseline but emits nothing:
+> BTI needs ARMv8.5 (`+bti`) and PAC needs `+pauth`. The verified aarch64 binary
+> contains 0 `bti`, 0 `paciasp`, and no `GNU_PROPERTY_AARCH64_FEATURE_1_AND` note,
+> so it currently has no analogue to x86_64's CET landing pads. Raising
+> `-DVOIX_ARCH` is a deliberate hardening-versus-baseline trade-off.
 
 AUR `arch` is expanded to `('x86_64' 'aarch64')` in both `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD`.
 
@@ -149,7 +175,8 @@ Measured by running `makepkg -s` in each AUR directory on x86_64 (v4.13.3):
 | Build | Binary | Package (`.pkg.tar.zst`) | Installed |
 | :--- | :--- | :--- | :--- |
 | Distro (`pkg/voix`, dynamic `yaml-cpp`) | **511,352 B** (~499 KiB) | **236,004 B** — `du -sh` 232K | **518,176 B** (~506 KiB) |
-| Portable (`pkg/voix-bin`, bundled `yaml-cpp`) | **794,392 B** (~776 KiB) | **340,155 B** — `du -sh` 336K | **801,216 B** (~782 KiB) |
+| Portable x86_64 (`pkg/voix-bin`, bundled `yaml-cpp`) | **794,392 B** (~776 KiB) | **340,155 B** — `du -sh` 336K | **801,216 B** (~782 KiB) |
+| Portable aarch64 (`pkg/voix-bin`) | **754,200 B** (~737 KiB) | not measured | not measured |
 
 A local Release build (`build/voix`) measured the same 511,352 B as the distro package
 binary. Bundling `yaml-cpp` adds ~283 KB (794 KB vs 511 KB) but removes the versioned
@@ -162,9 +189,13 @@ inside the package's `.PKGINFO`.
 > toolchain and flags — the figures above are the author's reference baseline.
 > `voix-bin` ships a pre-built binary and is therefore reproducible.
 
-Cross-compiled `aarch64` size is not verified here (needs an aarch64 sysroot); the
-release pipeline ([`.github/workflows/release.yml`](../.github/workflows/release.yml))
-produces both `voix-x86_64-bin.tar.gz` (native) and `voix-aarch64-bin.tar.gz` (cross).
+The `aarch64` binary size comes from the native arm64 CI run (an x86_64 host has
+no aarch64 sysroot, so it cannot be reproduced locally). The release pipeline
+([`.github/workflows/release.yml`](../.github/workflows/release.yml)) publishes
+`voix-x86_64-bin.tar.gz` (native x86_64) and `voix-aarch64-bin.tar.gz` (native
+arm64). Assets published before the arm64 fix are not architecture-correct: the
+v4.13.3 `aarch64` asset is an x86-64 ELF (`Machine: Advanced Micro Devices
+X86-64`, `e_machine = 0x003e`, 802,552 B).
 
 ---
 
