@@ -5,7 +5,19 @@ Voix is a Privilege Policy Enforcement Runtime designed to supersede traditional
 > [!IMPORTANT]
 > Every claim in this document is backed by code reachable from the
 > execution path and exercised by the unit-test suite (`tests/`, 84 tests)
-> or by the runtime hardening matrix documented in [`docs/TESTING.md`](docs/TESTING.md).
+> or by the runtime hardening matrix documented in
+> [`CONTRIBUTING.md`](CONTRIBUTING.md#3-testing-the-artifact).
+
+## Table of Contents
+
+- [1. Trusted Computing Base](#1-trusted-computing-base)
+- [2. Threat Model](#2-threat-model)
+- [3. Attack Surface Analysis](#3-attack-surface-analysis)
+- [4. System Architecture](#4-system-architecture)
+- [5. Technical Defenses](#5-technical-defenses)
+- [6. Summary Comparison](#6-summary-comparison)
+
+---
 
 ## 1. Trusted Computing Base
 
@@ -13,10 +25,10 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | **~2,662** (`src/*.cpp`: ~2,212 + `include/*.hpp`: ~450; v4.12.0 post-refactor) | ~68x smaller attack surface (updated from ~48x pre-v4.12.0) |
-| **Test Suite** | varies | ~1,810 lines, 84 tests incl. adversarial cases | Ships with the repo |
+| **Lines of Code** | ~180,000 | **4,124** (`src/*.cpp`: 2,887 + `include/*.hpp`: 1,237; v4.13.3) | ~44x smaller attack surface |
+| **Test Suite** | varies | 1,930 lines, 84 tests incl. adversarial cases | Ships with the repo |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
-| **Binary Size (Release)** | ~1.2 MB | **~494 KB** portable (`voix-bin`, yaml-cpp bundled) / ~490 KB distro build (verified v4.12.0) | Clang `-O2` + ThinLTO + ICF + `--gc-sections` + `--strip-all`; static yaml-cpp removes soname drift |
+| **Binary Size (Release)** | ~1.2 MB | **511 KB** distro (dynamic `yaml-cpp`) / **794 KB** portable `voix-bin` (bundled) — x86_64 v4.13.3, both stripped; compressed packages 236 KB / 340 KB | Clang `-O2` + ThinLTO + ICF + `--gc-sections` + `--strip-all`; bundling `yaml-cpp` costs ~283 KB but removes the `libyaml-cpp.so.N` soname requirement |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
 | **CVE History** | Extensive | 0 | New design eliminates legacy bugs |
 
@@ -33,6 +45,11 @@ wc -l tests/*.cpp tests/*.hpp | tail -1
 # Stripped release binary size
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build -j$(nproc)
 ls -la build/voix
+
+# Packaged sizes (from the AUR PKGBUILDs)
+cd pkg/voix && makepkg -s && ls -la *.pkg.tar.zst                 # distro build
+cd ../voix-bin && makepkg -s && ls -la *.pkg.tar.zst             # portable build
+# Installed size is the `size =` field inside the package's .PKGINFO
 ```
 
 </details>
@@ -138,7 +155,63 @@ Once authenticated, Voix executes the target command with elevated privileges.
 
 ---
 
-## 4. Technical Defenses
+## 4. System Architecture
+
+### Module Overview
+
+| Module | Class | Role |
+| :--- | :--- | :--- |
+| `voix.hpp/cpp` | `Voix` | Main orchestrator: config load, auth, permission, execution, audit gating (`nolog`) |
+| `command.hpp/cpp` | `Command` | Fork/exec engine, privilege transition (pre-fork identity), env sanitization, profile resolution |
+| `config.hpp/cpp` | `Config` | YAML config loading, rule parsing, security profiles, exact + `regex:` blocklist |
+| `security.hpp/cpp` | `Security` | User validation, catastrophic commands, capabilities, seccomp blacklist |
+| `authenticator.hpp/cpp` | `PamAuthenticator` | PAM lifecycle (`acct_mgmt` always), persisted timestamps |
+| `ticket_store.hpp/cpp` | `TicketStore` | TOCTOU-hardened per-UID authentication tickets under `<sanctuary>/timestamp/` |
+| `permission_checker.hpp/cpp` | `PermissionChecker` | ACL rule evaluation, UID/GID matching, pattern matching, deny-aware listing |
+| `rule.hpp` | `Rule` | Data model for authorization rules (incl. `envlist`, `nolog`, `persist`, `pattern`) |
+| `file_utils.hpp/cpp` | `FileUtils` | Secure file I/O (`O_NOFOLLOW` reads/writes, private directories), path validation, command resolution |
+| `logger.hpp/cpp` | `Logger` | Dual-output audit logging with control-character escaping and syslog fallback |
+| `policy_analyzer.hpp/cpp` | `PolicyAnalyzer` | Semantic policy linting for `--check-config` |
+| `pam_utils.hpp/cpp` | `pam_conversation` | PAM conversation with echo control |
+| `system_identity.hpp/cpp` | `SystemIdentity` | System identity lookups (testable abstraction) |
+| `system_utils.hpp/cpp` | `SystemUtils` | UID/GID resolution, passwd lookups, environment helpers |
+
+### Execution Flow (Child Process)
+
+```mermaid
+flowchart TB
+    F[fork · signals blocked] --> C1[Restore signal mask<br/>reset handlers to SIG_DFL]
+    C1 --> C2["umask(022)"]
+    C2 --> C3[setgroups/setgid/setuid<br/>identity resolved pre-fork]
+    C3 --> C4{Privileged tier?}
+    C4 -- yes --> C7
+    C4 -- no --> C5[Drop all capabilities]
+    C5 --> C6[Resource limits<br/>fail-closed]
+    C6 -.-> C7[cleanenviron + rebuild<br/>PATH/USER/LOGNAME/HOME + rule envlist]
+    C6 --> C8[Close inherited FDs 3+<br/>close_range or loop]
+    C7 --> C8
+    C8 --> C9[Resolve command path<br/>root-owned regular file only]
+    C9 --> C10["PR_SET_NO_NEW_PRIVS<br/>+ seccomp blacklist"]
+    C10 --> C11["execv() · login shells via argv[0] dash convention"]
+```
+
+> [!NOTE]
+> Capability drop, resource limits, FD closing and seccomp apply only to the
+> **non-privileged tier**. Privileged targets (package-manager workflows)
+> retain full capabilities, an unrestricted syscall surface and their
+> inherited environment by design.
+
+### Design Patterns
+
+- **Interface abstraction** (`IAuthenticator`, `IIdentity`) for dependency injection and test mocking
+- **RAII wrappers** for `cap_t` (`UniqueCap`) and `seccomp_filter_ctx` (`UniqueSeccomp`)
+- **`std::expected<T, E>`** for type-safe error handling in file operations
+- **`std::ranges`** for modern C++ algorithm usage
+- **First-match semantics** for ACL rule evaluation
+
+---
+
+## 5. Technical Defenses
 
 ### Linux Capabilities (`libcap`)
 Voix employs the principle of least privilege using Linux capabilities for non-privileged targets.
@@ -167,11 +240,75 @@ To prevent non-privileged commands from compromising the kernel, Voix implements
 - **NNP Decoupling**: `PR_SET_NO_NEW_PRIVS` is enforced unconditionally for non-privileged targets — even when seccomp is disabled by policy, executed setuid binaries can never regain privileges.
 - **Enforcement**: the filter loads in the child after the privilege transition but before `execv`; per-rule `ENOSYS`/`EOPNOTSUPP` responses (architectures lacking a syscall) are tolerated while any other filter error fails closed via `_exit(1)`.
 
-Default-deny allowlist (`profile.seccomp_mode: allowlist`) is available as of v4.12.0: `SCMP_ACT_KILL` as default, with the 19 previously blacklisted syscalls permitted via `SCMP_ACT_ALLOW`. Profile-level opt-in; backward-compatible with `blacklist` default.
+Default-deny allowlist (`profile.seccomp_mode: allowlist`) is available as of v4.12.0: `SCMP_ACT_KILL` as default, with the 19 previously blacklisted syscalls permitted via `SCMP_ACT_ALLOW`. Profile-level opt-in; backward-compatible with the `blacklist` default.
+
+> [!NOTE]
+> The allowlist profile is the foundation for tighter per-command confinement:
+> extending it with the additional syscalls a specific command profile needs is
+> a future enhancement. The `blacklist` default remains the intended posture
+> for general use.
+
+### Seccomp Integration Point
+
+The filter is applied in the child after the privilege transition, capability drop,
+resource limits and FD closing, and immediately before `execv()` — seccomp is the
+last confinement step before the target runs.
+
+```mermaid
+sequenceDiagram
+    participant Child
+    Child->>Child: dropPrivileges() (setuid/setgid)
+    alt Non-privileged target
+        Child->>Child: dropCapabilities()
+        Child->>Child: setResourceLimits()
+        Child->>Child: PR_SET_NO_NEW_PRIVS
+        Child->>Child: applySeccompBlacklist()
+    end
+    Child->>Child: closeFDs()
+    Child->>Child: execv()
+```
+
+Filter construction is fail-closed: if the context cannot be initialized or
+loaded the child calls `_exit(1)` rather than executing unsandboxed, per-rule
+`-ENOSYS`/`-EOPNOTSUPP` (architecture lacks the syscall) is tolerated so a single
+definition serves every supported architecture, and any other rule-addition
+error is fatal.
+
+### Build Hardening (compiler and linker flags)
+
+<details>
+<summary><b>Compiler and linker flags applied to release builds</b></summary>
+
+| Compiler flag | Purpose |
+| :--- | :--- |
+| `-fstack-protector-strong` | Stack buffer overflow protection |
+| `-fstack-clash-protection` | Stack clash attack prevention |
+| `-D_FORTIFY_SOURCE=3` | Fortified libc functions |
+| `-ftrivial-auto-var-init=zero` | Deterministic stack initialization (prevents UAF/info-leak) |
+| `-fcf-protection=full` | CET indirect-branch + return landing-pad protection |
+| `-fstrict-flex-arrays=3` | Strict flexible-array bound checking |
+| `-ffunction-sections` + `-fdata-sections` | Per-function/data GC |
+| `-fvisibility=hidden` | Minimal exported symbol surface |
+| `-flto=thin` | Link-Time Optimization |
+| `-fPIE` + `-pie` | Position-independent executable |
+
+| Linker flag | Purpose |
+| :--- | :--- |
+| `--as-needed` | Eliminate unused library dependencies |
+| `--gc-sections` | Remove unused sections (pairs with `-ffunction-sections`) |
+| `-z relro -z now` | Full RELRO (read-only GOT) |
+| `-z noexecstack` | Non-executable stack |
+| `-z pack-relative-relocs` | Compact relative relocations |
+| `--icf=all` | Identical Code Folding |
+| `--strip-all` | Strip all symbols (release) |
+
+</details>
 
 ---
 
-## 5. Summary Comparison
+---
+
+## 6. Summary Comparison
 
 | Feature | Traditional Tools | Voix | Why it matters |
 | :--- | :--- | :--- | :--- |

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to rebuild and sign (e.g. v4.13.2). Leave empty for a build-only run (no release)."
+        description: "Existing tag to rebuild and sign (e.g. v4.13.3). Leave empty for a build-only run (no release)."
         required: false
         type: string
 

@@ -4,9 +4,20 @@ This guide explains how to use `voix` as a functional replacement for traditiona
 
 While Voix is architected as a Privilege Policy Enforcement Runtime rather than a simple utility, it can be configured to provide a similar user experience to these tools.
 
+## Table of Contents
+
+- [1. Configuring Voix for Privilege Escalation](#1-configuring-voix-for-privilege-escalation)
+- [2. Setting Up a Drop-in Experience](#2-setting-up-a-drop-in-experience)
+- [3. Destructive Operations Require a Direct Root Login](#3-destructive-operations-require-a-direct-root-login)
+- [4. Granting Service Accounts Their Own Rites](#4-granting-service-accounts-their-own-rites)
+- [5. Supported Flags](#5-supported-flags)
+- [6. Limitations](#6-limitations)
+
+---
+
 ## 1. Configuring Voix for Privilege Escalation
 
-Voix manages privileges using configuration rules defined in `/etc/voix.conf`. For detailed information on configuring these rules, refer to [`docs/CONFIG.md`](docs/CONFIG.md).
+Voix manages privileges using configuration rules defined in `/etc/voix.conf`. For detailed information on configuring these rules, refer to [`CONFIG.md`](CONFIG.md).
 
 To grant specific users or groups the ability to escalate privileges, you must define YAML rules in your `/etc/voix.conf`.
 
@@ -152,12 +163,12 @@ redundant rules, and an empty ACL.
 > The blocklist is matched by exact path. A shell entry such as
 > `/bin/sh` catches `/bin/sh` but not `/usr/bin/./bash`. Where the intent
 > is "no interactive shells at all", write `regex:` entries instead
-> (see [`docs/CONFIG.md`](CONFIG.md#blocklist-optional)) or rely on the
+> (see [`CONFIG.md`](CONFIG.md#blocklist-optional)) or rely on the
 > `-i` login-shell form above.
 
 ## 5. Supported Flags
 
-Voix includes several flags to support `sudo`-like behavior. See [`docs/CLI.md`](CLI.md) for a full list of options.
+Voix includes several flags to support `sudo`-like behavior. See [`CLI.md`](CLI.md) for a full list of options.
 
 Important flags include:
 
