@@ -284,7 +284,7 @@ void Command::apply_resource_limits_and_close_fds(
   //   - Privileged tier deliberately retains inherited FDs (e.g. D-Bus
   //     sockets for pacman hooks; alpm needs to talk back to the session
   //     bus for download progress). This is by design and documented in
-  //     THREATS.md and TODO.md (FD Management item, Completed in v4.12.0).
+  //     THREATS.md (see CONTRIBUTING.md for the completed v4.12.0 roadmap entry).
   if (!profile.retain_full_capabilities) {
     bool closed = false;
 #ifdef SYS_close_range

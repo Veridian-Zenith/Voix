@@ -18,6 +18,18 @@ Voix uses a structured YAML configuration file to define execution policies.
 > already exists, the shipped sample is installed as `/etc/voix.conf.new`
 > instead — merge it manually.
 
+## Table of Contents
+
+- [Configuration File Structure](#configuration-file-structure)
+  - [`core`](#core)
+  - [`acl`](#acl)
+  - [`security`](#security)
+    - [`profiles` (optional)](#profiles-optional)
+    - [`blocklist` (optional)](#blocklist-optional)
+  - [Complete Example](#complete-example)
+
+---
+
 ## Configuration File Structure
 
 The configuration file (default: `/etc/voix.conf`) is composed of three main sections:
@@ -92,7 +104,7 @@ Defines named execution profiles that control confinement behavior:
   targets.
 - `seccomp_mode`: `blacklist` (default, allow-all then kill 19 dangerous
   syscalls) or `allowlist` (default-deny `SCMP_ACT_KILL`, only the same 19
-  permitted via `SCMP_ACT_ALLOW`). See `docs/SECCOMP.md`.
+  permitted via `SCMP_ACT_ALLOW`). See [`THREATS.md`](../THREATS.md#5-technical-defenses).
 
 #### `blocklist` (optional)
 
@@ -193,4 +205,4 @@ security:
 
 </details>
 
-For the canonical example, see [`config/voix.conf`](config/voix.conf).
+For the canonical example, see [`config/voix.conf`](../config/voix.conf).
