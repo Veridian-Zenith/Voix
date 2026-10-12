@@ -1,8 +1,0 @@
-.cache/
-.freebuff/
-build*/
-build/
-pkg/
-tidy.log
-perf.data
-compile_commands.json

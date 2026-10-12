@@ -1,4 +1,5 @@
 .cache/
+.freebuff/
 build*/
 build/
 pkg/
