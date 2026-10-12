@@ -24,7 +24,7 @@ Both `PKGBUILD` files (`pkg/voix/PKGBUILD`, `pkg/voix-bin/PKGBUILD`) declare:
 arch=('x86_64' 'aarch64')
 ```
 
-The source-build `PKGBUILD` (`voix`) uses an ARCH-triggered `build()` function that selects native or cross-compile `CMAKE_C/CXX_FLAGS`. The pre-built binary `PKGBUILD` (`voix-bin`) selects `source` arrays (`x86_64-bin.tar.gz` vs `aarch64-bin.tar.gz`) based on `ARCH`, with a placeholder `sha256sums=('SKIP')` for the aarch64 artifact (to be updated after the release pipeline produces it).
+The source-build `PKGBUILD` (`voix`) uses an ARCH-triggered `build()` function that selects native or cross-compile `CMAKE_C/CXX_FLAGS`. The pre-built binary `PKGBUILD` (`voix-bin`) selects `source` arrays (`x86_64-bin.tar.gz` vs `aarch64-bin.tar.gz`) based on `ARCH`, each with its own real `sha256sums_<arch>` entry (and `SKIP` for the `.asc`, which is the signature itself).
 
 ## Release Workflow (Multi-Arch)
 
@@ -35,17 +35,23 @@ The `.github/workflows/release.yml` defines two independent jobs:
 
 Both upload artifacts and create releases (only on `v*` tag push). No 32-bit (`i386`/`i686`) job exists (intentionally excluded — see `packaging/README.md`).
 
-## Verified Build Sizes (v4.13.1)
+## Verified Build Sizes (v4.13.3)
 
-Measured from actual `build/voix` binary (release, `-O2` + ThinLTO + stripped):
+Measured from the actual `build/voix` binary and from `makepkg -s` in `pkg/voix` and `pkg/voix-bin`
+(release, `-O2` + ThinLTO + stripped):
 
-|| Metric | Value | Source |
-||---|---|---|
-|| Native x86_64 binary (`build/`) | **~494 KB** | `ls -lh build/voix` (495K) |
-|| Portable (`VOIX_STATIC_YAML_CPP=ON`, pre-v4.12.0 ref) | **~802 KB** (historical) / current portable also ~490 KB (shared yaml-cpp) | `packaging/README.md` |
-|| LOC (`src/*.cpp` + `include/*.hpp`) | **~2,662** (2,212 impl + 450 hdr) | `cloc` / manual count |
-|| LOC pre-v4.12.0 (pre-refactor docs claim) | **~3,770** (stale; updated in `THREATS.md`, `VOIX.md`) | `docs/TESTING.md` reference |
+| Metric | Value | Source |
+| :--- | :--- | :--- |
+| Native x86_64 binary (`build/`) | **511,352 B** (~499 KiB) | `ls -la build/voix`; identical size from the `pkg/voix` build |
+| Distro package (`pkg/voix`, dynamic `yaml-cpp`) | **236,004 B** package (`du -sh` 232K) / **518,176 B** installed | `makepkg -s`; `.PKGINFO` `size =` |
+| Portable binary (`pkg/voix-bin`, bundled `yaml-cpp`) | **794,392 B** (~776 KiB) | `tar tzvf voix-x86_64-bin.tar.gz` |
+| Portable package | **340,155 B** package (`du -sh` 336K) / **801,216 B** installed | `makepkg -s`; `.PKGINFO` `size =` |
+| LOC (`src/*.cpp` + `include/*.hpp`) | **4,124** (2,887 impl + 1,237 hdr) | `wc -l src/*.cpp include/*.hpp \| tail -1` |
+| Test suite | **1,930** lines / **84** tests | `wc -l tests/*.cpp tests/*.hpp` |
 
-Cross-compiled `aarch64` binary produces equivalent stripped size (`~494 KB` estimated; same compiler flags). Size difference between native and cross is <10 KB.
+Bundling `yaml-cpp` adds ~283 KB (794 KB vs 511 KB) but removes the versioned
+`libyaml-cpp.so.N` soname requirement — the distro build links `libyaml-cpp`
+dynamically, the portable one does not.
 
-CLI options: -C/--config, -c/--check-config, -n, -s (shell), -l/--list, -E/--preserve-env, -H/--home, -i/--login, -k (invalidate auth)
+Cross-compiled `aarch64` size is not verified here (no aarch64 sysroot on this
+host); the release pipeline produces that artifact.

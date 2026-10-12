@@ -4,15 +4,18 @@
 
 The following table shows the versions of Voix that are currently supported with security updates.
 
-| Version | Supported          |
-| ------- | ------------------ |
+| Version | Supported |
+| :--- | :---: |
 | 4.11.0+ | :white_check_mark: |
-| 4.10.x   | :white_check_mark: |
-| < 4.8   | :x:                |
+| 4.10.x | :white_check_mark: |
+| < 4.8 | :x: |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please report it to us as soon as possible. **Please do not report security vulnerabilities through public GitHub issues.**
+If you discover a security vulnerability, please report it to us as soon as possible.
+
+> [!IMPORTANT]
+> Please **do not** report security vulnerabilities through public GitHub issues.
 
 You may use the dedicated vulnerability reporting method in issues, or email **[daedaevibin](mailto:daedaevibin@ik.me)** directly.
 

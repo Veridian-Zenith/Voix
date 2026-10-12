@@ -51,7 +51,7 @@ ninja -C build-dbg -j$(nproc)
 
 ```bash
 ./build-dbg/voix --run-tests    # via binary
-./build-dbg/test_runner         # standalone
+./build-dbg/tests/test_runner   # standalone
 ctest --test-dir build-dbg --output-on-failure
 ```
 
@@ -61,7 +61,7 @@ ctest --test-dir build-dbg --output-on-failure
 |---|---|---|
 | Release build clean | `ninja -C build -j$(nproc)` | `Linking CXX executable voix`, binary executable |
 | Debug tests pass | `ninja -C build-dbg -j$(nproc)` | `Tests passed: 84, Failed: 0` |
-| Binary executable + version | `./build/voix --version` | `Voix version 4.13.1 ...` |
+| Binary executable + version | `./build/voix --version` | matches `CMakeLists.txt` VERSION (4.13.3) |
 | clang-tidy clean (new errors) | `clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26` | Only pre-existing `readability-identifier-naming` (method naming convention) and `bugprone-narrowing-conversions` (cap_set_flag) warnings |
 | clang-format applied | `clang-format -i src/*.cpp include/*.hpp` | No functional change |
 | AUR arch expanded | `grep arch pkg/*/PKGBUILD` | `('x86_64' 'aarch64')` |
@@ -73,7 +73,7 @@ ctest --test-dir build-dbg --output-on-failure
 2. **After code changes**, build both: `ninja -C build -j$(nproc)` (release) and `ninja -C build-dbg -j$(nproc)` (tests). Confirm 84/84.
 3. **Run clang-tidy** (with `.clang-tidy` config loaded): `clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26`. Filter out pre-existing naming/narrowing warnings; confirm zero new structural errors.
 4. **Run clang-format** (`clang-format -i` on changed `.cpp`/`.hpp` files) — applied, no style-only noise.
-5. **Verify binary**: `./build/voix --version` returns `v4.13.1` (version string must match `CMakeLists.txt` + `src/main.cpp` + `docs/voix.1` + `PKGBUILD` — sync them together, never individually).
+5. **Verify binary**: `./build/voix --version` returns `v4.13.3` (version string must match `CMakeLists.txt` + `src/main.cpp` + `docs/voix.1` + `PKGBUILD` — sync them together, never individually).
 6. **Tag release**: `git tag -a vX.Y.Z -m "message"`; `git push origin vX.Y.Z`. Don't delete/re-tag existing releases (version bump to new number instead).
 7. **Update `.github/workflows/release.yml`** for multi-arch: `build-aarch64` job uses `--target=aarch64-linux-gnu` with `clang++-22` / `clang-22`, verifies binary architecture (`file ... | grep aarch64`), produces `voix-aarch64-bin.tar.gz` artifact.
 8. **32-bit** (`i386`/`i686`) is intentionally unsupported: modern C++26 + clang-only + `libcap`/`libseccomp`/PIE + setuid-root model requires 64-bit. Documented in `packaging/README.md`.
@@ -87,6 +87,7 @@ ctest --test-dir build-dbg --output-on-failure
 - Never use machine-local paths (`/home/<user>/...`) in committed skills, docs, or scripts. All files here use repo-relative paths.
 - Don't invent separate AUR packages for each architecture — AUR's `arch=` handles native vs cross natively.
 - When updating version, change ALL 4 locations (`CMakeLists.txt`, `src/main.cpp`, `docs/voix.1`, `PKGBUILD` `pkgver`) atomically — partial updates break packaging and binary identity.
+- After re-cutting or re-uploading a release artifact, refresh `sha256sums*` in **both** the `PKGBUILD` **and** its `.SRCINFO` — `makepkg` fails with `One or more files did not pass the validity check!` otherwise. Verify the artifact independently first: the detached `.asc` must show `Good signature from` the release key (`7887165D6B07DE7785BD536E5239ACB42207EE03`); a passing signature with a failing checksum means the pinned hash is stale, not that the artifact is hostile.
 - `.gitignore` covers `build*` / `.cache` / `compile_commands.json`; `build/` artifacts don't appear in `git status --short`, but `git status --ignored --untracked-files=all` shows them. Don't treat untracked build artifacts as a dirty tree.
 - `clang-tidy` `.clang-tidy` `ExtraArgs` (`['-std=c++26', '-x', 'c++']`) conflicts with `clang-tidy ... -- -Iinclude -std=c++26`; only verify zero NEW structural warnings (pre-existing naming/narrowing ignored). Never claim tidy passes fully when config prevents it.
 - `build/` is Release (tests NOT linked); `build-dbg/` is Debug (tests linked, 84/84). Don't expect `build/voix --run-tests` to work in Release builds (`BUILD_TESTING=OFF` by default).
@@ -101,7 +102,7 @@ ninja -C build-dbg -j$(nproc) && echo "tests OK (expect 84 passed, 0 failed)"
 # Binary identity
 ./build/voix --version         # should match CMakeLists VERSION + main.cpp macro
 file build/voix                # x86_64, PIE, stripped
-ls -lh build/voix              # ~495K
+ls -la build/voix              # 511,352 B (~499 KiB)
 
 # Multi-arch mechanism (not full artifact — requires release pipeline for binary)
 clang++ --target=aarch64-linux-gnu --version   # confirms target available
@@ -120,7 +121,5 @@ clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26 2>&1 | g
 - `docs/voix.1` — manpage version header (synced to release version)
 - `packaging/README.md` — packaging instructions; see `references/multi-arch.md` for architecture-mode decision table (native vs cross-compile) and 32-bit exclusion rationale
 - `pkg/voix/PKGBUILD` + `pkg/voix-bin/PKGBUILD` — AUR packaging (ARCH-triggered `build()` / `source()`)
-- `docs/TESTING.md` — test harness description, 3 entry points (`test_runner`, `ctest`, `voix --run-tests`)
+- `CONTRIBUTING.md` §3 — test harness description, 3 entry points (`test_runner`, `ctest`, `voix --run-tests`)
 - `THREATS.md` §3 — seccomp black/allow profile documentation (`v4.12.0` milestone reference)
-
-CLI options: -C/--config, -c/--check-config, -n, -s (shell), -l/--list, -E/--preserve-env, -H/--home, -i/--login, -k (invalidate auth)
