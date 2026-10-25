@@ -10,7 +10,13 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.13.3 LANGUAGES CXX)
+project(Voix VERSION 4.14.0 LANGUAGES CXX)
+
+# Development builds identify themselves as a beta. The CMake project version
+# stays numeric (CMake requires it); this string is what `voix --version`
+# reports so testers and bug reports can distinguish this branch from the
+# 4.13.3 release.
+set(VOIX_VERSION_STRING "4.14.0-beta.1")
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
 # (disabled during CodeQL analysis to allow proper build tracing)
@@ -144,7 +150,7 @@ endif()
 target_link_libraries(voix PRIVATE voix_lib)
 
 # Single-source version string for printVersion()
-target_compile_definitions(voix PRIVATE VOIX_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(voix PRIVATE VOIX_VERSION="${VOIX_VERSION_STRING}")
 
 target_compile_options(voix_lib PRIVATE -Wall -Wextra)
 target_compile_options(voix PRIVATE -Wall -Wextra)
