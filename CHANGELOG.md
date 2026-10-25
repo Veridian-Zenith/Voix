@@ -50,6 +50,14 @@ All notable changes to Voix are documented here. The format follows
 - `Config::last_error()` so configuration failures report the precise cause
   instead of a generic message.
 
+### Changed
+
+- Development builds identify themselves as `4.14.0-beta.1` (test/beta) so
+  `voix --version`, the manpage, and bug reports are distinguishable from the
+  `4.13.3` release.
+- The execution audit record is written before the privilege transition and
+  file descriptor scrub, so the root-owned log file remains writable.
+
 ### Fixed
 
 - Rebuild seccomp allowlist mode around a usable default-deny baseline. The

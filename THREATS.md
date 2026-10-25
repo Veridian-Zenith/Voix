@@ -3,12 +3,14 @@
 Voix is a Privilege Policy Enforcement Runtime designed as a policy-driven alternative to traditional privilege escalation tools, with a more transparent, minimal, and strictly controlled security model. This document outlines the attack surface, the threat model, and the technical mitigations implemented to ensure system integrity.
 
 > [!IMPORTANT]
-> This document describes the implemented behavior of v4.13.3. Where a
-> control has a known limitation, it is called out inline and summarized in
-> [Known Limitations](#7-known-limitations). The unit suite (`tests/`, 84
-> tests) covers policy, configuration, path, ticket, and
-> catastrophic-command logic; it does not exercise PAM, the fork/exec
-> transition, seccomp loading, or the setuid transition end-to-end.
+> This document describes the implemented behavior of `4.14.0-beta.1` (a
+> test/beta build; `4.13.3` is the last release). Where a control has a known
+> limitation, it is called out inline and summarized in
+> [Known Limitations](#7-known-limitations). The test suite (`tests/`, 121
+> tests) covers policy, configuration, path, ticket, catastrophic-command
+> logic, and an unprivileged end-to-end execution path (fork, FD scrub,
+> seccomp, `fexecve`); it does not exercise PAM or the privileged setuid
+> transition end-to-end.
 
 ## Table of Contents
 
@@ -28,8 +30,8 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | **4,124** (`src/*.cpp`: 2,887 + `include/*.hpp`: 1,237; v4.13.3) | ~44x smaller attack surface |
-| **Test Suite** | varies | 1,930 lines, 84 tests incl. adversarial cases | Ships with the repo |
+| **Lines of Code** | ~180,000 | **5,289** (`src/*.cpp`: 3,653 + `include/*.hpp`: 1,636; `4.14.0-beta.1`) | ~34x smaller attack surface |
+| **Test Suite** | varies | 2,988 lines, 121 tests incl. adversarial and unprivileged end-to-end cases | Ships with the repo |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
 | **Binary Size (Release)** | ~1.2 MB | **511 KB** distro (dynamic `yaml-cpp`) / **794 KB** portable `voix-bin` (bundled) — x86_64 v4.13.3, both stripped; compressed packages 236 KB / 340 KB | Clang `-O2` + ThinLTO + ICF + `--gc-sections` + `--strip-all`; bundling `yaml-cpp` costs ~283 KB but removes the `libyaml-cpp.so.N` soname requirement |
 | **Config Language** | Sudoers (custom) | YAML (standard) | Reduced parsing complexity |
