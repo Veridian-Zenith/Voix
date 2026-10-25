@@ -42,9 +42,14 @@ struct CommandOptions {
 class Command {
 public:
   /**
-   * @brief Default constructor for Command.
+   * @brief Constructs a Command executor.
+   * @param executable_owner UID that must own resolved executables. The
+   *        production default is root (0). Tests running unprivileged may
+   *        pass geteuid() so a temporary executable can be exercised through
+   *        the real fork/fexecve path.
    */
-  Command() = default;
+  explicit Command(uid_t executable_owner = 0)
+      : executable_owner_(executable_owner) {}
   /**
    * @brief Default destructor for Command.
    */
@@ -124,6 +129,11 @@ public:
                     std::vector<std::pair<std::string, std::string>> saved_env);
 
 private:
+  /// UID that must own executables resolved by this executor. Root in
+  /// production; overridable so tests can exercise the real execution path
+  /// with a user-owned temporary file.
+  uid_t executable_owner_ = 0;
+
   /**
    * @brief Sets resource limits for the executed command.
    */
@@ -177,8 +187,12 @@ private:
   /// Privileged targets deliberately retain inherited FDs (e.g. D-Bus
   /// sockets for pacman hooks); see the FD-management invariant documented
   /// at the close-loop site.
-  void apply_resource_limits_and_close_fds(const SecurityProfile &profile,
-                                           int executable_fd);
+  /// @return The descriptor number holding the pinned executable after the
+  ///         scrub. Callers must pass this to do_exec(); it is 3 on the
+  ///         restricted tier and the original descriptor on the privileged
+  ///         tier.
+  int apply_resource_limits_and_close_fds(const SecurityProfile &profile,
+                                          int executable_fd);
 
   /// PR_SET_NO_NEW_PRIVS is unconditional on the restricted tier; seccomp
   /// follows the profile's choice between blacklist and allowlist mode.

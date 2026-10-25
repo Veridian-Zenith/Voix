@@ -93,3 +93,4 @@ void register_file_utils_tests(TestRunner& runner);
 void register_logger_tests(TestRunner& runner);
 void register_system_utils_tests(TestRunner& runner);
 void register_negative_security_tests(TestRunner& runner);
+void register_integration_tests(TestRunner& runner);
