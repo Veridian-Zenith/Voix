@@ -95,7 +95,7 @@ Voix defines two primary execution tiers, selected by the target identity and th
 | **Seccomp** | No filtering applied | Syscall blacklist applied |
 | **Resource limits** | None imposed by Voix | `RLIMIT_*` policies enforced |
 | **Environment** | Preserved verbatim for unconfined targets | Sanitized to a restricted whitelist |
-| **Inherited FDs** | Not closed | Closed (≥ 3) |
+| **Inherited FDs** | Not closed | Closed except the pinned executable (fd 3) |
 | **Rationale** | Compatibility with system-level operations | Least privilege |
 
 > [!NOTE]
@@ -148,12 +148,13 @@ core:
     - /sbin
     - /usr/bin
     - /usr/sbin
+  # Empty by default: unconfined targets bypass most confinement.
+  unconfined_targets: []
 
+# Empty by default: a fresh install permits nothing.
 acl:
-  group:
-    wheel:
-      - action: permit
-        options: [trust]
+  user: {}
+  group: {}
 
 security:
   profiles:
@@ -177,9 +178,9 @@ environment behavior is controlled by `preserve_full_environment` and `keepenv`.
 </details>
 
 > [!WARNING]
-> The shipped sample is a permissive starting point for package-manager
-> workflows: `wheel` receives `trust, keepenv`, and `root`/`alpm` are
-> unconfined. Review and tighten it before deployment.
+> The shipped sample is **closed by default**: no user or group is trusted,
+> no target is unconfined, and the ACL contains no permits. Add only the rules
+> you need, then validate the result with `voix --check-config`.
 
 ---
 
@@ -189,16 +190,22 @@ Authentication is delegated to the system PAM stack under the `voix` service con
 
 - the matched rule carries `trust`/`nopass`;
 - the invoking user is root;
-- the target account has no usable password (service or locked account);
-- a fresh `persist` ticket exists for the invoking UID and the matched rule carries `persist` (tickets are not consulted under `-n`).
+- a fresh `persist` ticket exists for the **caller/target UID pair** and the matched rule carries `persist`.
+
+Tickets are consulted before `-n` rejects an invocation, so a non-interactive
+run can reuse an existing ticket but can never prompt. Only a successful
+`pam_authenticate()` mints or refreshes a ticket; trust/nopass/root skips and
+reused tickets never do.
 
 Voix does not implement its own credential storage or verification system; `persist` stores only a timestamp.
 
 > [!IMPORTANT]
 > `pam_acct_mgmt` runs for the **invoking user** on every invocation,
 > including `trust`/`nopass` paths, so an expired or disabled caller is
-> denied. It does not validate the target account when the target has no
-> password. See [Known Limitations](THREATS.md#7-known-limitations).
+> denied. The **target account** is validated separately with its own PAM
+> handle. That target account check is not credential verification and is
+> never treated as proof that the target's password was checked.
+> See [Known Limitations](THREATS.md#7-known-limitations).
 
 ---
 
@@ -261,7 +268,7 @@ Voix may be used in workflows similar to `sudo` or `doas` for operational famili
 
 ## 10. Usage
 
-After installation, ensure the PAM configuration at `/etc/pam.d/voix` is aligned with your security policy. The shipped `/etc/voix.conf` is intentionally permissive for package-manager use; review it before relying on it.
+After installation, ensure the PAM configuration at `/etc/pam.d/voix` is aligned with your security policy. The shipped `/etc/voix.conf` is closed by default — no ACL permits and no unconfined targets — so add only the rules you need and validate with `voix --check-config`.
 
 ```bash
 voix <command> [args...]
@@ -281,15 +288,15 @@ The most common flags are `-u`, `-n`, `-k`, `-C`, and `-l`; the full table is in
 | <kbd>-c</kbd> | `--check-config` | Validate the configuration file |
 | <kbd>-E</kbd> | `--preserve-env` | Accepted for compatibility; has no effect. Environment preservation is enabled by a `keepenv` rule |
 | <kbd>-H</kbd> | `--home` | Set `HOME` to the target user's home directory. Without it, `HOME` is not set to the target's home |
-| <kbd>-i</kbd> | `--login` | Run via the target's login shell. Does not set `HOME`; pair with `-H` |
-| <kbd>-k</kbd> | | Invalidate the persisted authentication timestamp |
+| <kbd>-i</kbd> | `--login` | Run via the target's login shell. Forces `HOME` and `SHELL` to the target's values, even with `keepenv` or an unconfined target |
+| <kbd>-k</kbd> | | Invalidate all persisted authentication tickets for the invoking user |
 | <kbd>-l</kbd> | `--list` | List permit rules for the current user (deny-aware for identical scope) |
-| <kbd>-n</kbd> | | Non-interactive mode; persisted tickets are not consulted |
+| <kbd>-n</kbd> | | Non-interactive mode; reuse a valid persisted ticket if one exists, otherwise fail rather than prompt |
 | <kbd>-s</kbd> | | Execute the invoking user's `$SHELL` (not the target's login shell) |
 | <kbd>-u</kbd> `USER` | | Execute as a specific target user (default: `root`) |
 | | `--run-tests` | Run the built-in test suite (testing builds only) |
 
-See [docs/CLI.md](docs/CLI.md) for the full reference, including exit codes.
+See [docs/CLI.md](docs/CLI.md) for the full reference, including stable exit codes and logging behavior.
 
 ---
 
