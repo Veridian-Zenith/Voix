@@ -47,43 +47,79 @@ std::string Logger::sanitize_message(std::string_view message) {
   return out;
 }
 
-void Logger::log(std::string_view level, std::string_view message) const {
-  const std::string line = std::format("[{}] [{}] {}\n",
-                                       getTimestamp(), level,
-                                       sanitize_message(message));
+void Logger::log(LogLevel level, std::string_view message,
+                 bool echo_stderr) const {
+  const std::string safe_message = sanitize_message(message);
+  const std::string_view level_name = log_level_name(level);
+  const std::string line = std::format("[{}] [{}] [pid {}] {}\n",
+                                       getTimestamp(), level_name, getpid(),
+                                       safe_message);
 
-  int fd = open(k_log_path, O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0640);
+  int fd = open(k_log_path, O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC,
+                0640);
   if (fd >= 0) {
     size_t total = 0;
-    bool ok = true;
     while (total < line.size()) {
       ssize_t n = write(fd, line.data() + total, line.size() - total);
       if (n < 0) {
         if (errno == EINTR) continue;
-        ok = false;
         break;
       }
       total += static_cast<size_t>(n);
     }
     close(fd);
-    if (ok) {
-      if (!suppress_stderr) {
-        std::println(stderr, "voix: [{}] {}", level, sanitize_message(message));
-      }
-      return;
-    }
   }
 
-  // File unavailable (not root, missing dir, foreign symlink): syslog fallback.
+  // Syslog is always a sink, not just a fallback: audit records must survive
+  // a missing or unwritable log file, and remote logging is often configured
+  // through syslog. The file above is the durable local copy.
   int priority = LOG_AUTHPRIV | LOG_INFO;
-  if (level == "ERROR") priority = LOG_AUTHPRIV | LOG_ERR;
-  else if (level == "WARN") priority = LOG_AUTHPRIV | LOG_WARNING;
-  syslog(priority, "voix: [%.*s] %.*s",
-         static_cast<int>(level.size()), level.data(),
-         static_cast<int>(sanitize_message(message).size()),
-         sanitize_message(message).data());
+  switch (level) {
+    case LogLevel::Info:
+      priority = LOG_AUTHPRIV | LOG_INFO;
+      break;
+    case LogLevel::Warning:
+      priority = LOG_AUTHPRIV | LOG_WARNING;
+      break;
+    case LogLevel::Error:
+      priority = LOG_AUTHPRIV | LOG_ERR;
+      break;
+    case LogLevel::Security:
+      priority = LOG_AUTHPRIV | LOG_NOTICE;
+      break;
+  }
+  syslog(priority, "voix: [%.*s] [pid %d] %.*s",
+         static_cast<int>(level_name.size()), level_name.data(), getpid(),
+         static_cast<int>(safe_message.size()), safe_message.data());
+
+  if (echo_stderr && !suppress_stderr) {
+    std::println(stderr, "voix: [{}] {}", level_name, safe_message);
+  }
+}
+
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+void Logger::report_error(ExitCode code, std::string_view message,
+                          std::string_view hint) const {
+  log(LogLevel::Error, std::format("[{}] {}", exit_code_name(code), message),
+      false);
+
+  // Fatal errors bypass core.suppress_stderr: silently failing would make
+  // permission and configuration problems impossible to diagnose.
+  std::println(stderr, "voix: error: {}", sanitize_message(message));
+  if (!hint.empty()) {
+    std::println(stderr, "voix: hint: {}", sanitize_message(hint));
+  }
+}
+
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+void Logger::report_warning(std::string_view code, std::string_view message,
+                            std::string_view hint) const {
+  log(LogLevel::Warning, std::format("[{}] {}", code, message), false);
   if (!suppress_stderr) {
-    std::println(stderr, "voix: [{}] {}", level, sanitize_message(message));
+    std::println(stderr, "voix: warning: {}", sanitize_message(message));
+    if (!hint.empty()) {
+      std::println(stderr, "voix: hint: {}", sanitize_message(hint));
+    }
   }
 }
 

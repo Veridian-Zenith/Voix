@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <system_error>
 #include <cstdint>
+#include <sys/types.h>
 
 namespace Voix {
 
@@ -28,12 +29,46 @@ enum class FileError : std::uint8_t {
     Unknown
 };
 
+constexpr std::string_view file_error_name(FileError error) noexcept {
+    switch (error) {
+        case FileError::NotFound: return "not-found";
+        case FileError::PermissionDenied: return "permission-denied";
+        case FileError::ReadError: return "read-error";
+        case FileError::WriteError: return "write-error";
+        case FileError::Unknown: return "unknown";
+    }
+    return "unknown";
+}
+
+/**
+ * @brief Identity of a validated executable file.
+ *
+ * The device/inode pair pins the exact file that was validated. Callers must
+ * pass this record to open_executable(); that method refuses to open a path
+ * whose current inode differs, closing the validation-to-execution TOCTOU
+ * window. Production code resolves against uid 0; tests may construct a
+ * FileUtils with the current effective UID to exercise unprivileged files.
+ */
+struct ExecutableInfo {
+    /// Fully resolved path (realpath) used for opening and execution.
+    std::string path;
+    /// Policy path: directory symlinks resolved, final component preserved.
+    /// This keeps `/bin/ls` and `/usr/bin/ls` equivalent without collapsing
+    /// distinct multicall names (`ls` and `cat`) into one executable.
+    std::string policy_path;
+    dev_t device = 0;
+    ino_t inode = 0;
+};
+
 class FileUtils {
 public:
     /**
-     * @brief Default constructor for FileUtils.
+     * @brief Constructs a FileUtils instance.
+     * @param executable_owner UID that must own resolved executables. The
+     *        production default is root (0); tests may use geteuid().
      */
-    FileUtils() = default;
+    explicit FileUtils(uid_t executable_owner = 0)
+        : executable_owner_(executable_owner) {}
     /**
      * @brief Default destructor for FileUtils.
      */
@@ -95,12 +130,54 @@ public:
         std::string path_env;
     };
     /**
-     * @brief Resolves the absolute path of a command.
+     * @brief Resolves a command to a validated, canonical executable.
+     *
+     * Both absolute/relative paths containing '/' and bare names searched in
+     * path_env are canonicalized with realpath(3). The resulting file must be
+     * a regular executable owned by executable_owner (root by default), with
+     * no group/world write bits. The returned device/inode pair is checked
+     * again by open_executable().
+     *
+     * @param command Command path or bare name.
+     * @param path_env Colon-separated PATH used for bare names.
+     * @return Executable identity, or FileError on failure.
+     */
+    std::expected<ExecutableInfo, FileError>
+    resolve_executable(std::string_view command, std::string_view path_env) const;
+    /**
+     * @brief Opens the exact executable validated by resolve_executable().
+     *
+     * Opens with O_NOFOLLOW|O_CLOEXEC and verifies on the descriptor that the
+     * device/inode still match the validation result, that the file is a
+     * regular executable owned by executable_owner, and that it is not
+     * group/world writable. The returned descriptor is suitable for fexecve().
+     *
+     * @param info Result of resolve_executable().
+     * @return Open read-only descriptor, or FileError on failure.
+     */
+    std::expected<int, FileError>
+    open_executable(const ExecutableInfo& info) const;
+    /**
+     * @brief Resolves the absolute path of a command (legacy helper).
      * @param params Parameters containing the command and the PATH environment string to search.
-     * @return The absolute path to the command, or an empty string if not found.
+     * @return The canonical absolute path, or an empty string if not found.
      */
     std::string resolve_command(const ResolveCommandParams& params) const;
+    /**
+     * @brief Checks whether a configuration path is in a trusted location.
+     *
+     * The path must be absolute, and every component from '/' to the final
+     * file must be root-owned and not group/world writable. Symlinked
+     * components are rejected. This prevents `-C` from loading a root-owned
+     * file through an attacker-controlled directory (e.g. /tmp).
+     *
+     * @param path Configuration path.
+     * @return True when the complete path is trusted.
+     */
+    bool is_trusted_config_path(const fs::path& path) const;
 
+private:
+    uid_t executable_owner_ = 0;
 };
 
 } // namespace Voix

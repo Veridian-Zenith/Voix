@@ -15,6 +15,65 @@
 
 #include "test_modules.hpp"
 
+bool test_config_default_sanctuary() {
+    Voix::Config config;
+    ASSERT_EQUAL(config.getSanctuary(), std::string("/var/lib/voix"));
+    return true;
+}
+
+bool test_shipped_config_is_closed_by_default() {
+    const std::filesystem::path repo =
+        std::filesystem::path(__FILE__).parent_path().parent_path();
+    const std::filesystem::path config_path = repo / "config/voix.conf";
+
+    Voix::Config config;
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(config.getRules().empty());
+    ASSERT_TRUE(config.get_unconfined_targets().empty());
+    ASSERT_EQUAL(config.getSanctuary(), std::string("/var/lib/voix"));
+    return true;
+}
+
+bool test_config_last_error_is_reported() {
+    Voix::Config config;
+    ASSERT_TRUE(!config.load("/nonexistent/voix-test.conf", false));
+    ASSERT_TRUE(!config.last_error().empty());
+    ASSERT_TRUE(config.last_error().find("not found") != std::string::npos);
+    return true;
+}
+
+bool test_config_validate_reports_reason() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_validate_reason.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: relative/path\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(!config.validate());
+    ASSERT_TRUE(!config.last_error().empty());
+    return true;
+}
+
+bool test_config_rejects_untrusted_path() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_untrusted_path.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /tmp\n";
+    }
+
+    Voix::Config config;
+    // /tmp is group/world writable, so -C-style secure loading must refuse it
+    // even if the file itself happens to be owned by the caller.
+    ASSERT_TRUE(!config.load(config_path.string(), true));
+    return true;
+}
+
 bool test_config_load_valid() {
     std::string config_path = "test_voix.conf";
     std::ofstream outfile(config_path);
@@ -219,8 +278,9 @@ bool test_config_seccomp_default_enabled() {
 
 bool test_config_unconfined_targets() {
     Voix::Config config;
-    ASSERT_TRUE(config.is_unconfined_target("root"));
-    ASSERT_TRUE(config.is_unconfined_target("alpm"));
+    // Fail closed: no target is unconfined unless the configuration says so.
+    ASSERT_TRUE(!config.is_unconfined_target("root"));
+    ASSERT_TRUE(!config.is_unconfined_target("alpm"));
     ASSERT_TRUE(!config.is_unconfined_target("guest"));
 
     std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_unconfined_targets.conf";
@@ -299,6 +359,14 @@ bool test_config_security_profile_rule_survives_parse() {
 }
 
 void register_config_tests(TestRunner& runner) {
+    runner.add_test("test_config_default_sanctuary", test_config_default_sanctuary);
+    runner.add_test("test_shipped_config_is_closed_by_default",
+                    test_shipped_config_is_closed_by_default);
+    runner.add_test("test_config_last_error_is_reported",
+                    test_config_last_error_is_reported);
+    runner.add_test("test_config_validate_reports_reason",
+                    test_config_validate_reports_reason);
+    runner.add_test("test_config_rejects_untrusted_path", test_config_rejects_untrusted_path);
     runner.add_test("test_config_load_valid", test_config_load_valid);
     runner.add_test("test_config_load_invalid_yaml", test_config_load_invalid_yaml);
     runner.add_test("test_config_load_nonexistent", test_config_load_nonexistent);

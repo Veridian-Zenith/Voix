@@ -54,6 +54,11 @@ public:
    */
   bool load(std::string_view config_path, bool verify_security = true);
   /**
+   * @brief Gets the reason the last load() failed.
+   * @return Empty when the last load succeeded.
+   */
+  const std::string &last_error() const { return last_error_; }
+  /**
    * @brief Gets the list of rules from the configuration.
    * @return A vector of Rule objects.
    */
@@ -141,6 +146,7 @@ private:
   bool seccomp_enabled_ = true;
   bool login_shell_default_ = false;
   bool suppress_stderr_ = true;
+  mutable std::string last_error_;
 };
 
 } // namespace Voix

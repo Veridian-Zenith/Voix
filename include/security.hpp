@@ -44,11 +44,20 @@ public:
   bool validateUser(std::string_view username) const;
 
   /**
-   * @brief Logs a security-related event.
-   * @param event Description of the event.
+   * @brief Logs a security event without an explicit stable code.
+   * @param event Human-readable detail.
    * @param user Username associated with the event.
    */
   void logEvent(std::string_view event, std::string_view user) const;
+
+  /**
+   * @brief Logs a security event with a stable audit code.
+   * @param code Stable identifier (see audit.hpp).
+   * @param event Human-readable detail.
+   * @param user Username associated with the event.
+   */
+  void logEvent(std::string_view code, std::string_view event,
+                std::string_view user) const;
 
   /**
    * @brief Gets the current username.

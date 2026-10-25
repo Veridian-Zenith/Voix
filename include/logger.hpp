@@ -9,6 +9,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include "exit_code.hpp"
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -17,9 +19,31 @@ namespace Voix {
 /// Fixed audit log location (intentionally not configurable).
 constexpr const char* k_log_path = "/var/log/voix.log";
 
-#define LOG_ERROR(msg) Voix::Logger().log("ERROR", msg)
-#define LOG_WARN(msg) Voix::Logger().log("WARN", msg)
-#define LOG_INFO(msg) Voix::Logger().log("INFO", msg)
+/**
+ * @brief Severity of an audit-log record.
+ *
+ * Using an enum instead of a free-form string prevents a message from being
+ * passed where a level is expected and keeps the syslog mapping exhaustive.
+ */
+enum class LogLevel : std::uint8_t { Info, Warning, Error, Security };
+
+constexpr std::string_view log_level_name(LogLevel level) noexcept {
+  switch (level) {
+    case LogLevel::Info:
+      return "INFO";
+    case LogLevel::Warning:
+      return "WARN";
+    case LogLevel::Error:
+      return "ERROR";
+    case LogLevel::Security:
+      return "SECURITY";
+  }
+  return "INFO";
+}
+
+#define LOG_ERROR(msg) Voix::Logger().log(Voix::LogLevel::Error, msg)
+#define LOG_WARN(msg) Voix::Logger().log(Voix::LogLevel::Warning, msg)
+#define LOG_INFO(msg) Voix::Logger().log(Voix::LogLevel::Info, msg)
 
 class Logger {
 public:
@@ -50,12 +74,34 @@ public:
      */
     static std::string sanitize_message(std::string_view message);
     /**
-     * @brief Logs a message with a specified level to /var/log/voix.log,
-     *        falling back to syslog if the file cannot be opened securely.
-     * @param level The log level (e.g., "INFO", "WARN", "ERROR").
+     * @brief Logs a message with a specified level to /var/log/voix.log and
+     *        syslog.
+     * @param level The log level.
      * @param message The message to log.
+     * @param echo_stderr Whether to also print a short line to stderr.
      */
-    void log(std::string_view level, std::string_view message) const;
+    void log(LogLevel level, std::string_view message,
+             bool echo_stderr = true) const;
+
+    /**
+     * @brief Reports a user-facing fatal error and records it in the audit log.
+     *
+     * The audit record carries the stable code; stderr carries a friendly
+     * message plus an optional remediation hint. Unlike log(), this always
+     * writes to stderr, because a fatal error must be visible even when
+     * `core.suppress_stderr` is enabled.
+     */
+    void report_error(ExitCode code, std::string_view message,
+                      std::string_view hint = {}) const;
+
+    /**
+     * @brief Reports a user-facing warning and records it in the audit log.
+     * @param code Stable diagnostic code for log correlation.
+     * @param message Human-readable warning.
+     * @param hint Optional remediation hint.
+     */
+    void report_warning(std::string_view code, std::string_view message,
+                        std::string_view hint = {}) const;
 };
 
 } // namespace Voix

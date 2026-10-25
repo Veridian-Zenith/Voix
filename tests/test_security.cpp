@@ -14,6 +14,7 @@
  */
 
 #include "test_modules.hpp"
+#include "../include/authenticator.hpp"
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -233,20 +234,43 @@ bool test_ticket_store_roundtrip() {
     std::filesystem::create_directories("/tmp/voix_test_tickets");
 
     Voix::TicketStore tickets("/tmp/voix_test_tickets");
-    const uid_t uid = 4242;
+    const uid_t caller = 4242;
+    const uid_t target = 0;
 
-    ASSERT_TRUE(!tickets.valid(uid));
-    ASSERT_TRUE(tickets.record(uid));
+    ASSERT_TRUE(!tickets.valid(caller, target));
+    ASSERT_TRUE(tickets.record(caller, target));
 
     // Fresh ticket is valid; expired one is not.
-    ASSERT_TRUE(tickets.valid(uid, std::chrono::minutes(15)));
-    ASSERT_TRUE(tickets.valid(uid, std::chrono::minutes(0)));
+    ASSERT_TRUE(tickets.valid(caller, target, std::chrono::minutes(15)));
+    ASSERT_TRUE(tickets.valid(caller, target, std::chrono::minutes(0)));
 
-    tickets.clear(uid);
-    ASSERT_TRUE(!tickets.valid(uid));
+    // Tickets are scoped to the caller/target pair.
+    ASSERT_TRUE(!tickets.valid(caller, 1000));
+    ASSERT_TRUE(!tickets.valid(1000, target));
+
+    tickets.clear(caller, target);
+    ASSERT_TRUE(!tickets.valid(caller, target));
 
     // Clearing twice is harmless.
-    tickets.clear(uid);
+    tickets.clear(caller, target);
+    return true;
+}
+
+bool test_ticket_store_clear_all_for_caller() {
+    ScopedTempFile guard("/tmp/voix_test_tickets_clear", true);
+    std::filesystem::create_directories("/tmp/voix_test_tickets_clear");
+
+    Voix::TicketStore tickets("/tmp/voix_test_tickets_clear");
+    const uid_t caller = 4243;
+    ASSERT_TRUE(tickets.record(caller, 0));
+    ASSERT_TRUE(tickets.record(caller, 1000));
+    ASSERT_TRUE(tickets.record(9999, 0));
+
+    tickets.clear_all_for_caller(caller);
+    ASSERT_TRUE(!tickets.valid(caller, 0));
+    ASSERT_TRUE(!tickets.valid(caller, 1000));
+    // Another caller's ticket must survive -k.
+    ASSERT_TRUE(tickets.valid(9999, 0));
     return true;
 }
 
@@ -256,24 +280,53 @@ bool test_ticket_store_garbage_rejected() {
     std::filesystem::create_directories(dir);
 
     Voix::TicketStore tickets(dir.string());
-    const uid_t uid = static_cast<uid_t>(geteuid());  // writable by us
-
+    const uid_t caller = static_cast<uid_t>(geteuid());  // writable by us
+    const uid_t target = 0;
     Voix::FileUtils fu;
     ASSERT_TRUE(fu.ensure_private_directory(dir / "timestamp"));
-    auto f = dir / "timestamp" / std::to_string(uid);
+    auto f = dir / "timestamp" /
+             (std::to_string(caller) + "-" + std::to_string(target));
     {
         std::ofstream out(f);
         out << "not-a-number";
     }
-    ASSERT_TRUE(!tickets.valid(uid));
+    ASSERT_TRUE(!tickets.valid(caller, target));
 
     {
         std::ofstream out(f);
         out << "99999999999999999999";  // Far future — tampering rejected
     }
-    ASSERT_TRUE(!tickets.valid(uid));
+    ASSERT_TRUE(!tickets.valid(caller, target));
 
-    tickets.clear(uid);
+    tickets.clear(caller, target);
+    return true;
+}
+
+bool test_credential_mode_ordering() {
+    using Voix::CredentialMode;
+    using Voix::select_credential_mode;
+
+    // Trust/nopass and root callers skip the prompt without minting tickets.
+    ASSERT_TRUE(select_credential_mode(true, false, true, false, true) ==
+                CredentialMode::SkipTrusted);
+    ASSERT_TRUE(select_credential_mode(false, true, true, false, true) ==
+                CredentialMode::SkipTrusted);
+
+    // A persisted ticket is checked before -n rejects the invocation.
+    ASSERT_TRUE(select_credential_mode(false, false, true, true, true) ==
+                CredentialMode::UseTicket);
+    ASSERT_TRUE(select_credential_mode(false, false, true, true, false) ==
+                CredentialMode::UseTicket);
+
+    // No ticket + -n fails closed; interactive mode prompts.
+    ASSERT_TRUE(select_credential_mode(false, false, true, false, true) ==
+                CredentialMode::RejectNonInteractive);
+    ASSERT_TRUE(select_credential_mode(false, false, true, false, false) ==
+                CredentialMode::RequireInteractive);
+
+    // A ticket is irrelevant unless the rule grants persist.
+    ASSERT_TRUE(select_credential_mode(false, false, false, true, true) ==
+                CredentialMode::RejectNonInteractive);
     return true;
 }
 
@@ -294,5 +347,7 @@ void register_security_tests(TestRunner& runner) {
     runner.add_test("test_security_catastrophic_partition_tools", test_security_catastrophic_partition_tools);
     runner.add_test("test_security_catastrophic_safe_commands", test_security_catastrophic_safe_commands);
     runner.add_test("test_ticket_store_roundtrip", test_ticket_store_roundtrip);
+    runner.add_test("test_ticket_store_clear_all_for_caller", test_ticket_store_clear_all_for_caller);
     runner.add_test("test_ticket_store_garbage_rejected", test_ticket_store_garbage_rejected);
+    runner.add_test("test_credential_mode_ordering", test_credential_mode_ordering);
 }
