@@ -127,6 +127,11 @@ ctest --test-dir build-dbg --output-on-failure
 
 All three entry points execute the identical registered suite (84 tests).
 
+The suite exercises policy, configuration, path, ticket, and
+catastrophic-command logic. It does not cover PAM, the fork/exec transition,
+seccomp loading, `-i`/`HOME` handling, `-s`, `-C`, or sanctuary symlink
+behavior; those are covered only by the manual matrix below.
+
 <details>
 <summary><b>Test module inventory</b></summary>
 
@@ -173,7 +178,7 @@ clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26
 
 ### Open
 
-_No open items._
+Known limitations are tracked in [THREATS.md §7](THREATS.md#7-known-limitations).
 
 ### Deferred (by design)
 
@@ -190,7 +195,7 @@ These items are intentionally not pursued due to Voix's use-case constraints:
 
 - **Decompose `Command::execute()`**: Split the 355-line method into ten focused pipeline-stage methods (`block_signals_for_fork`, `reset_child_signals_and_umask`, `collect_sanitized_environment`, `apply_privilege_transition`, `apply_capability_drop`, `apply_environment`, `apply_resource_limits_and_close_fds`, `resolve_absolute_command`, `apply_kernel_confinement`, `do_exec`). `execute()` is now a ~30-line orchestrator. See commit 32b796d; 84/84 tests preserved.
 - **Deterministic FD Management**: PAM session (RAII `SessionCloser` in `voix.cpp`) is opened before `fork()` and never inherited by the child; restricted-tier FD scrubbing (close_range / loop) and privileged-tier FD preservation (intentional, for pacman D-Bus hooks) are both preserved verbatim in `apply_resource_limits_and_close_fds` with an inline invariant comment. See commit 32b796d.
-- **Seccomp Allowlist Mode**: Default-deny `SCMP_ACT_KILL` profile (`seccomp_mode: allowlist`) with the 19 blacklisted syscalls permitted (`SCMP_ACT_ALLOW`). Profile-level opt-in; backward-compat `blacklist` default preserved. See `applySeccompAllowlist()` in `src/security.cpp`, `THREATS.md`, and `apply_kernel_confinement()` in `src/command.cpp`.
+- **Seccomp Allowlist Mode**: Default-deny `SCMP_ACT_KILL` profile (`seccomp_mode: allowlist`) with the 19 blacklisted syscalls permitted (`SCMP_ACT_ALLOW`). Profile-level opt-in; backward-compat `blacklist` default preserved. The allowlist is experimental: it permits the blacklist set and omits `execve`, so it is not yet usable as a confinement profile. See `applySeccompAllowlist()` in `src/security.cpp`, `THREATS.md`, and `apply_kernel_confinement()` in `src/command.cpp`.
 - **Multi-arch Artifacts (aarch64/arm64)**: AUR `arch` expanded (`x86_64` → `x86_64 aarch64`) in both `voix` and `voix-bin` PKGBUILD. `CMakeLists.txt` `VOIX_ARCH` knob documented. Native cross-compile (`clang --target=aarch64-linux-gnu`) requires the target triple and an aarch64 sysroot; `armv8-a` is not a native clang CPU name. **Release artifacts were wrong until the arm64 fix** — everything up to v4.13.3 published an x86-64 binary under the `aarch64` name (the triple was discarded by `CMakeLists.txt`'s `FORCE`-set flag cache, and the job's `file ... | grep aarch64` guard matched the `build-aarch64` path rather than the ELF). `build-aarch64` now runs natively on `ubuntu-24.04-arm` and asserts `readelf`'s `Machine:` field, and `CMakeLists.txt` selects CET (`-fcf-protection=full`) or branch protection (`-mbranch-protection=standard`) per target, since each is a hard error on the other. See the multi-arch reference under `skills/software-development/voix-release-workflow/references/`.
 
 </details>
@@ -206,11 +211,11 @@ These items are intentionally not pursued due to Voix's use-case constraints:
 - **Audit Hardening**: log writer uses `O_NOFOLLOW|O_APPEND`, escapes control characters (defeats log forging), outcome-aware syslog records replace unconditional "Command executed" lines.
 - **First-Match Deny in `voix -l`**: listing now suppresses permits whose scope an earlier deny already wins at runtime.
 - **ACL Profile-Rule Parser Fix**: rules referencing `security.profiles` are no longer silently dropped by template expansion.
-- **Command Resolution Ownership Fix**: resolved executables verified against root ownership explicitly (post-drop euid no longer breaks resolution).
+- **Command Resolution Ownership Fix**: names and relative paths resolved through `core.paths` are verified against root ownership explicitly (post-drop euid no longer breaks resolution). Absolute paths are passed through without this check (documented limitation).
 - **Pre-Fork Identity Resolution**: target UID/GID/groups/home/shell resolved once in the parent; the child performs zero name-service calls between `fork()` and `execve()`.
 - **Fail-Closed Resource Limits + Forced umask**: `setrlimit` failures abort instead of continuing; children run with `umask(022)` regardless of caller.
-- **keepenv Gating**: CLI `-E` can only request what a `keepenv` policy grant allows.
-- **PAM Account Validation Always Runs**: trust/nopass rules skip only the credential check; expired/locked accounts stay locked.
+- **keepenv Gating**: `keepenv` is the sole grant that enables environment preservation; the CLI `-E` flag is accepted but ignored.
+- **Caller Account Validation**: `pam_acct_mgmt` runs for the invoking user on trust/nopass paths, so an expired or locked caller is denied. Passwordless target accounts skip the credential check (documented limitation).
 - **Exception-Safe PAM Sessions**: RAII guard closes sessions even when command execution throws.
 - **Non-Clobbering Config Installs**: upgrades write `/etc/voix.conf.new` instead of overwriting live policy; sanctuary `/var/lib/voix` created by install.
 - **Portable Login Shells**: login mode uses the POSIX `argv[0]` leading-dash convention instead of the `-l` flag dash rejects.

@@ -50,8 +50,8 @@ Voix implements a staged execution pipeline for privileged command invocation:
 ```mermaid
 flowchart TB
     A[CLI Parsing] --> B[Policy Evaluation<br/>first-match ACL]
-    B --> C[Authentication<br/>PAM · acct_mgmt always]
-    C --> D[Persisted Ticket Check<br/>persist option]
+    B --> C[Authentication<br/>PAM credential · persist ticket]
+    C --> D[Account Validation<br/>pam_acct_mgmt for caller]
     D --> E[Privilege Transition<br/>setgroups / setgid / setuid]
     E --> F[Capability Reduction<br/>libcap]
     F --> G[Syscall Confinement<br/>NNP always · seccomp]
@@ -98,6 +98,12 @@ Voix defines two primary execution tiers, selected by the target identity and th
 | **Inherited FDs** | Not closed | Closed (≥ 3) |
 | **Rationale** | Compatibility with system-level operations | Least privilege |
 
+> [!NOTE]
+> The non-privileged environment is rebuilt from a whitelist unless the
+> matched rule grants `keepenv`. `keepenv` preserves the caller's variables
+> minus known loader/interpreter names; it is the only grant that enables
+> preservation.
+
 ---
 
 ## 4. Security Model
@@ -136,7 +142,7 @@ For the full annotated example, see [config/voix.conf](config/voix.conf) — the
 ```yaml
 # Voix configuration
 core:
-  sanctuary: /tmp
+  sanctuary: /var/lib/voix
   paths:
     - /bin
     - /sbin
@@ -165,17 +171,34 @@ security:
     - /bin/sh
 ```
 
+`scrub_environment` is accepted for compatibility but currently has no effect;
+environment behavior is controlled by `preserve_full_environment` and `keepenv`.
+
 </details>
+
+> [!WARNING]
+> The shipped sample is a permissive starting point for package-manager
+> workflows: `wheel` receives `trust, keepenv`, and `root`/`alpm` are
+> unconfined. Review and tighten it before deployment.
 
 ---
 
 ## 6. Authentication Model
 
-Authentication is delegated to the system PAM stack under the `voix` service context. Authentication is required unless explicitly bypassed via policy-level `trust`/`nopass` options or a fresh `persist` ticket. Voix does not implement its own credential storage or verification system.
+Authentication is delegated to the system PAM stack under the `voix` service context. A credential check is required unless one of the following applies:
+
+- the matched rule carries `trust`/`nopass`;
+- the invoking user is root;
+- the target account has no usable password (service or locked account);
+- a fresh `persist` ticket exists for the invoking UID and the matched rule carries `persist` (tickets are not consulted under `-n`).
+
+Voix does not implement its own credential storage or verification system; `persist` stores only a timestamp.
 
 > [!IMPORTANT]
-> Account validation (`pam_acct_mgmt`) runs on **every** invocation, even for
-> `trust`/`nopass` rules — expired or disabled accounts are always denied.
+> `pam_acct_mgmt` runs for the **invoking user** on every invocation,
+> including `trust`/`nopass` paths, so an expired or disabled caller is
+> denied. It does not validate the target account when the target has no
+> password. See [Known Limitations](THREATS.md#7-known-limitations).
 
 ---
 
@@ -192,7 +215,7 @@ Authentication is delegated to the system PAM stack under the `voix` service con
 
 ## 8. Compatibility Note
 
-Voix may be used in workflows similar to `sudo` or `doas` for operational familiarity. However, this is a compatibility layer of usage, not a reflection of its internal architecture or design intent.
+Voix may be used in workflows similar to `sudo` or `doas` for operational familiarity. However, this is a compatibility layer of usage, not a reflection of its internal architecture or design intent. Voix does not implement the full `sudo`/`doas` command-line surface; the `provides`/`conflicts` entries in the AUR packages exist for dependency resolution, not as a claim of CLI equivalence.
 
 ---
 
@@ -238,7 +261,7 @@ Voix may be used in workflows similar to `sudo` or `doas` for operational famili
 
 ## 10. Usage
 
-After installation, ensure the PAM configuration at `/etc/pam.d/voix` is aligned with your security policy.
+After installation, ensure the PAM configuration at `/etc/pam.d/voix` is aligned with your security policy. The shipped `/etc/voix.conf` is intentionally permissive for package-manager use; review it before relying on it.
 
 ```bash
 voix <command> [args...]
@@ -254,15 +277,15 @@ The most common flags are `-u`, `-n`, `-k`, `-C`, and `-l`; the full table is in
 | :--- | :--- | :--- |
 | <kbd>-h</kbd> | `--help` | Show help |
 | <kbd>-v</kbd> | `--version` | Show version |
-| <kbd>-C</kbd> `FILE` | `--config` | Configuration file (default `/etc/voix.conf`) |
+| <kbd>-C</kbd> `FILE` | `--config` | Configuration file (default `/etc/voix.conf`); must be a regular root-owned file with no group/world write bits |
 | <kbd>-c</kbd> | `--check-config` | Validate the configuration file |
-| <kbd>-E</kbd> | `--preserve-env` | Preserve the environment (requires a `keepenv` grant) |
-| <kbd>-H</kbd> | `--home` | Set `HOME` to the target user's home directory |
-| <kbd>-i</kbd> | `--login` | Execute in a login shell environment |
+| <kbd>-E</kbd> | `--preserve-env` | Accepted for compatibility; has no effect. Environment preservation is enabled by a `keepenv` rule |
+| <kbd>-H</kbd> | `--home` | Set `HOME` to the target user's home directory. Without it, `HOME` is not set to the target's home |
+| <kbd>-i</kbd> | `--login` | Run via the target's login shell. Does not set `HOME`; pair with `-H` |
 | <kbd>-k</kbd> | | Invalidate the persisted authentication timestamp |
-| <kbd>-l</kbd> | `--list` | List permitted commands (deny-aware) |
-| <kbd>-n</kbd> | | Non-interactive mode |
-| <kbd>-s</kbd> | | Execute the user's shell (ascend to shell) |
+| <kbd>-l</kbd> | `--list` | List permit rules for the current user (deny-aware for identical scope) |
+| <kbd>-n</kbd> | | Non-interactive mode; persisted tickets are not consulted |
+| <kbd>-s</kbd> | | Execute the invoking user's `$SHELL` (not the target's login shell) |
 | <kbd>-u</kbd> `USER` | | Execute as a specific target user (default: `root`) |
 | | `--run-tests` | Run the built-in test suite (testing builds only) |
 
@@ -276,11 +299,11 @@ Consult the following technical guides:
 
 | Document | Content |
 | :--- | :--- |
-| [THREATS.md](THREATS.md) | Threat model, TCB metrics, system architecture, syscall filtering |
+| [THREATS.md](THREATS.md) | Threat model, TCB metrics, system architecture, syscall filtering, known limitations |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Build, lint, and test workflow; roadmap and design decisions |
 | [docs/CLI.md](docs/CLI.md) | Command-line interface and flag specifications |
 | [docs/CONFIG.md](docs/CONFIG.md) | Detailed guidance on `/etc/voix.conf` |
-| [docs/SUDO.md](docs/SUDO.md) | Using Voix as a functional `sudo` alternative |
+| [docs/SUDO.md](docs/SUDO.md) | `sudo`/`doas` compatibility guide and caveats |
 | [packaging/README.md](packaging/README.md) | Distribution and AUR packaging |
 
 ---
@@ -292,8 +315,8 @@ Consult the following technical guides:
 
 Verify that the PAM configuration at `/etc/pam.d/voix` matches your system's
 authentication stack (most distributions can `include system-auth`). Account-level
-failures (expired password, locked account) are also reported here — account
-validation always runs, even for `trust` rules.
+failures for the invoking user (expired password, locked account) are also reported
+here — `pam_acct_mgmt` runs even for `trust` rules.
 
 </details>
 

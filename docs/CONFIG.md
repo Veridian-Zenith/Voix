@@ -36,8 +36,14 @@ The configuration file (default: `/etc/voix.conf`) is composed of three main sec
 
 ### `core`
 
-- `sanctuary`: Temporary working directory path.
-- `paths`: Trusted directories for executable resolution.
+- `sanctuary`: Root-owned private directory used for persisted tickets
+  (`<sanctuary>/timestamp/`). Use `/var/lib/voix`; do not point this at
+  `/tmp` or another world-writable directory. `--check-config` verifies that
+  the path is a directory, but not that it or its parents are root-owned and
+  non-writable.
+- `paths`: Trusted directories for executable resolution. These are used for
+  bare command names and relative paths; an absolute path supplied by the
+  caller is executed as supplied and is not checked against this list.
 - `login_shell`: Whether to default to login shell mode.
 - `suppress_stderr`: Whether to suppress stderr log output.
 - `unconfined_targets`: List of target usernames that receive the full
@@ -56,7 +62,7 @@ Example:
 
 ```yaml
 core:
-  sanctuary: /tmp
+  sanctuary: /var/lib/voix
   paths:
     - /bin
     - /usr/bin
@@ -70,14 +76,18 @@ A mapping of users or groups to rules that govern execution authorization.
 
 - `action`: `permit` to allow the action, or `deny` to block it.
 - `options`: List of modifiers for the rule:
-    - `trust` or `nopass`: Allow execution without authentication.
+    - `trust` or `nopass`: Skip the credential check. Caller account
+      validation (`pam_acct_mgmt`) still runs.
     - `keepenv`: Preserve the user's environment variables (minus known
-      dangerous loader/interpreter variables). The CLI `-E` flag can only
-      request what a `keepenv` policy grant already allows.
+      dangerous loader/interpreter variables). This is the only grant that
+      enables environment preservation; the CLI `-E` flag is accepted for
+      compatibility but ignored.
     - `persist`: Maintain an authentication timestamp (default TTL: 15
-      minutes, stored under `<sanctuary>/timestamp/`) so subsequent runs skip
-      the password prompt. Account validation still runs every time.
-      Invalidate with `voix -k`.
+      minutes, stored under `<sanctuary>/timestamp/<uid>`) so subsequent runs
+      can skip the password prompt. Tickets are per invoking UID and are
+      recorded after account validation for any `persist` rule, including
+      trust/nopass paths. `-n` does not consult persisted tickets. Invalidate
+      with `voix -k`.
     - `nolog`: Suppress audit-log records containing the command text. An
       outcome-only summary ("execution completed, details withheld") is still
       recorded, and catastrophic-command blocks are always logged in full.
@@ -94,10 +104,10 @@ A mapping of users or groups to rules that govern execution authorization.
 
 Defines named execution profiles that control confinement behavior:
 
-- `retain_full_capabilities`: Preserve all Linux capabilities (`true`) or drop all (`false`).
-- `enable_seccomp`: Apply seccomp syscall blacklist (`true`) or bypass (`false`).
+- `retain_full_capabilities`: Preserve all Linux capabilities (`true`) or drop all (`false`). Retaining full capabilities selects the privileged tier, which also skips `PR_SET_NO_NEW_PRIVS` and seccomp.
+- `enable_seccomp`: Apply the seccomp syscall blacklist (`true`) or bypass it (`false`). This gates only `blacklist` mode; selecting `allowlist` applies that filter regardless of this setting.
 - `enable_resource_limits`: Enforce RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_CORE (`true`) or disable (`false`).
-- `scrub_environment`: Clear and restrict environment variables (`true`) or preserve (`false`).
+- `scrub_environment`: Accepted for compatibility but currently **unused** by the execution path. Environment behavior is controlled by `preserve_full_environment` and the rule's `keepenv` option.
 - `preserve_full_environment`: Preserve the entire inherited environment
   verbatim, without stripping loader/interpreter variables (`true`), or apply
   the normal sanitization (`false`). Intended only for unconfined system
@@ -105,6 +115,13 @@ Defines named execution profiles that control confinement behavior:
 - `seccomp_mode`: `blacklist` (default, allow-all then kill 19 dangerous
   syscalls) or `allowlist` (default-deny `SCMP_ACT_KILL`, only the same 19
   permitted via `SCMP_ACT_ALLOW`). See [`THREATS.md`](../THREATS.md#5-technical-defenses).
+
+> [!WARNING]
+> `seccomp_mode: allowlist` is experimental and currently unusable as a
+> confinement boundary: it permits the 19 syscalls that the blacklist kills
+> and does not permit `execve`, so the target is killed before it can exec.
+> Do not enable it in production until the permitted set is rebuilt around
+> the syscalls a command actually needs.
 
 #### `blocklist` (optional)
 
@@ -128,11 +145,14 @@ cwd-relative paths that resolve to `/`), `dd` writing to raw block devices
 so alternate path prefixes are covered too.
 
 > [!IMPORTANT]
-> Catastrophic detection is **unconditional and not overridable**. It runs
-> before policy evaluation, so no `permit` rule, no privileged group
-> membership, and no `seccomp`/`profile:` setting can permit these tools.
-> Running them requires a direct root login — TTY login, `su -`, or
-> `sudo -u root -i`. See [`docs/SUDO.md`](SUDO.md#3-destructive-operations-require-a-direct-root-login).
+> Catastrophic detection is hardcoded and runs before policy evaluation for
+> the command Voix is asked to execute. No `permit` rule, privileged group
+> membership, or `seccomp`/`profile:` setting can permit a directly requested
+> blocked tool. The gate does not inspect commands launched by a permitted
+> shell or interpreter, so a shell can still invoke these tools. For direct
+> Voix requests, running them requires a shell already authenticated as root
+> — TTY login, `su -`, or bare `-i`. See
+> [`docs/SUDO.md`](SUDO.md#3-destructive-operations-require-a-direct-root-login).
 
 > [!NOTE]
 > Exact-path blocklist entries are compared as literal strings, not
@@ -167,7 +187,7 @@ security:
 
 ```yaml
 core:
-  sanctuary: /tmp
+  sanctuary: /var/lib/voix
   paths:
     - /bin
     - /usr/bin

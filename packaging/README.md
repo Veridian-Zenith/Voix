@@ -58,7 +58,7 @@ Builds from source. Requires the full LLVM toolchain at build time.
 | **AUR path** | `AUR/voix/` |
 | **Source** | Signed tagged source archive `voix-src-<ver>.tar.gz` (+ detached `.asc`) from the GitHub release |
 | **makedepends** | `cmake>=3.30`, `clang`, `lld`, `ninja`, `pkgconf`, `ccache` |
-| **provides/conflicts** | `sudo`, `doas` (Voix replaces these entirely) |
+| **provides/conflicts** | `sudo`, `doas` (declared for dependency resolution; not a CLI-compatible drop-in) |
 
 ### `voix-bin` (pre-built binary)
 
@@ -67,9 +67,15 @@ Installs pre-built binaries from GitHub Releases. No compiler toolchain needed a
 | Field | Value |
 | :--- | :--- |
 | **AUR path** | `AUR/voix-bin/` |
-| **Source** | Built binary `voix-x86_64-bin.tar.gz` (+ detached `voix-x86_64-bin.tar.gz.asc`) from GitHub Releases |
+| **Source** | Arch-specific prebuilt tarball `voix-x86_64-bin.tar.gz` or `voix-aarch64-bin.tar.gz` (+ detached `.asc`) from GitHub Releases |
 | **makedepends** | None (no compilation required) |
-| **provides/conflicts** | `sudo`, `doas`, and `voix` (use `voix-bin` when you do not want to compile) |
+| **provides/conflicts** | `sudo`, `doas`, and `voix` (declared for dependency resolution; use `voix-bin` when you do not want to compile) |
+
+> [!NOTE]
+> The `provides`/`conflicts` entries let package managers treat Voix as a
+> replacement for dependency resolution. They do not imply command-line
+> compatibility with `sudo` or `doas`; see [`docs/SUDO.md`](../docs/SUDO.md)
+> for the differences.
 
 ### Release signing (GPG)
 

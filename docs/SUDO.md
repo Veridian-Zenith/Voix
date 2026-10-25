@@ -1,13 +1,13 @@
-# Using Voix as a Functional Alternative to `sudo`/`doas`
+# Using Voix in `sudo`/`doas` Workflows
 
-This guide explains how to use `voix` as a functional replacement for traditional privilege escalation tools like `sudo` and `doas`. 
+This guide explains how to use `voix` in workflows that resemble traditional privilege escalation tools like `sudo` and `doas`.
 
-While Voix is architected as a Privilege Policy Enforcement Runtime rather than a simple utility, it can be configured to provide a similar user experience to these tools.
+Voix is architected as a Privilege Policy Enforcement Runtime rather than a simple utility. It can provide a familiar user experience, but it is **not** a drop-in replacement and does not implement the full `sudo`/`doas` command-line surface. The `provides`/`conflicts` entries in the AUR packages exist for dependency resolution, not as a claim of CLI equivalence.
 
 ## Table of Contents
 
 - [1. Configuring Voix for Privilege Escalation](#1-configuring-voix-for-privilege-escalation)
-- [2. Setting Up a Drop-in Experience](#2-setting-up-a-drop-in-experience)
+- [2. Alias-Based Compatibility](#2-alias-based-compatibility)
 - [3. Destructive Operations Require a Direct Root Login](#3-destructive-operations-require-a-direct-root-login)
 - [4. Granting Service Accounts Their Own Rites](#4-granting-service-accounts-their-own-rites)
 - [5. Supported Flags](#5-supported-flags)
@@ -21,9 +21,9 @@ Voix manages privileges using configuration rules defined in `/etc/voix.conf`. F
 
 To grant specific users or groups the ability to escalate privileges, you must define YAML rules in your `/etc/voix.conf`.
 
-## 2. Setting Up a Drop-in Experience
+## 2. Alias-Based Compatibility
 
-To use `voix` as a functional alternative to `sudo`, you can create an alias in your shell configuration (e.g., `.bashrc` or `.zshrc`):
+For operational familiarity, you can create an alias in your shell configuration (e.g., `.bashrc` or `.zshrc`):
 
 ```bash
 alias sudo=voix
@@ -35,13 +35,16 @@ Alternatively, you can create a symlink in your path:
 sudo ln -s /usr/bin/voix /usr/local/bin/sudo
 ```
 
-Ensure that the soul or group is configured to be able to use `voix` in `/etc/voix.conf` using the YAML format.
+These are convenience measures, not compatibility guarantees. Scripts that rely on `sudo`-specific options, environment handling, or exit semantics may break, and the AUR packages already declare `provides`/`conflicts` for `sudo` and `doas`. Ensure that the user or group is configured to use `voix` in `/etc/voix.conf` using the YAML format.
 
 ## 3. Destructive Operations Require a Direct Root Login
 
-Voix refuses disk and partition rites unconditionally. This check is
+Voix refuses directly requested disk and partition rites. This check is
 independent of your ACL — it runs before policy evaluation, so no `permit`
-rule, no membership in `wheel`, and no `-n` flag can bypass it:
+rule, no membership in `wheel`, and no `-n` flag can bypass it. It inspects
+the command Voix is asked to execute; a permitted shell or interpreter can
+still invoke these tools. In the examples below, `sudo` means `voix` (via an
+alias or symlink).
 
 | Refused | Tools |
 | :--- | :--- |
@@ -56,10 +59,10 @@ rule, no membership in `wheel`, and no `-n` flag can bypass it:
   voix: command blocked: catastrophic command forbidden.
 ```
 
-This is a deliberate confirmation gate. A passwordless `sudo` on a shared
-workstation should not be able to rewrite a partition table. To perform
-these operations, authenticate as root by a means that cannot be automated
-into a policy exception:
+This is a deliberate confirmation gate. A passwordless rule on a shared
+workstation should not be able to rewrite a partition table as a directly
+requested Voix command. To perform these operations, use a shell already
+running as root by a means that cannot be automated into a policy exception:
 
 * TTY login as `root`
 * `su -`
@@ -117,11 +120,19 @@ ordinary commands typed at the prompt:
 > before and the destructive gate is unchanged — `voix -u root -i cfdisk
 > /dev/sda` stays blocked. Only the bare form depends on this.
 
+> [!WARNING]
+> `-i` does **not** set `HOME` to the target's home. If the matched rule
+> grants `keepenv`, or the target is unconfined (the shipped sample leaves
+> `root` unconfined), the caller's `HOME` survives. A login shell may then
+> read caller-owned startup files while running as the target. Use
+> `voix -H -u root -i` for a root login shell, and avoid `keepenv` on rules
+> used for login shells.
+
 ## 4. Granting Service Accounts Their Own Rites
 
-Because the destructive gate is unconditional, day-to-day service
-administration happens through the ACL instead. Each rule that omits
-`target:` matches only uid 0; add an explicit `target:` to grant a
+Because the destructive gate applies to directly requested commands,
+day-to-day service administration happens through the ACL instead. Each rule
+that omits `target:` matches only uid 0; add an explicit `target:` to grant a
 non-root identity:
 
 ```yaml
@@ -163,8 +174,9 @@ redundant rules, and an empty ACL.
 > The blocklist is matched by exact path. A shell entry such as
 > `/bin/sh` catches `/bin/sh` but not `/usr/bin/./bash`. Where the intent
 > is "no interactive shells at all", write `regex:` entries instead
-> (see [`CONFIG.md`](CONFIG.md#blocklist-optional)) or rely on the
-> `-i` login-shell form above.
+> (see [`CONFIG.md`](CONFIG.md#blocklist-optional)). The `-i` login-shell
+> form is not a substitute for a blocklist entry: the shell must be absent
+> from the blocklist for the bare form to run.
 
 ## 5. Supported Flags
 
@@ -172,13 +184,19 @@ Voix includes several flags to support `sudo`-like behavior. See [`CLI.md`](CLI.
 
 Important flags include:
 
-* `-i, --login`: Executes the command in a login shell environment. Named commands stay brokered by Voix (`sudo -u root -i cfdisk /dev/sda` is still refused); used bare it opens a standalone root shell — see section 3.
-* `-E, --preserve-env`: Requests preservation of the user's environment variables. Effective only when the matched rule carries a `keepenv` policy grant.
-* `-l, --list`: Lists commands permitted for the current user (deny-aware, mirroring runtime first-match semantics).
+* `-i, --login`: Runs the command via the target's login shell. Named commands stay brokered by Voix (`sudo -u root -i cfdisk /dev/sda` is still refused); used bare it opens an interactive shell as the target — see section 3. It does not set `HOME`; use `-H`.
+* `-E, --preserve-env`: Accepted for compatibility but has no effect. Environment preservation is enabled by a `keepenv` rule.
+* `-l, --list`: Lists permit rules for the current user. Deny-awareness is limited to an earlier deny with an identical command/args/target scope.
 * `-k`: Invalidates the persisted authentication timestamp for the invoking user.
-* `-n`: Non-interactive mode; fails instead of prompting for authentication.
+* `-n`: Non-interactive mode; fails instead of prompting for authentication. Persisted tickets are not consulted.
 
 ## 6. Limitations
 
 * Ensure that `/etc/voix.conf` is securely configured with restricted permissions (owned by root, not world-writable) to prevent unauthorized modifications to privilege rules.
-* Destructive disk and partition operations cannot be granted through policy at all; see section 3.
+* The shipped sample is permissive: `wheel` receives `trust, keepenv`, and `root`/`alpm` are unconfined. Review it before deployment.
+* Destructive disk and partition operations cannot be granted as a directly requested Voix command; a permitted shell can still run them. See section 3.
+* Commands resolved through `core.paths` or containing a relative path component are checked for root ownership and safe permissions. An absolute path supplied on the command line is executed as supplied, without that check. Prefer bare names or paths under trusted directories.
+* `-i` does not set `HOME`; see section 3. Use `-H` for login shells.
+* `-E` is accepted but ignored; `keepenv` alone controls environment preservation.
+* `-s` runs the invoking user's shell, not the target's login shell.
+* A target account with no usable password skips the credential check; see [`THREATS.md`](../THREATS.md#7-known-limitations).
