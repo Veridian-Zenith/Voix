@@ -7,6 +7,7 @@
  */
 
 #include "command.hpp"
+#include "exit_code.hpp"
 #include "file_utils.hpp"
 #include "logger.hpp"
 #include "security.hpp"
@@ -14,6 +15,7 @@
 #include <cerrno>
 #include <csignal>
 #include <cstring>
+#include <fcntl.h>
 #include <grp.h>
 #include <pwd.h>
 
@@ -29,6 +31,8 @@
 #include <unistd.h>
 #include <utility>
 #include <vector>
+
+extern char **environ;
 
 namespace Voix {
 
@@ -54,25 +58,64 @@ SecurityProfile Command::resolve_profile(const Config &config, const Rule &rule,
   return profile;
 }
 
-int Command::execute(std::string_view command,
+int Command::execute(const ExecutableInfo &command,
                      const std::vector<std::string> &args, const Config &config,
                      const CommandOptions &options, const Rule &rule,
                      const UserIdentity &target) {
+  // Resolve and pin the actual executable before fork(). For a login shell
+  // the executed file is the target's shell; the named command is passed to
+  // that shell with -c. In both cases fexecve() uses this exact descriptor,
+  // so replacing the path after validation cannot change what runs.
+  FileUtils file_utils;
+  ExecutableInfo executable = command;
+  if (options.login_shell) {
+    const std::string shell =
+        target.shell.empty() ? "/bin/sh" : target.shell;
+    auto resolved_shell = file_utils.resolve_executable(shell, "");
+    if (!resolved_shell) {
+      Logger().report_error(
+          ExitCode::NoExec,
+          std::format("target login shell is not a safe executable: '{}'",
+                      shell),
+          "the target's shell must be a root-owned, non-writable executable; "
+          "check the passwd entry");
+      return exit_status(ExitCode::NoExec);
+    }
+    executable = *resolved_shell;
+  }
+
+  auto opened = file_utils.open_executable(executable);
+  if (!opened) {
+    Logger().report_error(
+        ExitCode::NoExec,
+        std::format("executable changed or became unsafe after validation: {}",
+                    executable.path),
+        "retry the command; if it persists, check that the executable is "
+        "root-owned and not writable by group or others");
+    return exit_status(ExitCode::NoExec);
+  }
+  const int executable_fd = *opened;
+
   sigset_t old_mask;
   if (!block_signals_for_fork(old_mask)) {
-    return -1;
+    close(executable_fd);
+    return exit_status(ExitCode::Software);
   }
 
   pid_t pid = fork();
 
   if (pid == -1) {
-    LOG_ERROR(std::format("fork() failed: {}", std::strerror(errno)));
+    Logger().report_error(ExitCode::Software,
+                          std::format("fork() failed: {}",
+                                      std::strerror(errno)),
+                          "the system may be out of process slots or memory");
+    close(executable_fd);
     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
-    return -1;
+    return exit_status(ExitCode::Software);
   } else if (pid == 0) {
     // -----------------------------------------------------------------------
     // Child process — single-shot, no return. Every _exit() below is the
-    // terminal failure path; only execv() / _exit() ends the child.
+    // terminal failure path; only fexecve() / _exit() ends the child.
     // -----------------------------------------------------------------------
     reset_child_signals_and_umask(old_mask);
 
@@ -94,35 +137,37 @@ int Command::execute(std::string_view command,
     apply_environment(profile, config, options, rule, target,
                       std::move(saved_env));
 
-    apply_resource_limits_and_close_fds(profile);
+    apply_resource_limits_and_close_fds(profile, executable_fd);
 
     // Honor the rule's nolog option: never write the command text to the
     // audit log when suppression is requested.
     if (!(rule.options & Rule::NOLOG)) {
       LOG_INFO(std::format("executing command: {}, profile: {}",
-                           std::string(command), rule.profile));
+                           command.policy_path, rule.profile));
     }
-
-    std::string cmd_str =
-        resolve_absolute_command(std::string(command), config);
 
     apply_kernel_confinement(profile, config);
 
-    do_exec(cmd_str, args, options, target);
+    do_exec(command.policy_path, args, options, target, executable_fd);
     _exit(127); // unreachable; do_exec either succeeds or _exit()s itself
   } else {
     // Parent process
+    close(executable_fd);
     int status = 0;
     if (waitpid(pid, &status, 0) != pid) {
-      LOG_ERROR(std::format("waitpid() failed for pid {}: {}", pid,
-                            std::strerror(errno)));
+      Logger().report_error(
+          ExitCode::Software,
+          std::format("waitpid() failed for pid {}: {}", pid,
+                      std::strerror(errno)),
+          "the child may still be running; check the process table");
       (void)pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
-      return -1;
+      return exit_status(ExitCode::Software);
     }
 
     if (pthread_sigmask(SIG_SETMASK, &old_mask, nullptr) != 0) {
-      LOG_ERROR("Parent failed to restore signal mask");
-      // Non-fatal, continue
+      Logger().report_warning("process.signal-mask",
+                              "parent failed to restore the signal mask");
+      // Non-fatal, continue.
     }
 
     if (WIFEXITED(status)) {
@@ -133,7 +178,9 @@ int Command::execute(std::string_view command,
     if (WIFSIGNALED(status)) {
       return 128 + WTERMSIG(status);
     }
-    return -1;
+    Logger().report_error(ExitCode::Software,
+                          "child process ended with an unknown wait status");
+    return exit_status(ExitCode::Software);
   }
 }
 
@@ -143,7 +190,8 @@ bool Command::block_signals_for_fork(sigset_t &out_old_mask) {
   sigset_t new_mask;
   sigfillset(&new_mask);
   if (pthread_sigmask(SIG_BLOCK, &new_mask, &out_old_mask) != 0) {
-    LOG_ERROR("Failed to block signals");
+    Logger().report_error(ExitCode::Software,
+                          "failed to block signals before fork()");
     return false;
   }
   return true;
@@ -151,8 +199,9 @@ bool Command::block_signals_for_fork(sigset_t &out_old_mask) {
 
 void Command::reset_child_signals_and_umask(const sigset_t &old_mask) {
   if (pthread_sigmask(SIG_SETMASK, &old_mask, nullptr) != 0) {
-    LOG_ERROR("Child failed to restore signal mask");
-    _exit(1);
+    Logger().report_error(ExitCode::Software,
+                          "child failed to restore the signal mask");
+    _exit(exit_status(ExitCode::Software));
   }
 
   for (int i = 1; i < NSIG; ++i) {
@@ -203,22 +252,24 @@ Command::collect_sanitized_environment(const SecurityProfile &profile,
 }
 
 void Command::apply_privilege_transition(const UserIdentity &target) {
-  if (!target.groups.empty()) {
-    if (setgroups(target.groups.size(), target.groups.data()) != 0) {
-      LOG_ERROR(std::format("setgroups() failed for '{}': {}", target.username,
-                            std::strerror(errno)));
-      _exit(1);
-    }
+  auto fail = [&target](std::string_view what) {
+    Logger().report_error(
+        ExitCode::NoExec,
+        std::format("could not switch to target '{}': {}: {}",
+                    target.username, what, std::strerror(errno)),
+        "the account may be locked or Voix may lack the required privileges");
+    _exit(exit_status(ExitCode::NoExec));
+  };
+
+  if (!target.groups.empty() &&
+      setgroups(target.groups.size(), target.groups.data()) != 0) {
+    fail("setgroups()");
   }
   if (setgid(target.gid) != 0) {
-    LOG_ERROR(
-        std::format("setgid({}) failed: {}", target.gid, std::strerror(errno)));
-    _exit(1);
+    fail("setgid()");
   }
   if (setuid(target.uid) != 0) {
-    LOG_ERROR(
-        std::format("setuid({}) failed: {}", target.uid, std::strerror(errno)));
-    _exit(1);
+    fail("setuid()");
   }
 }
 
@@ -235,7 +286,8 @@ void Command::apply_capability_drop(const SecurityProfile &profile) {
 #endif
 }
 
-void Command::apply_environment(
+std::vector<std::pair<std::string, std::string>>
+Command::build_environment(
     const SecurityProfile &profile, const Config &config,
     const CommandOptions &options, const Rule &rule, const UserIdentity &target,
     std::vector<std::pair<std::string, std::string>> saved_env) {
@@ -243,32 +295,60 @@ void Command::apply_environment(
   const bool preserve_sanitized_env =
       !preserve_full_env && options.preserve_env;
 
-  clearenv();
-  std::ranges::for_each(saved_env, [](const auto &env) {
-    setenv(env.first.c_str(), env.second.c_str(), 1);
-  });
+  auto set_entry = [](std::vector<std::pair<std::string, std::string>> &env,
+                      std::string_view key, std::string_view value) {
+    for (auto &entry : env) {
+      if (entry.first == key) {
+        entry.second = value;
+        return;
+      }
+    }
+    env.emplace_back(std::string(key), std::string(value));
+  };
 
   if (!preserve_full_env && !preserve_sanitized_env) {
-    setenv("PATH", config.getPath().c_str(), 1);
+    set_entry(saved_env, "PATH", config.getPath());
   }
-  setenv("USER", target.username.c_str(), 1);
-  setenv("LOGNAME", target.username.c_str(), 1);
-  if (options.set_home) {
-    setenv("HOME", target.home_dir.c_str(), 1);
-  }
+  set_entry(saved_env, "USER", target.username);
+  set_entry(saved_env, "LOGNAME", target.username);
 
+  // A login shell must never inherit the caller's HOME: with keepenv or an
+  // unconfined target it would otherwise read the caller's startup files as
+  // the target. -H requests the same override for non-login commands.
+  if (options.set_home || options.login_shell) {
+    set_entry(saved_env, "HOME", target.home_dir);
+  }
   if (options.login_shell) {
-    setenv("SHELL", target.shell.c_str(), 1);
+    set_entry(saved_env, "SHELL", target.shell);
   }
 
   // Administrator-specified rule env (KEY=VALUE entries applied after
-  // sanitization).
-  SystemUtils sys_utils;
-  sys_utils.setEnvironment(rule.envlist);
+  // sanitization and identity overrides).
+  for (const auto &entry : rule.envlist) {
+    const auto eq = entry.find('=');
+    if (eq != std::string::npos) {
+      set_entry(saved_env, std::string_view(entry).substr(0, eq),
+                std::string_view(entry).substr(eq + 1));
+    }
+  }
+
+  return saved_env;
+}
+
+void Command::apply_environment(
+    const SecurityProfile &profile, const Config &config,
+    const CommandOptions &options, const Rule &rule, const UserIdentity &target,
+    std::vector<std::pair<std::string, std::string>> saved_env) {
+  clearenv();
+  for (const auto &[key, value] :
+       build_environment(profile, config, options, rule, target,
+                         std::move(saved_env))) {
+    setenv(key.c_str(), value.c_str(), 1);
+  }
 }
 
 void Command::apply_resource_limits_and_close_fds(
-    const SecurityProfile &profile) {
+    const SecurityProfile &profile, int executable_fd) {
   // Capture the original NOFILE limit before any reduction so the close
   // loop covers all inherited descriptors.
   struct rlimit original_rl;
@@ -280,15 +360,30 @@ void Command::apply_resource_limits_and_close_fds(
 
   // FD-management invariant:
   //   - Restricted tier scrubs all inherited FDs (>=3) so voix internal
-  //     descriptors never leak into the executed command.
+  //     descriptors never leak into the executed command. The pinned
+  //     executable descriptor is the sole exception and is moved to fd 3.
   //   - Privileged tier deliberately retains inherited FDs (e.g. D-Bus
   //     sockets for pacman hooks; alpm needs to talk back to the session
   //     bus for download progress). This is by design and documented in
   //     THREATS.md (see CONTRIBUTING.md for the completed v4.12.0 roadmap entry).
   if (!profile.retain_full_capabilities) {
+    int kept_fd = executable_fd;
+    if (kept_fd != 3) {
+      if (dup2(kept_fd, 3) == -1) {
+        Logger().report_error(
+            ExitCode::NoExec,
+            std::format("failed to preserve the executable descriptor: {}",
+                        std::strerror(errno)));
+        _exit(exit_status(ExitCode::NoExec));
+      }
+      close(kept_fd);
+      kept_fd = 3;
+    }
+    (void)kept_fd;
+
     bool closed = false;
 #ifdef SYS_close_range
-    if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
+    if (syscall(SYS_close_range, 4, ~0U, 0) == 0) {
       closed = true;
     }
 #endif
@@ -301,33 +396,11 @@ void Command::apply_resource_limits_and_close_fds(
         max_fd_limit = std::min(original_rl.rlim_cur, k_close_loop_cap);
       }
       int max_fd = static_cast<int>(max_fd_limit);
-      for (int i : std::views::iota(3, max_fd)) {
+      for (int i : std::views::iota(4, max_fd)) {
         close(i);
       }
     }
   }
-}
-
-std::string Command::resolve_absolute_command(std::string command,
-                                              const Config &config) {
-  if (command.empty() || command[0] != '/') {
-    if (!command.empty()) {
-      FileUtils file_utils;
-      std::string resolved =
-          file_utils.resolve_command({command, config.getPath()});
-      if (resolved.empty()) {
-        LOG_ERROR(std::format("Command not found: {}", command));
-        _exit(127);
-      }
-      command = resolved;
-    }
-  }
-
-  if (command.empty() || command[0] != '/') {
-    LOG_ERROR(std::format("Command must be an absolute path: {}", command));
-    _exit(127);
-  }
-  return command;
 }
 
 void Command::apply_kernel_confinement(const SecurityProfile &profile,
@@ -339,8 +412,11 @@ void Command::apply_kernel_confinement(const SecurityProfile &profile,
   }
 
   if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
-    LOG_ERROR("Failed to set PR_SET_NO_NEW_PRIVS");
-    _exit(1);
+    Logger().report_error(ExitCode::NoExec,
+                          "failed to set PR_SET_NO_NEW_PRIVS",
+                          "the kernel may be too old or seccomp is "
+                          "unsupported");
+    _exit(exit_status(ExitCode::NoExec));
   }
 #ifdef VOIX_WITH_SECCOMP
   if (profile.seccomp_mode == "allowlist") {
@@ -360,7 +436,7 @@ void Command::apply_kernel_confinement(const SecurityProfile &profile,
 void Command::do_exec(const std::string &cmd_str,
                       const std::vector<std::string> &args,
                       const CommandOptions &options,
-                      const UserIdentity &target) {
+                      const UserIdentity &target, int executable_fd) {
   auto escape = [](const std::string &s) {
     std::string escaped = "'";
     for (char c : s) {
@@ -373,12 +449,32 @@ void Command::do_exec(const std::string &cmd_str,
     return escaped;
   };
 
+  // fexecve() requires a descriptor that is not close-on-exec. The descriptor
+  // is pinned to the inode validated before fork(), so path replacement after
+  // validation cannot redirect execution.
+  const int fd_flags = fcntl(executable_fd, F_GETFD);
+  // Clear FD_CLOEXEC without a signed bitwise operation (FD_CLOEXEC is an
+  // int constant; the flags word is conceptually unsigned).
+  const auto without_cloexec = static_cast<int>(
+      static_cast<unsigned int>(fd_flags) &
+      ~static_cast<unsigned int>(FD_CLOEXEC));
+  if (fd_flags == -1 ||
+      fcntl(executable_fd, F_SETFD, without_cloexec) == -1) {
+    Logger().report_error(
+        ExitCode::NoExec,
+        std::format("failed to prepare the executable descriptor: {}",
+                    std::strerror(errno)));
+    _exit(exit_status(ExitCode::NoExec));
+  }
+
   if (options.login_shell) {
     // Login mode uses the POSIX argv[0] leading-dash convention ("-bash"),
     // which every shell understands, instead of the "-l" option that
     // dash/sh reject.
+    const std::string shell =
+        target.shell.empty() ? "/bin/sh" : target.shell;
     std::string login_argv0 =
-        "-" + std::filesystem::path(target.shell).filename().string();
+        "-" + std::filesystem::path(shell).filename().string();
     std::string c_arg = "-c";
     std::string full_cmd = escape(cmd_str);
     for (const auto &arg : args) {
@@ -387,8 +483,13 @@ void Command::do_exec(const std::string &cmd_str,
 
     const char *args_exec[] = {login_argv0.c_str(), c_arg.c_str(),
                                full_cmd.c_str(), nullptr};
-    execv(target.shell.c_str(), const_cast<char *const *>(args_exec));
-    _exit(127);
+    fexecve(executable_fd, const_cast<char *const *>(args_exec), environ);
+    Logger().report_error(
+        ExitCode::NoExec,
+        std::format("could not execute login shell '{}': {}",
+                    std::filesystem::path(shell).filename().string(),
+                    std::strerror(errno)));
+    _exit(exit_status(ExitCode::NoExec));
   }
 
   std::vector<const char *> argv;
@@ -397,8 +498,14 @@ void Command::do_exec(const std::string &cmd_str,
     argv.push_back(arg.c_str());
   }
   argv.push_back(nullptr);
-  execv(cmd_str.c_str(), const_cast<char *const *>(argv.data()));
-  _exit(127);
+  fexecve(executable_fd, const_cast<char *const *>(argv.data()), environ);
+  Logger().report_error(
+      ExitCode::NoExec,
+      std::format("could not execute '{}': {}", cmd_str,
+                  std::strerror(errno)),
+      "the executable may be missing its interpreter or have invalid "
+      "permissions");
+  _exit(exit_status(ExitCode::NoExec));
 }
 
 void Command::setResourceLimits() const {
@@ -408,27 +515,30 @@ void Command::setResourceLimits() const {
   rl.rlim_cur = 1024;
   rl.rlim_max = 4096;
   if (setrlimit(RLIMIT_NOFILE, &rl) != 0) {
-    LOG_ERROR(
-        std::format("Failed to set RLIMIT_NOFILE: {}", std::strerror(errno)));
-    _exit(1);
+    Logger().report_error(
+        ExitCode::NoExec,
+        std::format("failed to set RLIMIT_NOFILE: {}", std::strerror(errno)));
+    _exit(exit_status(ExitCode::NoExec));
   }
 
   // Limit number of processes to prevent fork bombs
   rl.rlim_cur = 512;
   rl.rlim_max = 1024;
   if (setrlimit(RLIMIT_NPROC, &rl) != 0) {
-    LOG_ERROR(
-        std::format("Failed to set RLIMIT_NPROC: {}", std::strerror(errno)));
-    _exit(1);
+    Logger().report_error(
+        ExitCode::NoExec,
+        std::format("failed to set RLIMIT_NPROC: {}", std::strerror(errno)));
+    _exit(exit_status(ExitCode::NoExec));
   }
 
   // Limit core dump size (prevent sensitive memory from being written to disk)
   rl.rlim_cur = 0;
   rl.rlim_max = 0;
   if (setrlimit(RLIMIT_CORE, &rl) != 0) {
-    LOG_ERROR(
-        std::format("Failed to set RLIMIT_CORE: {}", std::strerror(errno)));
-    _exit(1);
+    Logger().report_error(
+        ExitCode::NoExec,
+        std::format("failed to set RLIMIT_CORE: {}", std::strerror(errno)));
+    _exit(exit_status(ExitCode::NoExec));
   }
 }
 

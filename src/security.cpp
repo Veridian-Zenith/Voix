@@ -173,10 +173,6 @@ bool Security::validateUser(std::string_view username) const {
   return identity->get_user_by_name(std::string(username)).has_value();
 }
 
-void Security::logEvent(std::string_view event, std::string_view user) const {
-  logEvent("event", event, user);
-}
-
 void Security::logEvent(std::string_view code, std::string_view event,
                         std::string_view user) const {
   Logger logger;

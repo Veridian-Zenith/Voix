@@ -261,6 +261,37 @@ bool test_permission_checker_list_respects_first_match_deny() {
     return true;
 }
 
+bool test_permission_checker_canonicalizes_command_paths() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_perm_canon.conf";
+    ScopedTempFile cleanup_guard(config_path);
+    {
+        std::ofstream outfile(config_path);
+        outfile << "acl:\n  user:\n    1000:\n"
+                << "      - action: permit\n"
+                << "        command: /usr/bin/true\n";
+    }
+    config->load(config_path.string(), false);
+
+    Voix::PermissionChecker checker(security, config);
+    // Bare name, merged-/usr alias, and the canonical path all match the
+    // same rule because both sides are canonicalized.
+    ASSERT_TRUE(checker.permit("true", {}, 0).has_value());
+    ASSERT_TRUE(checker.permit("/bin/true", {}, 0).has_value());
+    ASSERT_TRUE(checker.permit("/usr/bin/true", {}, 0).has_value());
+    ASSERT_TRUE(!checker.permit("/bin/false", {}, 0).has_value());
+    return true;
+}
+
 void register_permission_tests(TestRunner& runner) {
     runner.add_test("test_permission_checker_permit_allowed", test_permission_checker_permit_allowed);
     runner.add_test("test_permission_checker_permit_denied", test_permission_checker_permit_denied);
@@ -272,4 +303,6 @@ void register_permission_tests(TestRunner& runner) {
     runner.add_test("test_permission_checker_list_permitted_rules", test_permission_checker_list_permitted_rules);
     runner.add_test("test_permission_checker_list_respects_first_match_deny",
                     test_permission_checker_list_respects_first_match_deny);
+    runner.add_test("test_permission_checker_canonicalizes_command_paths",
+                    test_permission_checker_canonicalizes_command_paths);
 }

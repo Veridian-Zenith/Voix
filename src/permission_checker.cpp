@@ -9,6 +9,7 @@
 #include "permission_checker.hpp"
 #include "security.hpp"
 #include "config.hpp"
+#include "file_utils.hpp"
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
@@ -20,6 +21,21 @@
 #include <regex>
 
 namespace Voix {
+
+namespace {
+
+/// Canonicalize a command for ACL comparison. A command that cannot be
+/// resolved to a safe executable is kept literal so policy tests and rules
+/// for non-executable strings retain their exact-match behavior; the
+/// execution path independently refuses such commands.
+std::string canonical_command_for_match(std::string_view command,
+                                        const Config& config) {
+  FileUtils file_utils;
+  auto resolved = file_utils.resolve_executable(command, config.getPath());
+  return resolved ? resolved->policy_path : std::string(command);
+}
+
+} // namespace
 
 PermissionChecker::PermissionChecker(std::shared_ptr<Security> security,
                                      std::shared_ptr<Config> config)
@@ -109,7 +125,10 @@ bool PermissionChecker::matchRule(const Rule &rule, uid_t uid,
 
   if (!rule.cmd.empty()) {
     std::string resolved_cmd = resolve_variables(rule.cmd);
-    if (resolved_cmd != command)
+    const std::string requested_cmd =
+        canonical_command_for_match(command, *config_);
+    resolved_cmd = canonical_command_for_match(resolved_cmd, *config_);
+    if (resolved_cmd != requested_cmd)
       return false;
 
     if (!rule.cmdargs.empty()) {
