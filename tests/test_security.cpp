@@ -15,8 +15,11 @@
 
 #include "test_modules.hpp"
 #include "../include/authenticator.hpp"
+#include <algorithm>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
 
 bool test_security_validate_user_valid() {
     auto identity = std::make_shared<MockIdentity>();
@@ -330,7 +333,113 @@ bool test_credential_mode_ordering() {
     return true;
 }
 
+bool test_seccomp_allowlist_baseline_can_exec() {
+    // Regression guard: the previous allowlist permitted only the dangerous
+    // syscalls from the blacklist and omitted execve, so the kernel killed
+    // the target before it could start.
+    auto baseline = Voix::Security::seccomp_allowlist_baseline();
+    ASSERT_TRUE(!baseline.empty());
+
+    auto contains = [&baseline](std::string_view name) {
+        return std::find(baseline.begin(), baseline.end(), name) !=
+               baseline.end();
+    };
+    ASSERT_TRUE(contains("execve"));
+    ASSERT_TRUE(contains("execveat"));
+    ASSERT_TRUE(contains("exit_group"));
+    ASSERT_TRUE(contains("read"));
+    ASSERT_TRUE(contains("write"));
+    ASSERT_TRUE(contains("mmap"));
+
+    // The baseline must not re-permit the syscalls the blacklist kills.
+    ASSERT_TRUE(!contains("reboot"));
+    ASSERT_TRUE(!contains("ptrace"));
+    ASSERT_TRUE(!contains("bpf"));
+    ASSERT_TRUE(!contains("kexec_load"));
+    return true;
+}
+
+bool test_seccomp_validate_syscall_names() {
+    ASSERT_TRUE(Voix::Security::validate_syscall_names({}).empty());
+    ASSERT_TRUE(
+        Voix::Security::validate_syscall_names({"openat2", "statx"}).empty());
+
+    const std::string unknown =
+        Voix::Security::validate_syscall_names({"definitely_not_a_syscall"});
+    ASSERT_TRUE(!unknown.empty());
+    ASSERT_TRUE(unknown.find("definitely_not_a_syscall") != std::string::npos);
+    return true;
+}
+
+bool test_seccomp_allowlist_runs_a_real_program() {
+    // End-to-end check that allowlist mode does not kill the target before it
+    // starts. The child installs the filter and execs a dynamically linked
+    // binary; a seccomp violation would terminate it with SIGSYS instead of
+    // exiting 0.
+    const char *target = "/bin/ls";
+    if (access(target, X_OK) != 0) {
+        target = "/usr/bin/ls";
+    }
+
+    pid_t pid = fork();
+    ASSERT_TRUE(pid >= 0);
+    if (pid == 0) {
+        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
+            _exit(120);
+        }
+        Voix::Security sec;
+        sec.applySeccompAllowlist({});
+        // Silence ls output; the exit status is what matters.
+        if (freopen("/dev/null", "w", stdout) == nullptr) {
+            _exit(122);
+        }
+        char *const argv[] = {const_cast<char *>(target),
+                              const_cast<char *>("--version"), nullptr};
+        execv(target, argv);
+        _exit(121);
+    }
+
+    int status = 0;
+    ASSERT_TRUE(waitpid(pid, &status, 0) == pid);
+    if (!WIFEXITED(status)) {
+        std::cerr << "allowlisted " << target << " did not exit normally"
+                  << std::endl;
+    }
+    ASSERT_TRUE(WIFEXITED(status));
+    ASSERT_EQUAL(WEXITSTATUS(status), 0);
+    return true;
+}
+
+bool test_seccomp_blacklist_runs_a_real_program() {
+    pid_t pid = fork();
+    ASSERT_TRUE(pid >= 0);
+    if (pid == 0) {
+        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
+            _exit(120);
+        }
+        Voix::Security sec;
+        sec.applySeccompBlacklist();
+        char *const argv[] = {const_cast<char *>("/bin/true"), nullptr};
+        execv("/bin/true", argv);
+        _exit(121);
+    }
+
+    int status = 0;
+    ASSERT_TRUE(waitpid(pid, &status, 0) == pid);
+    ASSERT_TRUE(WIFEXITED(status));
+    ASSERT_EQUAL(WEXITSTATUS(status), 0);
+    return true;
+}
+
 void register_security_tests(TestRunner& runner) {
+    runner.add_test("test_seccomp_allowlist_baseline_can_exec",
+                    test_seccomp_allowlist_baseline_can_exec);
+    runner.add_test("test_seccomp_validate_syscall_names",
+                    test_seccomp_validate_syscall_names);
+    runner.add_test("test_seccomp_allowlist_runs_a_real_program",
+                    test_seccomp_allowlist_runs_a_real_program);
+    runner.add_test("test_seccomp_blacklist_runs_a_real_program",
+                    test_seccomp_blacklist_runs_a_real_program);
     runner.add_test("test_security_validate_user_valid", test_security_validate_user_valid);
     runner.add_test("test_security_validate_user_invalid", test_security_validate_user_invalid);
     runner.add_test("test_security_validate_user_too_long", test_security_validate_user_too_long);

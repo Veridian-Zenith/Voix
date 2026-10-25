@@ -184,7 +184,7 @@ Voix includes several flags to support `sudo`-like behavior. See [`CLI.md`](CLI.
 Important flags include:
 
 * `-i, --login`: Runs the command via the target's login shell. Named commands stay brokered by Voix (`sudo -u root -i cfdisk /dev/sda` is still refused); used bare it opens an interactive shell as the target — see section 3. Forces `HOME` and `SHELL` to the target's values.
-* `-E, --preserve-env`: Accepted for compatibility but has no effect. Environment preservation is enabled by a `keepenv` rule.
+* `-E, --preserve-env`: Accepted for compatibility but has no effect. Environment preservation is enabled by a `keepenv` rule or a profile with `scrub_environment: false`.
 * `-l, --list`: Lists permit rules for the current user. Deny-awareness is limited to an earlier deny with an identical command/args/target scope.
 * `-k`: Invalidates all persisted authentication tickets for the invoking user.
 * `-n`: Non-interactive mode; reuses a valid persisted ticket if the rule grants `persist`, otherwise fails instead of prompting.
@@ -196,6 +196,6 @@ Important flags include:
 * Destructive disk and partition operations cannot be granted as a directly requested Voix command; a permitted shell can still run them. See section 3.
 * Every requested command — bare name, relative path, or absolute path — is canonicalized and must resolve to a regular root-owned executable without group/world write permission. The validated inode is pinned and executed with `fexecve(2)`.
 * `-i` forces `HOME`/`SHELL` to the target; `-H` does the same for `HOME` on non-login commands.
-* `-E` is accepted but ignored; `keepenv` alone controls environment preservation.
+* `-E` is accepted but ignored; `keepenv` or `scrub_environment: false` controls environment preservation.
 * `-s` runs the invoking user's shell, not the target's login shell.
 * There is no passwordless-target bypass: the caller must authenticate unless the rule grants `trust`/`nopass`, the caller is root, or a valid persisted ticket exists.

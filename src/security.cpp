@@ -377,11 +377,93 @@ void Security::dropCapabilities(const std::vector<cap_value_t> &keep_caps) {
 #endif
 
 #ifdef VOIX_WITH_SECCOMP
+namespace {
+
+/// Syscall names that make up the allowlist baseline: enough for a normal
+/// dynamically linked program to start, load, read/write files and the
+/// terminal, handle signals, use timers and poll, and talk over a socket.
+/// It deliberately excludes mutation of the filesystem namespace (mkdir,
+/// unlink, rename, chmod, mount, ...) and process creation; grant those per
+/// profile with `seccomp_allow`.
+constexpr std::string_view k_allowlist_baseline[] = {
+    // Process start and exit. execve/execveat are mandatory: fexecve(2) uses
+    // execveat(2) on modern glibc, and without them the target can never run.
+    "execve", "execveat", "exit", "exit_group",
+    // Memory management.
+    "brk", "mmap", "munmap", "mprotect", "mremap", "madvise",
+    // Thread/process bookkeeping and identity queries.
+    "arch_prctl", "set_tid_address", "set_robust_list", "rseq",
+    "getpid", "gettid", "getppid", "getuid", "geteuid", "getgid", "getegid",
+    "getgroups", "prlimit64", "sched_yield", "sched_getaffinity",
+    // Signals.
+    "rt_sigaction", "rt_sigprocmask", "rt_sigreturn", "sigaltstack",
+    "restart_syscall",
+    // Time and sleeping.
+    "clock_gettime", "clock_nanosleep", "nanosleep", "gettimeofday", "time",
+    "times",
+    // Basic file I/O.
+    "read", "write", "readv", "writev", "pread64", "pwrite64", "lseek",
+    "close", "dup", "dup2", "dup3", "fcntl", "ioctl",
+    // Opening and inspecting files and directories.
+    "open", "openat", "stat", "fstat", "lstat", "newfstatat", "statx",
+    "access", "faccessat", "faccessat2", "getcwd", "getdents64",
+    "readlink", "readlinkat", "fstatfs",
+    // Waiting and event notification.
+    "poll", "ppoll", "select", "pselect6", "epoll_create1", "epoll_ctl",
+    "epoll_wait", "epoll_pwait", "eventfd2", "pipe", "pipe2", "futex",
+    // Entropy and system identification.
+    "getrandom", "uname", "sysinfo",
+    // Sockets: name-service lookups and ordinary client networking.
+    "socket", "connect", "accept", "accept4", "bind", "listen", "sendto",
+    "recvfrom", "sendmsg", "recvmsg", "shutdown", "getsockname",
+    "getpeername", "setsockopt", "getsockopt",
+};
+
+/// Add one syscall to the filter. Returns false when the failure is not an
+/// "this architecture does not have that syscall" condition.
+bool add_allow_rule(scmp_filter_ctx ctx, std::string_view name) {
+  const int sc = seccomp_syscall_resolve_name(std::string(name).c_str());
+  if (sc == __NR_SCMP_ERROR) {
+    LOG_ERROR(std::format("unknown syscall name in seccomp_allow: '{}'", name));
+    return false;
+  }
+  const int rc = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, sc, 0);
+  // -EDOM: the syscall does not exist for this architecture.
+  if (rc < 0 && rc != -EDOM && rc != -ENOSYS && rc != -EOPNOTSUPP) {
+    LOG_ERROR(std::format("failed to add seccomp allow rule for '{}': {}",
+                          name, rc));
+    return false;
+  }
+  return true;
+}
+
+} // namespace
+
+std::span<const std::string_view> Security::seccomp_allowlist_baseline() {
+  return k_allowlist_baseline;
+}
+
+std::string
+Security::validate_syscall_names(const std::vector<std::string> &names) {
+  for (const auto &name : names) {
+    if (name.empty()) {
+      return "security profile has an empty seccomp_allow entry";
+    }
+    if (seccomp_syscall_resolve_name(name.c_str()) == __NR_SCMP_ERROR) {
+      return std::format(
+          "unknown syscall '{}' in seccomp_allow (names come from "
+          "seccomp_syscall_resolve_name(3), for example 'openat2')",
+          name);
+    }
+  }
+  return {};
+}
+
 void Security::applySeccompBlacklist() const {
   UniqueSeccomp ctx(seccomp_init(SCMP_ACT_ALLOW));
   if (!ctx) {
     LOG_WARN("Failed to init seccomp");
-    _exit(1);
+    _exit(exit_status(ExitCode::NoExec));
   }
 
   // Kernel/module/reboot surface
@@ -411,66 +493,55 @@ void Security::applySeccompBlacklist() const {
     int rc = seccomp_rule_add(ctx.get(), SCMP_ACT_KILL, sc, 0);
     // Tolerate architectures where the syscall does not exist; fail
     // closed on anything else.
-    if (rc < 0 && rc != -ENOSYS && rc != -EOPNOTSUPP) {
+    if (rc < 0 && rc != -EDOM && rc != -ENOSYS && rc != -EOPNOTSUPP) {
       LOG_WARN(
           std::format("Failed to add seccomp rule for syscall {}: {}", sc, rc));
-      _exit(1);
+      _exit(exit_status(ExitCode::NoExec));
     }
   }
 
   if (seccomp_load(ctx.get()) < 0) {
     LOG_ERROR("Failed to load seccomp");
-    _exit(1);
+    _exit(exit_status(ExitCode::NoExec));
   }
 }
 
-void Security::applySeccompAllowlist() const {
-  // Default-deny allowlist: kill every syscall EXCEPT the 19 permitted
-  // ones derived from the current blacklist entry (the recommended future
-  // enhancement per THREATS.md §3). This flips the default from ALLOW
-  // (blacklist) to KILL (allowlist) and permits only the listed set.
-  UniqueSeccomp ctx(seccomp_init(SCMP_ACT_KILL));
+void Security::applySeccompAllowlist(
+    const std::vector<std::string> &extra_syscalls) const {
+  // Default-deny: any syscall not added below kills the target. This is the
+  // mirror image of the blacklist and must include execve/execveat or the
+  // child is killed before the target starts.
+  UniqueSeccomp ctx(seccomp_init(SCMP_ACT_KILL_PROCESS));
   if (!ctx) {
     LOG_WARN("Failed to init seccomp (allowlist)");
-    _exit(1);
+    _exit(exit_status(ExitCode::NoExec));
   }
 
-  const int permitted_syscalls[] = {
-      SCMP_SYS(kexec_load),
-      SCMP_SYS(delete_module),
-      SCMP_SYS(init_module),
-      SCMP_SYS(finit_module),
-      SCMP_SYS(reboot),
-      SCMP_SYS(swapon),
-      SCMP_SYS(swapoff),
-      SCMP_SYS(ptrace),
-      SCMP_SYS(bpf),
-      SCMP_SYS(userfaultfd),
-      SCMP_SYS(perf_event_open),
-      SCMP_SYS(keyctl),
-      SCMP_SYS(add_key),
-      SCMP_SYS(request_key),
-      SCMP_SYS(open_by_handle_at),
-      SCMP_SYS(name_to_handle_at),
-      SCMP_SYS(io_uring_setup),
-      SCMP_SYS(process_vm_readv),
-      SCMP_SYS(process_vm_writev),
-  };
-
-  for (int sc : permitted_syscalls) {
-    int rc = seccomp_rule_add(ctx.get(), SCMP_ACT_ALLOW, sc, 0);
-    if (rc < 0 && rc != -ENOSYS && rc != -EOPNOTSUPP) {
-      LOG_WARN(std::format("Failed to add allowlist rule for syscall {}: {}",
-                           sc, rc));
-      _exit(1);
+  for (std::string_view name : k_allowlist_baseline) {
+    if (!add_allow_rule(ctx.get(), name)) {
+      _exit(exit_status(ExitCode::NoExec));
+    }
+  }
+  for (const auto &name : extra_syscalls) {
+    if (!add_allow_rule(ctx.get(), name)) {
+      _exit(exit_status(ExitCode::NoExec));
     }
   }
 
   if (seccomp_load(ctx.get()) < 0) {
     LOG_ERROR("Failed to load seccomp (allowlist)");
-    _exit(1);
+    _exit(exit_status(ExitCode::NoExec));
   }
 }
+#else
+std::string
+Security::validate_syscall_names(const std::vector<std::string> &names) {
+  // Without libseccomp there is no filter to configure, so every name is
+  // accepted and ignored.
+  (void)names;
+  return {};
+}
 #endif
+
 
 } // namespace Voix

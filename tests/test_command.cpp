@@ -118,6 +118,40 @@ bool test_command_login_environment_forces_target_home() {
     return true;
 }
 
+bool test_command_scrub_environment_false_preserves_caller_env() {
+    // `scrub_environment: false` is a profile-level grant equivalent to the
+    // rule's `keepenv`: the caller's environment is kept, minus dangerous
+    // variables, even when the rule itself has no keepenv option.
+    Voix::SecurityProfile profile;
+    profile.scrub_environment = false;
+    Voix::CommandOptions options;
+
+    const std::vector<std::string> raw = {
+        "EDITOR=vim",
+        "LD_PRELOAD=/tmp/evil.so",
+        "PATH=/usr/bin",
+    };
+    auto env = Voix::Command::sanitize_environment(profile, options, raw);
+    ASSERT_EQUAL(env_value(env, "EDITOR"), std::string("vim"));
+    // Sanitization still applies.
+    ASSERT_EQUAL(env_value(env, "LD_PRELOAD"), std::string("<missing>"));
+    return true;
+}
+
+bool test_command_scrub_environment_true_keeps_whitelist_only() {
+    Voix::SecurityProfile profile; // scrub_environment defaults to true
+    Voix::CommandOptions options;
+
+    const std::vector<std::string> raw = {
+        "EDITOR=vim",
+        "TERM=xterm-256color",
+    };
+    auto env = Voix::Command::sanitize_environment(profile, options, raw);
+    ASSERT_EQUAL(env_value(env, "EDITOR"), std::string("<missing>"));
+    ASSERT_EQUAL(env_value(env, "TERM"), std::string("xterm-256color"));
+    return true;
+}
+
 bool test_command_non_login_keeps_caller_home_without_dash_h() {
     Voix::Config config;
     Voix::SecurityProfile profile;
@@ -153,6 +187,10 @@ void register_command_tests(TestRunner& runner) {
     runner.add_test("test_command_resolve_profile_matrix", test_command_resolve_profile_matrix);
     runner.add_test("test_command_login_environment_forces_target_home",
                     test_command_login_environment_forces_target_home);
+    runner.add_test("test_command_scrub_environment_false_preserves_caller_env",
+                    test_command_scrub_environment_false_preserves_caller_env);
+    runner.add_test("test_command_scrub_environment_true_keeps_whitelist_only",
+                    test_command_scrub_environment_true_keeps_whitelist_only);
     runner.add_test("test_command_non_login_keeps_caller_home_without_dash_h",
                     test_command_non_login_keeps_caller_home_without_dash_h);
     runner.add_test("test_command_dash_h_sets_target_home",

@@ -107,21 +107,43 @@ Defines named execution profiles that control confinement behavior:
 - `retain_full_capabilities`: Preserve all Linux capabilities (`true`) or drop all (`false`). Retaining full capabilities selects the privileged tier, which also skips `PR_SET_NO_NEW_PRIVS` and seccomp.
 - `enable_seccomp`: Apply the seccomp syscall blacklist (`true`) or bypass it (`false`). This gates only `blacklist` mode; selecting `allowlist` applies that filter regardless of this setting.
 - `enable_resource_limits`: Enforce RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_CORE (`true`) or disable (`false`).
-- `scrub_environment`: Accepted for compatibility but currently **unused** by the execution path. Environment behavior is controlled by `preserve_full_environment` and the rule's `keepenv` option.
+- `scrub_environment`: Reduce the caller's environment to a safe whitelist
+  (`true`, default). Set to `false` to keep the caller's environment after the
+  dangerous loader/interpreter variables are stripped — the same effect as
+  the rule's `keepenv`, granted at profile level. Full verbatim preservation
+  is a separate grant (`preserve_full_environment`).
 - `preserve_full_environment`: Preserve the entire inherited environment
   verbatim, without stripping loader/interpreter variables (`true`), or apply
   the normal sanitization (`false`). Intended only for unconfined system
   targets.
-- `seccomp_mode`: `blacklist` (default, allow-all then kill 19 dangerous
-  syscalls) or `allowlist` (default-deny `SCMP_ACT_KILL`, only the same 19
-  permitted via `SCMP_ACT_ALLOW`). See [`THREATS.md`](../THREATS.md#5-technical-defenses).
+- `seccomp_mode`: `blacklist` (default: allow everything, kill a fixed set of
+  dangerous syscalls) or `allowlist` (default-deny: kill everything except the
+  built-in baseline plus `seccomp_allow`). An unrecognized value is a
+  configuration error rather than an unfiltered execution.
+- `seccomp_allow`: Additional syscall names permitted in `allowlist` mode, on
+  top of the baseline (which already covers process startup — including
+  `execve`/`execveat` — memory, basic file I/O, signals, timers, polling,
+  pipes, and sockets). Unknown names are rejected when the configuration is
+  loaded, so `voix --check-config` reports them before any command runs.
+  Rejected when `seccomp_mode` is not `allowlist`.
 
-> [!WARNING]
-> `seccomp_mode: allowlist` is experimental and currently unusable as a
-> confinement boundary: it permits the 19 syscalls that the blacklist kills
-> and does not permit `execve`, so the target is killed before it can exec.
-> Do not enable it in production until the permitted set is rebuilt around
-> the syscalls a command actually needs.
+```yaml
+security:
+  profiles:
+    tightly-scoped:
+      seccomp_mode: allowlist
+      seccomp_allow:
+        - mkdir
+        - unlink
+```
+
+> [!NOTE]
+> The allowlist baseline is a starting point, not a complete sandbox for every
+> program: a command that mutates the filesystem namespace (`mkdir`,
+> `unlink`, `rename`, `chmod`, ...) or creates processes needs those syscalls
+> added to `seccomp_allow`. Test a rule with `voix --check-config` and then a
+> real invocation before relying on it. See
+> [`THREATS.md`](../THREATS.md#5-technical-defenses).
 
 #### `blocklist` (optional)
 

@@ -42,11 +42,17 @@ SecurityProfile Command::resolve_profile(const Config &config, const Rule &rule,
 
   SecurityProfile profile = config.get_profile(rule.profile);
   if (rule.profile.empty() && target_unconfined) {
-    profile = SecurityProfile{/* retain_full_capabilities */ true,
-                              /* enable_seccomp         */ false,
-                              /* enable_resource_limits*/ false,
-                              /* scrub_environment     */ false,
-                              /* preserve_full_environment*/ true};
+    // Designated initializers keep this readable and make an added profile
+    // field a compile error rather than a silently misaligned value.
+    profile = SecurityProfile{
+        .retain_full_capabilities = true,
+        .enable_seccomp = false,
+        .enable_resource_limits = false,
+        .scrub_environment = false,
+        .preserve_full_environment = true,
+        .seccomp_mode = std::string(k_seccomp_mode_blacklist),
+        .seccomp_allow = {},
+    };
   }
 
   // Unconfined targets always keep their full environment, regardless of the
@@ -211,11 +217,15 @@ void Command::reset_child_signals_and_umask(const sigset_t &old_mask) {
 }
 
 std::vector<std::pair<std::string, std::string>>
-Command::collect_sanitized_environment(const SecurityProfile &profile,
-                                       const CommandOptions &options) {
+Command::sanitize_environment(const SecurityProfile &profile,
+                              const CommandOptions &options,
+                              std::span<const std::string> raw_env) {
   const bool preserve_full_env = profile.preserve_full_environment;
+  // Two independent grants: the rule's `keepenv` option and the profile's
+  // `scrub_environment: false`. Both mean "keep the caller's environment
+  // after the dangerous-variable filter"; full preservation is separate.
   const bool preserve_sanitized_env =
-      !preserve_full_env && options.preserve_env;
+      !preserve_full_env && (options.preserve_env || !profile.scrub_environment);
 
   const std::vector<std::string> whitelist = {"TERM", "DISPLAY", "XAUTHORITY",
                                               "LANG", "PATH"};
@@ -226,9 +236,7 @@ Command::collect_sanitized_environment(const SecurityProfile &profile,
       "LD_", "CC", "CXX", "CMAKE_", "PERL", "PYTHON", "RUBY"};
 
   std::vector<std::pair<std::string, std::string>> env;
-  extern char **environ;
-  for (char **e = ::environ; *e != nullptr; ++e) {
-    std::string entry(*e);
+  for (const auto &entry : raw_env) {
     const size_t pos = entry.find('=');
     if (pos == std::string::npos)
       continue;
@@ -249,6 +257,17 @@ Command::collect_sanitized_environment(const SecurityProfile &profile,
     env.emplace_back(key, entry.substr(pos + 1));
   }
   return env;
+}
+
+std::vector<std::pair<std::string, std::string>>
+Command::collect_sanitized_environment(const SecurityProfile &profile,
+                                       const CommandOptions &options) {
+  std::vector<std::string> raw_env;
+  extern char **environ;
+  for (char **e = ::environ; *e != nullptr; ++e) {
+    raw_env.emplace_back(*e);
+  }
+  return sanitize_environment(profile, options, raw_env);
 }
 
 void Command::apply_privilege_transition(const UserIdentity &target) {
@@ -292,8 +311,10 @@ Command::build_environment(
     const CommandOptions &options, const Rule &rule, const UserIdentity &target,
     std::vector<std::pair<std::string, std::string>> saved_env) {
   const bool preserve_full_env = profile.preserve_full_environment;
+  // See collect_sanitized_environment(): `keepenv` and `scrub_environment:
+  // false` both preserve the caller's environment after sanitization.
   const bool preserve_sanitized_env =
-      !preserve_full_env && options.preserve_env;
+      !preserve_full_env && (options.preserve_env || !profile.scrub_environment);
 
   auto set_entry = [](std::vector<std::pair<std::string, std::string>> &env,
                       std::string_view key, std::string_view value) {
@@ -419,13 +440,22 @@ void Command::apply_kernel_confinement(const SecurityProfile &profile,
     _exit(exit_status(ExitCode::NoExec));
   }
 #ifdef VOIX_WITH_SECCOMP
-  if (profile.seccomp_mode == "allowlist") {
+  if (profile.seccomp_mode == k_seccomp_mode_allowlist) {
     Security sec;
-    sec.applySeccompAllowlist();
-  } else if (profile.seccomp_mode == "blacklist" &&
-             config.is_seccomp_enabled() && profile.enable_seccomp) {
-    Security sec;
-    sec.applySeccompBlacklist();
+    sec.applySeccompAllowlist(profile.seccomp_allow);
+  } else if (profile.seccomp_mode == k_seccomp_mode_blacklist) {
+    if (config.is_seccomp_enabled() && profile.enable_seccomp) {
+      Security sec;
+      sec.applySeccompBlacklist();
+    }
+  } else {
+    // Fail closed: an unrecognized mode must never be read as "no filter".
+    // Configuration validation rejects this earlier; this is the backstop.
+    Logger().report_error(
+        ExitCode::Config,
+        std::format("unknown seccomp_mode '{}'", profile.seccomp_mode),
+        "use 'blacklist' or 'allowlist' in the security profile");
+    _exit(exit_status(ExitCode::Config));
   }
 #else
   (void)profile;

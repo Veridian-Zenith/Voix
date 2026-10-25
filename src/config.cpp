@@ -11,6 +11,7 @@
 #include "file_utils.hpp"
 #include "logger.hpp"
 #include "rule.hpp"
+#include "security.hpp"
 #include "system_utils.hpp"
 #include <cctype>
 #include <filesystem>
@@ -32,6 +33,37 @@ Config::Config()
 namespace {
 
 using IdentitySetter = std::function<void(Voix::Rule &, const std::string &)>;
+
+/// Returns a user-facing message when a security profile is internally
+/// inconsistent, or std::nullopt when it is usable.
+///
+/// Called during load() so a bad profile is rejected before any command can
+/// run, and again from Config::validate() so programmatically built configs
+/// receive the same checks. An unknown seccomp_mode is an error rather than a
+/// silently unfiltered execution.
+std::optional<std::string> profile_error(const std::string &name,
+                                         const SecurityProfile &profile) {
+  if (profile.seccomp_mode != k_seccomp_mode_blacklist &&
+      profile.seccomp_mode != k_seccomp_mode_allowlist) {
+    return std::format(
+        "security.profiles.{}: unknown seccomp_mode '{}' (expected "
+        "'blacklist' or 'allowlist')",
+        name, profile.seccomp_mode);
+  }
+  std::string syscall_error =
+      Security::validate_syscall_names(profile.seccomp_allow);
+  if (!syscall_error.empty()) {
+    return std::format("security.profiles.{}: {}", name, syscall_error);
+  }
+  if (!profile.seccomp_allow.empty() &&
+      profile.seccomp_mode != k_seccomp_mode_allowlist) {
+    return std::format(
+        "security.profiles.{}: seccomp_allow only applies when "
+        "seccomp_mode is 'allowlist'",
+        name);
+  }
+  return std::nullopt;
+}
 
 void parse_acl_section(const YAML::Node &section,
                        const IdentitySetter &set_identity,
@@ -273,7 +305,27 @@ bool Config::load(std::string_view config_path, bool verify_security) {
                 p_node["preserve_full_environment"].as<bool>();
           if (p_node["seccomp_mode"])
             profile.seccomp_mode = p_node["seccomp_mode"].as<std::string>();
+          if (p_node["seccomp_allow"]) {
+            if (!p_node["seccomp_allow"].IsSequence()) {
+              return fail(std::format(
+                  "security.profiles.{}: seccomp_allow must be a list of "
+                  "syscall names",
+                  profile_name));
+            }
+            for (const auto &entry : p_node["seccomp_allow"]) {
+              if (!entry.IsScalar()) {
+                return fail(std::format(
+                    "security.profiles.{}: seccomp_allow entries must be "
+                    "syscall names",
+                    profile_name));
+              }
+              profile.seccomp_allow.push_back(entry.as<std::string>());
+            }
+          }
           security_profiles_[profile_name] = profile;
+          if (auto error = profile_error(profile_name, profile)) {
+            return fail(*error);
+          }
         }
       }
       if (config["security"]["seccomp"]) {
@@ -376,6 +428,14 @@ bool Config::validate() const {
     }
   }
 
+  // Validate security profiles. An unknown seccomp_mode must be an error:
+  // otherwise a typo silently disables filtering entirely.
+  for (const auto &[name, profile] : security_profiles_) {
+    if (auto error = profile_error(name, profile)) {
+      return fail(*error);
+    }
+  }
+
   return true;
 }
 
@@ -389,7 +449,15 @@ SecurityProfile Config::get_profile(std::string_view name) const {
     return security_profiles_.at(std::string(name));
   }
   // Default "restricted" profile
-  return SecurityProfile{false, true, true, true};
+  return SecurityProfile{
+      .retain_full_capabilities = false,
+      .enable_seccomp = true,
+      .enable_resource_limits = true,
+      .scrub_environment = true,
+      .preserve_full_environment = false,
+      .seccomp_mode = std::string(k_seccomp_mode_blacklist),
+      .seccomp_allow = {},
+  };
 }
 
 } // namespace Voix

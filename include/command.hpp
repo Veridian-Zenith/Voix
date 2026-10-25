@@ -13,6 +13,7 @@
 #include "file_utils.hpp"
 #include "rule.hpp"
 #include "system_identity.hpp"
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -88,6 +89,25 @@ public:
    */
   static SecurityProfile resolve_profile(const Config &config, const Rule &rule,
                                          std::string_view target_user);
+
+  /**
+   * @brief Filters a raw environment according to the resolved profile.
+   *
+   * A pure function (no access to `environ`) so the security-relevant policy
+   * can be unit tested directly. Preservation is granted by
+   * `preserve_full_environment` (verbatim), or by either `keepenv` on the
+   * rule or `scrub_environment: false` on the profile (dangerous names and
+   * prefixes still removed); otherwise only the safe whitelist survives.
+   *
+   * @param profile The resolved security profile.
+   * @param options The options for command execution.
+   * @param raw_env Environment entries in `KEY=VALUE` form.
+   * @return The retained key/value pairs, in input order.
+   */
+  static std::vector<std::pair<std::string, std::string>>
+  sanitize_environment(const SecurityProfile &profile,
+                       const CommandOptions &options,
+                       std::span<const std::string> raw_env);
 
   /**
    * @brief Builds the child environment from the sanitized snapshot.

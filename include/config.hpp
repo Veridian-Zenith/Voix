@@ -26,13 +26,25 @@ struct SecurityProfile {
   bool retain_full_capabilities = false;
   bool enable_seccomp = true;
   bool enable_resource_limits = true;
+  /// When false, the caller's environment is preserved after the dangerous
+  /// variable filter instead of being reduced to the whitelist. This is the
+  /// profile-level equivalent of the rule's `keepenv` option.
   bool scrub_environment = true;
   bool preserve_full_environment = false;
-  /// seccomp_mode: "blacklist" (default, current behavior: allow-all,
-  /// kill 19 dangerous syscalls) or "allowlist" (default-deny: kill
-  /// everything except the 19 permitted syscalls).
+  /// seccomp_mode: "blacklist" (default: allow-all, kill a fixed set of
+  /// dangerous syscalls) or "allowlist" (default-deny: kill everything except
+  /// the built-in baseline plus `seccomp_allow`).
   std::string seccomp_mode = "blacklist";
+  /// Additional syscall names permitted in "allowlist" mode, on top of the
+  /// built-in baseline. Names are resolved with seccomp_syscall_resolve_name()
+  /// and rejected at load time when unknown.
+  std::vector<std::string> seccomp_allow;
 };
+
+/// The seccomp modes Voix understands. Anything else is a configuration error
+/// rather than a silently unfiltered execution.
+constexpr std::string_view k_seccomp_mode_blacklist = "blacklist";
+constexpr std::string_view k_seccomp_mode_allowlist = "allowlist";
 
 class Config {
 public:
