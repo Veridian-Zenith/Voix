@@ -6,32 +6,32 @@ voix \- a Privilege Policy Enforcement Runtime
 [\fIOPTIONS\fR]
 [\fICOMMAND\fR [\fIARGS\fR...]]
 .SH DESCRIPTION
-Voix is a Privilege Policy Enforcement Runtime for Unix-like operating systems. It is architected as a policy-driven execution system that can functionally replace \fBsudo\fR or \fBdoas\fR. Voix uses Pluggable Authentication Modules (PAM) for authentication and a YAML-based configuration file for defining access rules.
+Voix is a Privilege Policy Enforcement Runtime for Unix-like operating systems. It is architected as a policy-driven execution system that can provide \fBsudo\fR- or \fBdoas\fR-like workflows, but it is not a drop-in replacement and does not implement their full command-line surface. Voix uses Pluggable Authentication Modules (PAM) for authentication and a YAML-based configuration file for defining access rules.
 .SH OPTIONS
 .TP
 .B \-C, \-\-config \fIFILE\fR
-Use the specified file as the configuration source (default: /etc/voix.conf). The file must pass the same root-ownership and permission checks as the default configuration.
+Use the specified file as the configuration source (default: /etc/voix.conf). The file must be a regular root-owned file with no group/world write bits. Parent-directory ownership is not checked.
 .TP
 .B \-c, \-\-check-config
 Validate the configuration file and exit. Also runs semantic policy linting (empty ACL, unconfined root target, redundant rules, open permits, missing blocklist).
 .TP
 .B \-E, \-\-preserve-env
-Request preservation of the user's environment variables. Effective only when the matched rule carries a \fIkeepenv\fR policy grant; the flag alone cannot widen what the policy allows.
+Accepted for compatibility but has no effect. Environment preservation is enabled by a \fIkeepenv\fR rule option; the flag does not add to it.
 .TP
 .B \-H, \-\-home
-Set HOME to the target user's home directory.
+Set HOME to the target user's home directory. Without this flag, HOME is not set to the target's home; it is present only if it survived sanitization.
 .TP
 .B \-i, \-\-login
-Execute the command in a login shell environment.
+Execute the command via the target's login shell. With a named command the request stays brokered and the catastrophic-command gate applies to that command; a permitted shell named as the command is not inspected further. Used bare, it opens an interactive shell as the target if that shell is absent from \fIsecurity.blocklist\fR. This option does not set HOME to the target's home; use \fB\-H\fR. With \fIkeepenv\fR, the caller's HOME can survive and the login shell may read caller-owned startup files as the target.
 .TP
 .B \-l, \-\-list
-List the commands that the current user is permitted to execute. Mirrors runtime first-match semantics: a permit whose scope an earlier matching deny rule already wins is not listed.
+List the permit rules that apply to the current user. Deny-awareness is limited to an earlier deny with an identical command/args/target scope; a rule without a command is shown as "(all commands)". This is not a command-by-command prediction.
 .TP
 .B \-n
-Non-interactive mode; fail if proof (authentication) is required.
+Non-interactive mode; fail if a credential check would be required. Persisted tickets are not consulted under \-n.
 .TP
 .B \-s
-Execute the user's login shell (ascend to shell).
+Execute the invoking user's shell ($SHELL, falling back to the invoking user's passwd shell) as the target. This is not the target's login shell; use \-i for that.
 .TP
 .B \-u \fIUSER\fR
 Execute command as the specified target user (default: root). Requires an explicit target rule in the ACL for non-root users.
@@ -68,46 +68,61 @@ Voix applies a tiered hardening strategy based on the target user's privilege le
 .PP
 .B Privileged targets
 (root, package manager): retain full capabilities and unrestricted
-syscall access. The full inherited environment is preserved (including loader
-variables such as LD_*), inherited file descriptors are not closed, and no
-resource limits, capability drops, or seccomp filters are applied. This
-ensures legitimate root operations (package manager hooks, process management)
-work without restriction.
+syscall access, inherited file descriptors are not closed, and no resource
+limits, capability drops, or seccomp filters are applied. Unconfined targets
+also preserve the full inherited environment (including loader variables such
+as LD_*). An explicit \fIprofile: privileged\fR still follows its
+\fIpreserve_full_environment\fR setting, which is false in the shipped sample.
+This ensures legitimate root operations (package manager hooks, process
+management) work without restriction.
 .PP
 .B Non-privileged targets:
 all capabilities are dropped, resource limits are enforced fail-closed
 (RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_CORE),
 .B PR_SET_NO_NEW_PRIVS
 is always set (independently of seccomp), a seccomp syscall
-blacklist is applied when enabled in configuration, the environment is fully
+blacklist is applied when enabled in configuration, the environment is
 scrubbed (clearenv) and rebuilt from a safe whitelist with PATH overridden to
-trusted directories, a umask of 022 is forced, and inherited file descriptors
-(3+) are closed.
+trusted directories unless the matched rule grants \fIkeepenv\fR, a umask of
+022 is forced, and inherited file descriptors (3+) are closed.
 .PP
 .B All targets:
 signal handlers are reset to SIG_DFL, the umask is forced to 022,
 and all identity resolution (UID/GID/supplementary groups/home/shell) happens
 in the parent before fork(); the child performs no name-service lookups prior
 to execve.
+.PP
+Command names and relative paths resolved through \fIcore.paths\fR are
+verified as regular files owned by root with no group/world write bits. An
+absolute path supplied by the caller is executed as supplied and does not
+receive this check.
 .SH CATASTROPHIC COMMAND DETECTION
 Independent of any configuration, Voix blocks unequivocally destructive
-operations: \fBrm -rf\fR variants targeting / (including globs, long options,
-combined short flags and cwd-relative paths that canonicalize to /),
+operations in the command it is asked to execute: \fBrm -rf\fR variants
+targeting / (including globs, long options, combined short flags and
+cwd-relative paths that canonicalize to /),
 \fBdd\fR writing to raw block devices (sd/hd/vd/nvme/mmcblk/device-mapper/
 disk aliases or the detected root device), the entire \fBmkfs*\fR family,
 \fBmkswap\fR, and the basename-matched tools fdisk, sfdisk, cfdisk, parted,
 wipe, wipefs and shred. Blocked attempts are always audited in full,
-regardless of any nolog rule option.
+regardless of any nolog rule option. The gate inspects only the directly
+requested command; a permitted shell or interpreter can invoke these tools.
 .SH AUTHENTICATION
 Voix uses the Pluggable Authentication Modules (PAM) framework for authentication.
 The service name is \fBvoix\fR, and its configuration can be found in \fI/etc/pam.d/voix\fR.
-Account validation (\fBpam_acct_mgmt\fR) runs on every invocation \-\- expired or
-disabled accounts are denied even under trust/nopass rules.
+Account validation (\fBpam_acct_mgmt\fR) runs for the invoking user on every
+invocation \-\- an expired or disabled caller is denied even under
+trust/nopass rules. It does not validate the target account. The credential
+check is skipped when the invoking user is root, the rule carries
+trust/nopass, the target account has no usable password, or a valid
+\fIpersist\fR ticket exists (not under \fB\-n\fR).
 .PP
 Rules carrying the \fIpersist\fR option store an authentication timestamp for
-15 minutes under \fI<sanctuary>/timestamp/\fR (strictly permission-checked);
-subsequent invocations skip the password prompt while account validation still
-runs. Use
+15 minutes under \fI<sanctuary>/timestamp/<uid>\fR (strictly
+permission-checked). Tickets are per invoking UID and are recorded for any
+persist rule, including trust/nopass paths. Subsequent invocations can skip
+the password prompt while caller account validation still runs; \fB\-n\fR does
+not consult tickets. Use
 .B voix -k
 to invalidate immediately.
 .PP
@@ -122,7 +137,7 @@ Execute \fBwhoami\fR as a specific user:
 .IP
 voix -u user whoami
 .PP
-List permitted commands:
+List permit rules:
 .IP
 voix -l
 .PP
