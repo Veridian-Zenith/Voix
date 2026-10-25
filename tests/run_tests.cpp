@@ -31,6 +31,7 @@ int run_tests(int /*argc*/, char* /*argv*/[]) {
     register_logger_tests(runner);
     register_system_utils_tests(runner);
     register_negative_security_tests(runner);
+    register_integration_tests(runner);
 
     return runner.run();
 }

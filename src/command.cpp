@@ -72,7 +72,7 @@ int Command::execute(const ExecutableInfo &command,
   // the executed file is the target's shell; the named command is passed to
   // that shell with -c. In both cases fexecve() uses this exact descriptor,
   // so replacing the path after validation cannot change what runs.
-  FileUtils file_utils;
+  FileUtils file_utils(executable_owner_);
   ExecutableInfo executable = command;
   if (options.login_shell) {
     const std::string shell =
@@ -125,6 +125,14 @@ int Command::execute(const ExecutableInfo &command,
     // -----------------------------------------------------------------------
     reset_child_signals_and_umask(old_mask);
 
+    // Record the execution intent while still privileged and before the FD
+    // scrub. The audit file is root-owned, and writing it after the privilege
+    // transition could silently lose the durable copy.
+    if (!(rule.options & Rule::NOLOG)) {
+      LOG_INFO(std::format("executing command: {}, profile: {}",
+                           command.policy_path, rule.profile));
+    }
+
     // Profile resolution order (see Command::resolve_profile):
     //   1. An explicit profile named on the rule (administrator's decision).
     //   2. The target is a configured unconfined system target (e.g. the
@@ -143,18 +151,12 @@ int Command::execute(const ExecutableInfo &command,
     apply_environment(profile, config, options, rule, target,
                       std::move(saved_env));
 
-    apply_resource_limits_and_close_fds(profile, executable_fd);
-
-    // Honor the rule's nolog option: never write the command text to the
-    // audit log when suppression is requested.
-    if (!(rule.options & Rule::NOLOG)) {
-      LOG_INFO(std::format("executing command: {}, profile: {}",
-                           command.policy_path, rule.profile));
-    }
+    const int exec_fd =
+        apply_resource_limits_and_close_fds(profile, executable_fd);
 
     apply_kernel_confinement(profile, config);
 
-    do_exec(command.policy_path, args, options, target, executable_fd);
+    do_exec(command.policy_path, args, options, target, exec_fd);
     _exit(127); // unreachable; do_exec either succeeds or _exit()s itself
   } else {
     // Parent process
@@ -368,7 +370,7 @@ void Command::apply_environment(
   }
 }
 
-void Command::apply_resource_limits_and_close_fds(
+int Command::apply_resource_limits_and_close_fds(
     const SecurityProfile &profile, int executable_fd) {
   // Capture the original NOFILE limit before any reduction so the close
   // loop covers all inherited descriptors.
@@ -400,7 +402,6 @@ void Command::apply_resource_limits_and_close_fds(
       close(kept_fd);
       kept_fd = 3;
     }
-    (void)kept_fd;
 
     bool closed = false;
 #ifdef SYS_close_range
@@ -421,7 +422,11 @@ void Command::apply_resource_limits_and_close_fds(
         close(i);
       }
     }
+
+    return kept_fd;
   }
+
+  return executable_fd;
 }
 
 void Command::apply_kernel_confinement(const SecurityProfile &profile,

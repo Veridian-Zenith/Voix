@@ -8,15 +8,80 @@
 
 #include "logger.hpp"
 #include <chrono>
+#include <cstddef>
+#include <cstring>
 #include <format>
 #include <print>
 #include <string_view>
 #include <cstdio>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
-#include <syslog.h>
 
 namespace Voix {
+
+namespace {
+
+/// Facility 10 (authpriv) and RFC 5424 severities are part of the syslog wire
+/// format, so they are stable across libc implementations. Defining them here
+/// avoids including <syslog.h>, whose LOG_* macros collide with this project's
+/// LOG_* logging macros.
+constexpr unsigned k_syslog_facility_authpriv = 10;
+
+unsigned syslog_severity(LogLevel level) noexcept {
+  switch (level) {
+    case LogLevel::Info:
+      return 6; // LOG_INFO
+    case LogLevel::Warning:
+      return 4; // LOG_WARNING
+    case LogLevel::Error:
+      return 3; // LOG_ERR
+    case LogLevel::Security:
+      return 5; // LOG_NOTICE
+  }
+  return 6;
+}
+
+/// Sends one record to the local syslog socket.
+///
+/// This is deliberately stateless. libc's syslog() caches its socket
+/// descriptor across fork(); after a child scrubs its file descriptors that
+/// cached number can refer to an unrelated descriptor (such as the pinned
+/// executable at fd 3), which syslog() then closes. Opening, connecting,
+/// sending, and closing per record keeps the logger independent of libc
+/// private state and works the same under glibc and musl.
+///
+/// Failures are ignored: syslog is one of two sinks, and an unavailable
+/// daemon must never affect the caller.
+void send_to_syslog(LogLevel level, std::string_view message) {
+  const int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+  if (fd < 0) {
+    return;
+  }
+
+  constexpr std::string_view k_log_socket = "/dev/log";
+  sockaddr_un address{};
+  address.sun_family = AF_UNIX;
+  static_assert(sizeof(address.sun_path) > k_log_socket.size());
+  std::memcpy(address.sun_path, k_log_socket.data(), k_log_socket.size());
+
+  const auto address_length = static_cast<socklen_t>(
+      offsetof(sockaddr_un, sun_path) + k_log_socket.size() + 1);
+  if (::connect(fd, reinterpret_cast<sockaddr *>(&address), address_length) !=
+      0) {
+    ::close(fd);
+    return;
+  }
+
+  const unsigned priority =
+      (k_syslog_facility_authpriv << 3U) | syslog_severity(level);
+  const std::string payload = std::format("<{}>{}", priority, message);
+  (void)::send(fd, payload.data(), payload.size(), MSG_NOSIGNAL);
+  ::close(fd);
+}
+
+} // namespace
 
 bool Logger::suppress_stderr = false;
 
@@ -73,24 +138,8 @@ void Logger::log(LogLevel level, std::string_view message,
   // Syslog is always a sink, not just a fallback: audit records must survive
   // a missing or unwritable log file, and remote logging is often configured
   // through syslog. The file above is the durable local copy.
-  int priority = LOG_AUTHPRIV | LOG_INFO;
-  switch (level) {
-    case LogLevel::Info:
-      priority = LOG_AUTHPRIV | LOG_INFO;
-      break;
-    case LogLevel::Warning:
-      priority = LOG_AUTHPRIV | LOG_WARNING;
-      break;
-    case LogLevel::Error:
-      priority = LOG_AUTHPRIV | LOG_ERR;
-      break;
-    case LogLevel::Security:
-      priority = LOG_AUTHPRIV | LOG_NOTICE;
-      break;
-  }
-  syslog(priority, "voix: [%.*s] [pid %d] %.*s",
-         static_cast<int>(level_name.size()), level_name.data(), getpid(),
-         static_cast<int>(safe_message.size()), safe_message.data());
+  send_to_syslog(level, std::format("voix: [{}] [pid {}] {}", level_name,
+                                    getpid(), safe_message));
 
   if (echo_stderr && !suppress_stderr) {
     std::println(stderr, "voix: [{}] {}", level_name, safe_message);

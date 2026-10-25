@@ -62,7 +62,17 @@ All notable changes to Voix are documented here. The format follows
 - Canonicalize exact blocklist entries when matching, so `/bin/sh` also
   blocks equivalent spellings and merged-`/usr` aliases.
 - Preserve the pinned executable descriptor while scrubbing inherited file
-  descriptors on the restricted tier.
+  descriptors on the restricted tier. The scrub moved it to fd 3 but the
+  executor still passed the old descriptor number to `fexecve(2)`, so every
+  restricted execution failed with `EBADF`; the preserved descriptor is now
+  returned and used.
+- Write the execution audit record before the privilege transition and file
+  descriptor scrub, so the root-owned log file remains writable.
+- Replace the stateful libc `syslog(3)` call with a per-record `/dev/log`
+  datagram. A cached syslog descriptor inherited across `fork()` could refer
+  to the pinned executable after the FD scrub, and `syslog(3)` would close
+  it; the stateless sender cannot clobber the executable descriptor and does
+  not depend on libc-private state.
 - Report fork, waitpid, privilege-transition, and `fexecve(2)` failures with
   actionable messages and meaningful exit codes instead of a generic `1`.
 - Exit with `126` (no-exec) when a seccomp filter cannot be built or loaded,
@@ -78,6 +88,12 @@ All notable changes to Voix are documented here. The format follows
   start and exit 0 under both blacklist and allowlist mode, and
   `seccomp_allow`/`seccomp_mode` misconfigurations must be rejected.
 - Add environment-sanitization coverage for `scrub_environment` and `keepenv`.
+- Add an end-to-end integration suite that runs the real
+  `resolve -> open -> pin -> fork -> privilege transition -> FD scrub ->
+  seccomp -> fexecve(2)` path unprivileged: exit-status propagation,
+  executable replacement (TOCTOU) refusal, `HOME` and environment delivery,
+  blacklist/allowlist execution, and ACL denial before any process is
+  created.
 
 ### Documentation
 
