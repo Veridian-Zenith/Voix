@@ -8,6 +8,7 @@
  */
 
 #include "security.hpp"
+#include "exit_code.hpp"
 #include "logger.hpp"
 #include <unistd.h>
 #ifdef VOIX_WITH_CAP
@@ -64,6 +65,31 @@ std::optional<std::string> canonicalize_arg(const std::string &raw) {
     return fs::weakly_canonical(fs::absolute(fs::path(raw))).string();
   } catch (...) {
     return std::nullopt;
+  }
+}
+
+/// Canonicalize a command path for exact blocklist comparison. Missing
+/// entries keep their literal spelling so operators can pre-block tools that
+/// are not installed yet.
+std::string canonicalize_blocklist_path(const std::string &raw) {
+  auto canonical = canonicalize_arg(raw);
+  return canonical ? *canonical : raw;
+}
+
+/// Resolve directory symlinks while preserving the final component. This is
+/// the same policy identity used for ACL matching: /bin/sh and /usr/bin/sh
+/// compare equal on merged-/usr systems, but multicall applets such as
+/// /usr/bin/ls and /usr/bin/cat remain distinct.
+std::string canonicalize_policy_path(const std::string &raw) {
+  try {
+    fs::path absolute = fs::absolute(fs::path(raw)).lexically_normal();
+    if (absolute.filename().empty()) {
+      return absolute.string();
+    }
+    fs::path parent = fs::weakly_canonical(absolute.parent_path());
+    return (parent / absolute.filename()).string();
+  } catch (...) {
+    return raw;
   }
 }
 
@@ -148,8 +174,14 @@ bool Security::validateUser(std::string_view username) const {
 }
 
 void Security::logEvent(std::string_view event, std::string_view user) const {
+  logEvent("event", event, user);
+}
+
+void Security::logEvent(std::string_view code, std::string_view event,
+                        std::string_view user) const {
   Logger logger;
-  logger.log("SECURITY", std::format("[{}] {}", user, event));
+  logger.log(LogLevel::Security,
+             std::format("[{}] [{}] {}", user, code, event));
 }
 
 std::string Security::getCurrentUser() const {
@@ -218,9 +250,12 @@ bool Security::isCatastrophicCommand(std::string_view command,
     full_command += canon.value_or(arg);
   }
 
+  const std::string policy_cmd = canonicalize_policy_path(cmd_str);
+  const std::string resolved_cmd = canonicalize_blocklist_path(cmd_str);
   const std::string base = basename_of(cmd);
+  const std::string resolved_base = basename_of(resolved_cmd);
 
-  if (base == "rm") {
+  if (base == "rm" || resolved_base == "rm") {
     bool recursive = false;
     bool force = false;
     bool target_root = false;
@@ -239,7 +274,7 @@ bool Security::isCatastrophicCommand(std::string_view command,
     if (recursive && force && target_root) {
       return true;
     }
-  } else if (base == "dd") {
+  } else if (base == "dd" || resolved_base == "dd") {
     std::string root_dev = get_root_device();
     for (const auto &arg : args) {
       // Block dd targeting the root filesystem device
@@ -254,21 +289,31 @@ bool Security::isCatastrophicCommand(std::string_view command,
     }
   } else {
     // Destructive tools by basename: fdisk/sfdisk/cfdisk/parted,
-    // wipe/wipefs/shred/mkswap — any path prefix.
+    // wipe/wipefs/shred/mkswap — any path prefix. Check the policy basename
+    // and the fully resolved basename so a symlink cannot rename the tool.
     if (std::ranges::find(k_destructive_basenames, base) !=
-        std::end(k_destructive_basenames)) {
+            std::end(k_destructive_basenames) ||
+        std::ranges::find(k_destructive_basenames, resolved_base) !=
+            std::end(k_destructive_basenames)) {
       return true;
     }
     // Entire mkfs family (mkfs, mkfs.ext4, mkfs.btrfs, ...) plus paths.
-    if (base.starts_with("mkfs")) {
+    if (base.starts_with("mkfs") || resolved_base.starts_with("mkfs")) {
       return true;
     }
   }
 
-  // Admin-configured exact-path blocklist entries.
+  // Admin-configured exact-path blocklist entries. Compare both the literal
+  // spelling and canonical paths so /bin/sh also blocks /usr/bin/sh and
+  // alternate spellings on merged-/usr systems. The final component is
+  // preserved, so /usr/bin/ls and /usr/bin/cat stay distinct.
   for (const auto &forbidden_cmd : config.get_blocklist()) {
-    if (cmd == forbidden_cmd)
+    if (cmd == forbidden_cmd || policy_cmd == forbidden_cmd ||
+        policy_cmd == canonicalize_policy_path(forbidden_cmd) ||
+        resolved_cmd == forbidden_cmd ||
+        resolved_cmd == canonicalize_blocklist_path(forbidden_cmd)) {
       return true;
+    }
   }
 
   // Admin-configured regex entries ("regex:<pattern>") matched against the
@@ -297,8 +342,12 @@ void Security::raiseCapabilities() {
   }
 
   if (cap_set_proc(caps.get()) == -1) {
-    throw std::runtime_error("Insufficient privileges. Voix must be installed "
-                             "setuid root or have proper file capabilities.");
+    throw VoixError(
+        ExitCode::Config,
+        "insufficient privileges: Voix is not installed setuid root and lacks "
+        "the required file capabilities",
+        "install Voix setuid root, or grant CAP_SETUID, CAP_DAC_READ_SEARCH, "
+        "and CAP_AUDIT_WRITE file capabilities");
   }
 }
 

@@ -25,9 +25,9 @@
 namespace Voix {
 
 Config::Config()
-    : sanctuary_("/tmp"),
+    : sanctuary_("/var/lib/voix"),
       path_list_({"/bin", "/sbin", "/usr/bin", "/usr/sbin"}),
-      unconfined_targets_({"root", "alpm"}) {}
+      unconfined_targets_({}) {}
 
 namespace {
 
@@ -136,21 +136,38 @@ bool Config::load(std::string_view config_path, bool verify_security) {
   std::string path_str{config_path};
   FileUtils file_utils;
   Logger logger;
+  last_error_.clear();
+
+  auto fail = [this, &logger](std::string message) {
+    last_error_ = std::move(message);
+    logger.log(LogLevel::Error, last_error_);
+    return false;
+  };
 
   if (!file_utils.fileExists(path_str)) {
-    logger.log("ERROR", std::format("Config file not found: {}", path_str));
-    return false;
+    return fail(std::format("configuration file not found: {}", path_str));
   }
 
   if (verify_security) {
+    // `-C` must not let a caller point Voix at a root-owned file that lives
+    // in an attacker-controlled directory. Every path component must be
+    // root-owned and non-writable, with no symlinked components. The
+    // descriptor-level checks in read_file_secure then cover the final file.
+    if (!file_utils.is_trusted_config_path(path_str)) {
+      return fail(std::format(
+          "configuration path is not trusted: {} (must be absolute, every "
+          "component root-owned and not group/world writable, with no "
+          "symlinks)",
+          path_str));
+    }
+
     // Reject symlinks early; read_file_secure then re-verifies ownership,
     // permissions and regular-file type on the opened descriptor itself,
     // closing the TOCTOU window entirely.
     std::error_code ec;
     if (std::filesystem::is_symlink(path_str, ec)) {
-      logger.log("ERROR", std::format("Config file is a symlink (rejected): {}",
-                                      path_str));
-      return false;
+      return fail(
+          std::format("configuration file is a symlink (rejected): {}", path_str));
     }
   }
 
@@ -159,18 +176,15 @@ bool Config::load(std::string_view config_path, bool verify_security) {
     if (verify_security) {
       auto result = file_utils.read_file_secure(path_str);
       if (!result) {
-        logger.log(
-            "ERROR",
-            std::format("Failed to securely read config file: {}", path_str));
-        return false;
+        return fail(std::format(
+            "could not securely read configuration file: {}", path_str));
       }
       config_content = std::move(*result);
     } else {
       auto result = file_utils.readFile(path_str);
       if (!result) {
-        logger.log("ERROR",
-                   std::format("Failed to read config file: {}", path_str));
-        return false;
+        return fail(
+            std::format("could not read configuration file: {}", path_str));
       }
       config_content = std::move(*result);
     }
@@ -216,7 +230,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
               rule.ident = name;
               rule.ident_uid = SystemUtils::getUidByName(name);
               if (!rule.ident_uid.has_value()) {
-                logger.log("ERROR",
+                logger.log(LogLevel::Error,
                            std::format("ACL user '{}' not found", name));
               }
             },
@@ -229,7 +243,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
               rule.ident = ":" + name;
               rule.ident_gid = SystemUtils::getGidByName(name);
               if (!rule.ident_gid.has_value()) {
-                logger.log("ERROR",
+                logger.log(LogLevel::Error,
                            std::format("ACL group '{}' not found", name));
               }
             },
@@ -277,9 +291,8 @@ bool Config::load(std::string_view config_path, bool verify_security) {
               regex_blocklist_.emplace_back(
                   pattern, std::regex(pattern, std::regex::optimize));
             } catch (const std::regex_error &e) {
-              LOG_ERROR(std::format("Invalid blocklist regex '{}': {}", pattern,
-                                    e.what()));
-              return false;
+              return fail(std::format("invalid blocklist regex '{}': {}",
+                                      pattern, e.what()));
             }
           } else {
             blocklist_.push_back(entry);
@@ -288,9 +301,9 @@ bool Config::load(std::string_view config_path, bool verify_security) {
       }
     }
   } catch (const YAML::Exception &e) {
-    logger.log("ERROR",
-               std::format("Failed to parse YAML config: {}", e.what()));
-    return false;
+    return fail(std::format("failed to parse YAML configuration: {}", e.what()));
+  } catch (const std::exception &e) {
+    return fail(std::format("failed to load configuration: {}", e.what()));
   }
 
   return true;
@@ -309,25 +322,32 @@ std::string Config::getPath() const {
 }
 
 bool Config::validate() const {
+  last_error_.clear();
+  auto fail = [this](std::string message) {
+    last_error_ = std::move(message);
+    return false;
+  };
+
   // Validate sanctuary path exists and is a directory
   if (sanctuary_.empty()) {
-    return false;
+    return fail("core.sanctuary must not be empty");
   }
   std::error_code ec;
   bool is_dir = std::filesystem::is_directory(sanctuary_, ec);
   if (ec) {
-    // Filesystem error (e.g., permission denied, path does not exist)
-    return false;
+    return fail(std::format("core.sanctuary is not accessible: {} ({})",
+                            sanctuary_, ec.message()));
   }
   if (!is_dir) {
-    // Path exists but is not a directory
-    return false;
+    return fail(std::format("core.sanctuary is not a directory: {}",
+                            sanctuary_));
   }
 
   // Validate path_list entries are absolute paths
   for (const auto &p : path_list_) {
     if (p.empty() || p[0] != '/') {
-      return false;
+      return fail(std::format(
+          "core.paths entry must be an absolute path: '{}'", p));
     }
   }
 
@@ -336,13 +356,14 @@ bool Config::validate() const {
     // Each rule must have an identity (user or group)
     if (rule.ident.empty() && !rule.ident_uid.has_value() &&
         !rule.ident_gid.has_value()) {
-      return false;
+      return fail("ACL rule has no user or group identity");
     }
     // If a command is specified with args, args must not be empty strings
     if (!rule.cmd.empty() && !rule.cmdargs.empty()) {
       for (const auto &arg : rule.cmdargs) {
         if (arg.empty()) {
-          return false;
+          return fail(std::format(
+              "ACL rule for '{}' contains an empty argument", rule.ident));
         }
       }
     }
@@ -351,7 +372,7 @@ bool Config::validate() const {
   // Validate blocklist entries are non-empty
   for (const auto &entry : blocklist_) {
     if (entry.empty()) {
-      return false;
+      return fail("security.blocklist contains an empty entry");
     }
   }
 
