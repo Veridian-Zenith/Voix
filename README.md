@@ -173,7 +173,7 @@ security:
 ```
 
 `scrub_environment` is accepted for compatibility but currently has no effect;
-environment behavior is controlled by `preserve_full_environment` and `keepenv`.
+environment behavior is controlled by `preserve_full_environment`, the profile's `scrub_environment`, and the rule's `keepenv`.
 
 </details>
 
@@ -286,7 +286,7 @@ The most common flags are `-u`, `-n`, `-k`, `-C`, and `-l`; the full table is in
 | <kbd>-v</kbd> | `--version` | Show version |
 | <kbd>-C</kbd> `FILE` | `--config` | Configuration file (default `/etc/voix.conf`); must be a regular root-owned file with no group/world write bits |
 | <kbd>-c</kbd> | `--check-config` | Validate the configuration file |
-| <kbd>-E</kbd> | `--preserve-env` | Accepted for compatibility; has no effect. Environment preservation is enabled by a `keepenv` rule |
+| <kbd>-E</kbd> | `--preserve-env` | Accepted for compatibility; has no effect. Environment preservation is enabled by a `keepenv` rule or a profile with `scrub_environment: false` |
 | <kbd>-H</kbd> | `--home` | Set `HOME` to the target user's home directory. Without it, `HOME` is not set to the target's home |
 | <kbd>-i</kbd> | `--login` | Run via the target's login shell. Forces `HOME` and `SHELL` to the target's values, even with `keepenv` or an unconfined target |
 | <kbd>-k</kbd> | | Invalidate all persisted authentication tickets for the invoking user |

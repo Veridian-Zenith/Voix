@@ -16,7 +16,7 @@ Use the specified file as the configuration source (default: /etc/voix.conf). Th
 Validate the configuration file and exit. Also runs semantic policy linting (empty ACL, unconfined root target, redundant rules, open permits, missing blocklist).
 .TP
 .B \-E, \-\-preserve-env
-Accepted for compatibility but has no effect. Environment preservation is enabled by a \fIkeepenv\fR rule option; the flag does not add to it.
+Accepted for compatibility but has no effect. Environment preservation is enabled by a \fIkeepenv\fR rule option or a profile with \fIscrub_environment: false\fR; the flag does not add to it.
 .TP
 .B \-H, \-\-home
 Set HOME to the target user's home directory. Without this flag, HOME is not set to the target's home; it is present only if it survived sanitization.

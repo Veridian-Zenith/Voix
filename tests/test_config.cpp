@@ -42,6 +42,85 @@ bool test_config_last_error_is_reported() {
     return true;
 }
 
+bool test_config_rejects_unknown_seccomp_mode() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_mode.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /var/lib/voix\n"
+            << "security:\n  profiles:\n    tight:\n"
+            << "      seccomp_mode: blaklist\n";
+    }
+
+    Voix::Config config;
+    // Rejected at load time so a bad profile can never reach execution.
+    ASSERT_TRUE(!config.load(config_path.string(), false));
+    // A typo must never silently disable filtering.
+    ASSERT_TRUE(config.last_error().find("seccomp_mode") != std::string::npos);
+    return true;
+}
+
+bool test_config_parses_seccomp_allow() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_allow.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /var/lib/voix\n"
+            << "security:\n  profiles:\n    tight:\n"
+            << "      seccomp_mode: allowlist\n"
+            << "      seccomp_allow: [openat2, mkdir]\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(config.validate());
+    auto profile = config.get_profile("tight");
+    ASSERT_EQUAL(profile.seccomp_mode, std::string("allowlist"));
+    ASSERT_EQUAL(profile.seccomp_allow.size(), std::size_t{2});
+    ASSERT_EQUAL(profile.seccomp_allow[0], std::string("openat2"));
+    ASSERT_EQUAL(profile.seccomp_allow[1], std::string("mkdir"));
+    return true;
+}
+
+bool test_config_rejects_unknown_seccomp_allow_name() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_badname.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /var/lib/voix\n"
+            << "security:\n  profiles:\n    tight:\n"
+            << "      seccomp_mode: allowlist\n"
+            << "      seccomp_allow: [not_a_real_syscall]\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(!config.load(config_path.string(), false));
+    ASSERT_TRUE(config.last_error().find("not_a_real_syscall") !=
+                std::string::npos);
+    return true;
+}
+
+bool test_config_rejects_seccomp_allow_without_allowlist() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_mismatch.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /var/lib/voix\n"
+            << "security:\n  profiles:\n    loose:\n"
+            << "      seccomp_mode: blacklist\n"
+            << "      seccomp_allow: [mkdir]\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(!config.load(config_path.string(), false));
+    ASSERT_TRUE(config.last_error().find("seccomp_allow") != std::string::npos);
+    return true;
+}
+
 bool test_config_validate_reports_reason() {
     std::filesystem::path config_path =
         std::filesystem::temp_directory_path() / "test_validate_reason.conf";
@@ -366,6 +445,14 @@ void register_config_tests(TestRunner& runner) {
                     test_config_last_error_is_reported);
     runner.add_test("test_config_validate_reports_reason",
                     test_config_validate_reports_reason);
+    runner.add_test("test_config_rejects_unknown_seccomp_mode",
+                    test_config_rejects_unknown_seccomp_mode);
+    runner.add_test("test_config_parses_seccomp_allow",
+                    test_config_parses_seccomp_allow);
+    runner.add_test("test_config_rejects_unknown_seccomp_allow_name",
+                    test_config_rejects_unknown_seccomp_allow_name);
+    runner.add_test("test_config_rejects_seccomp_allow_without_allowlist",
+                    test_config_rejects_seccomp_allow_without_allowlist);
     runner.add_test("test_config_rejects_untrusted_path", test_config_rejects_untrusted_path);
     runner.add_test("test_config_load_valid", test_config_load_valid);
     runner.add_test("test_config_load_invalid_yaml", test_config_load_invalid_yaml);

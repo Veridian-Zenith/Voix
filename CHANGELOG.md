@@ -38,6 +38,8 @@ All notable changes to Voix are documented here. The format follows
 - Stable process exit codes based on `sysexits(3)` (`64` usage, `70`
   internal, `77` not permitted, `78` configuration, `126` cannot execute,
   `127` not found). See `docs/CLI.md`.
+- `security.profiles.<name>.seccomp_allow`: extra syscall names for
+  `seccomp_mode: allowlist`, validated by `--check-config`.
 - Consistent user-facing diagnostics: `voix: error:` plus an optional
   `voix: hint:` remediation line. Fatal errors are printed even when
   `core.suppress_stderr` is enabled.
@@ -50,12 +52,21 @@ All notable changes to Voix are documented here. The format follows
 
 ### Fixed
 
+- Rebuild seccomp allowlist mode around a usable default-deny baseline. The
+  previous set permitted only the syscalls the blacklist kills and omitted
+  `execve`/`execveat`, so the target was killed before it could start.
+- Honor `scrub_environment: false` in the execution path. The setting was
+  parsed but ignored, so a profile could not grant environment preservation.
+- Reject an unrecognized `seccomp_mode` at configuration time instead of
+  silently running without a filter, and fail closed if one reaches the child.
 - Canonicalize exact blocklist entries when matching, so `/bin/sh` also
   blocks equivalent spellings and merged-`/usr` aliases.
 - Preserve the pinned executable descriptor while scrubbing inherited file
   descriptors on the restricted tier.
 - Report fork, waitpid, privilege-transition, and `fexecve(2)` failures with
   actionable messages and meaningful exit codes instead of a generic `1`.
+- Exit with `126` (no-exec) when a seccomp filter cannot be built or loaded,
+  matching the documented contract.
 
 ### Tests
 
@@ -63,6 +74,10 @@ All notable changes to Voix are documented here. The format follows
   resolution coverage, ACL canonicalization coverage, ticket scope and
   credential-mode ordering coverage, login-shell `HOME`/`SHELL` coverage,
   and configuration path trust coverage.
+- Add end-to-end seccomp coverage: a real dynamically linked binary must
+  start and exit 0 under both blacklist and allowlist mode, and
+  `seccomp_allow`/`seccomp_mode` misconfigurations must be rejected.
+- Add environment-sanitization coverage for `scrub_environment` and `keepenv`.
 
 ### Documentation
 

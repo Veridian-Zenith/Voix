@@ -259,22 +259,15 @@ To prevent non-privileged commands from compromising the kernel, Voix implements
 
 - **Scope**: applied only to non-privileged targets; privileged targets require unrestricted syscall access for legitimate operations.
 - **NNP Decoupling**: `PR_SET_NO_NEW_PRIVS` is enforced unconditionally for non-privileged targets — even when seccomp is disabled by policy, executed setuid binaries can never regain privileges.
-- **Enforcement**: the filter loads in the child after the privilege transition but before `execv`; per-rule `ENOSYS`/`EOPNOTSUPP` responses (architectures lacking a syscall) are tolerated while any other filter error fails closed via `_exit(1)`.
+- **Enforcement**: the filter loads in the child after the privilege transition but before `fexecve`; per-rule `EDOM`/`ENOSYS`/`EOPNOTSUPP` responses (architectures lacking a syscall) are tolerated while any other filter error fails closed with exit `126` (no-exec).
 
-Default-deny allowlist (`profile.seccomp_mode: allowlist`) is available as of v4.12.0: `SCMP_ACT_KILL` as default, with the 19 previously blacklisted syscalls permitted via `SCMP_ACT_ALLOW`. Profile-level opt-in; backward-compatible with the `blacklist` default.
-
-> [!WARNING]
-> The allowlist is experimental and currently unusable as a confinement
-> boundary. It permits the 19 syscalls that the blacklist kills and does not
-> permit `execve`, so a process entering it is killed before it can exec the
-> target. Do not enable `seccomp_mode: allowlist` in production until the
-> permitted set is rebuilt around the syscalls a command actually needs.
+**Default-deny allowlist** (`profile.seccomp_mode: allowlist`): `SCMP_ACT_KILL_PROCESS` as the default action, with a built-in baseline of syscalls covering process startup (including `execve`/`execveat`, without which the target can never run), memory management, basic file I/O, signals, timers, polling, pipes, and sockets. Operators extend it per profile with `seccomp_allow`; unknown names are rejected by `--check-config` and fail closed at exec time. An unrecognized `seccomp_mode` is a configuration error rather than a silently unfiltered run.
 
 > [!NOTE]
-> The allowlist profile is the foundation for tighter per-command confinement:
-> extending it with the additional syscalls a specific command profile needs is
-> a future enhancement. The `blacklist` default remains the intended posture
-> for general use.
+> The allowlist baseline is a starting point rather than a complete sandbox:
+> a command that mutates the filesystem namespace or creates processes needs
+> those syscalls added to `seccomp_allow`. The `blacklist` default remains the
+> intended posture for general use; the allowlist is for tightly scoped rules.
 
 ### Seccomp Integration Point
 
@@ -291,7 +284,7 @@ sequenceDiagram
         Child->>Child: setResourceLimits()
         Child->>Child: closeFDs (keep executable fd 3)
         Child->>Child: PR_SET_NO_NEW_PRIVS
-        Child->>Child: applySeccompBlacklist()
+        Child->>Child: applySeccompBlacklist() or applySeccompAllowlist()
     else Privileged target
         Child->>Child: inherited FDs retained (by design)
     end
@@ -361,10 +354,9 @@ intentional security guarantees.
 
 | Area | Current limitation |
 | :--- | :--- |
-| `-E` | Accepted for compatibility but ignored. `keepenv` alone controls environment preservation. |
+| `-E` | Accepted for compatibility but ignored. Environment preservation is granted by the rule's `keepenv` or the profile's `scrub_environment: false`. |
 | `-s` | Executes the invoking user's `$SHELL` (falling back to the invoking user's passwd shell), not the target's login shell. |
-| `scrub_environment` | Parsed into `SecurityProfile` but not used by the execution path. |
-| Seccomp allowlist | Experimental. It permits the 19 blacklist syscalls and omits `execve`, so it kills the target before exec. |
+| Seccomp allowlist | The baseline is a starting point, not a complete sandbox: commands that mutate the filesystem namespace or create processes need those syscalls in `seccomp_allow`. |
 | Catastrophic gate | Inspects only the directly requested command. A permitted shell or interpreter can invoke blocked tools. |
 | Sanctuary | `--check-config` verifies that the sanctuary is a directory, not that it or its parents are root-owned and non-writable. Do not use `/tmp` or another world-writable directory. |
 | Default policy | The shipped `config/voix.conf` is closed by default: no ACL permits, no unconfined targets, and no implicit trust. Operators must add explicit rules. |

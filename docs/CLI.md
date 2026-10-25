@@ -10,7 +10,7 @@ Usage: `voix [options] <incantation> [args...]`
 | `-v` | `--version` | Show version information |
 | `-C FILE` | `--config FILE` | Use the specified file as the configuration source (default: `/etc/voix.conf`). The path must be absolute and every component must be root-owned, free of symlinks, and not group/world writable. The final file is re-checked on the opened descriptor. |
 | `-c` | `--check-config` | Validate the configuration file and run semantic policy linting |
-| `-E` | `--preserve-env` | Accepted for compatibility but has no effect. Environment preservation is enabled by a `keepenv` rule option; the flag does not add to it. |
+| `-E` | `--preserve-env` | Accepted for compatibility but has no effect. Environment preservation is enabled by a `keepenv` rule option or a profile with `scrub_environment: false`; the flag does not add to it. |
 | `-H` | `--home` | Set `HOME` to the target user's home directory for the executed command. Without this flag, `HOME` is not set to the target's home; it is present only if it survived sanitization. |
 | `-i` | `--login` | Execute via the target's login shell (POSIX `argv[0]` leading-dash convention). Forces `HOME` and `SHELL` to the target's values, even when the rule grants `keepenv` or the target is unconfined. With a named command the request stays brokered by Voix, so the destructive-command gate still applies (`voix -u root -i cfdisk /dev/sda` is refused). Used bare — `voix -u root -i` — it opens an interactive shell as the target, which requires the target's login shell to be absent from `security.blocklist` (the shipped sample blocks `/bin/bash`). |
 | `-k` | | Invalidate every persisted authentication ticket belonging to the invoking user. Works standalone without a command. |
