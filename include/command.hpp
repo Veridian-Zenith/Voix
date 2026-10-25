@@ -10,10 +10,12 @@
 #define COMMAND_H
 
 #include "config.hpp"
+#include "file_utils.hpp"
 #include "rule.hpp"
 #include "system_identity.hpp"
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace Voix {
@@ -53,7 +55,7 @@ public:
    * All identity resolution happens in the parent before fork(); the child
    * performs no name-service lookups between fork() and execve().
    *
-   * @param command The command to execute.
+   * @param command Validated executable identity (canonical path + inode).
    * @param args The arguments for the command.
    * @param config The configuration to use.
    * @param options The options for command execution.
@@ -61,9 +63,10 @@ public:
    * @param target Fully resolved identity of the target user.
    * @return The return code of the command, or a non-zero value on failure.
    */
-  int execute(std::string_view command, const std::vector<std::string> &args,
-              const Config &config, const CommandOptions &options,
-              const Rule &rule, const UserIdentity &target);
+  int execute(const ExecutableInfo &command,
+              const std::vector<std::string> &args, const Config &config,
+              const CommandOptions &options, const Rule &rule,
+              const UserIdentity &target);
 
   /**
    * @brief Resolves the security profile to apply for a matched rule and
@@ -85,6 +88,20 @@ public:
    */
   static SecurityProfile resolve_profile(const Config &config, const Rule &rule,
                                          std::string_view target_user);
+
+  /**
+   * @brief Builds the child environment from the sanitized snapshot.
+   *
+   * Exposed for unit testing because it contains security-relevant identity
+   * overrides: USER/LOGNAME always come from the target, HOME is forced to
+   * the target's home for login shells (and for -H), and SHELL is installed
+   * for login shells. Administrator envlist entries are applied last.
+   */
+  static std::vector<std::pair<std::string, std::string>>
+  build_environment(const SecurityProfile &profile, const Config &config,
+                    const CommandOptions &options, const Rule &rule,
+                    const UserIdentity &target,
+                    std::vector<std::pair<std::string, std::string>> saved_env);
 
 private:
   /**
@@ -135,25 +152,24 @@ private:
                     std::vector<std::pair<std::string, std::string>> saved_env);
 
   /// Apply profile-driven resource limits and scrub inherited file
-  /// descriptors on the restricted tier. Privileged targets deliberately
-  /// retain inherited FDs (e.g. D-Bus sockets for pacman hooks); see the
-  /// FD-management invariant documented at the close-loop site.
-  void apply_resource_limits_and_close_fds(const SecurityProfile &profile);
-
-  /// Resolve a non-absolute command against the configured PATH and reject
-  /// anything that does not canonicalize to an absolute path. Returns the
-  /// absolute path. _exit(127)s on failure (the child cannot recover).
-  std::string resolve_absolute_command(std::string command,
-                                       const Config &config);
+  /// descriptors on the restricted tier. The executable descriptor is
+  /// preserved (moved to fd 3) because fexecve() executes that exact inode.
+  /// Privileged targets deliberately retain inherited FDs (e.g. D-Bus
+  /// sockets for pacman hooks); see the FD-management invariant documented
+  /// at the close-loop site.
+  void apply_resource_limits_and_close_fds(const SecurityProfile &profile,
+                                           int executable_fd);
 
   /// PR_SET_NO_NEW_PRIVS is unconditional on the restricted tier; seccomp
   /// follows the profile's choice between blacklist and allowlist mode.
   void apply_kernel_confinement(const SecurityProfile &profile,
                                 const Config &config);
 
-  /// Login-shell vs direct execv dispatch. _exit(127) on exec failure.
+  /// Login-shell vs direct exec dispatch. Uses fexecve() on the pinned
+  /// executable descriptor and _exit(127) on failure.
   void do_exec(const std::string &cmd_str, const std::vector<std::string> &args,
-               const CommandOptions &options, const UserIdentity &target);
+               const CommandOptions &options, const UserIdentity &target,
+               int executable_fd);
 };
 
 } // namespace Voix

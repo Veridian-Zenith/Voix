@@ -81,6 +81,80 @@ bool test_command_resolve_profile_matrix() {
     return true;
 }
 
+namespace {
+
+std::string env_value(
+    const std::vector<std::pair<std::string, std::string>>& env,
+    std::string_view key) {
+    for (const auto& [name, value] : env) {
+        if (name == key) return value;
+    }
+    return "<missing>";
+}
+
+} // namespace
+
+bool test_command_login_environment_forces_target_home() {
+    Voix::Config config;
+    Voix::SecurityProfile profile;
+    Voix::Rule rule;
+    Voix::UserIdentity target{"root", 0, 0, {0}, "/root", "/bin/bash"};
+    Voix::CommandOptions options;
+    options.login_shell = true;
+
+    std::vector<std::pair<std::string, std::string>> saved = {
+        {"HOME", "/home/caller"},
+        {"SHELL", "/bin/zsh"},
+        {"USER", "caller"},
+        {"LOGNAME", "caller"},
+    };
+
+    auto env = Voix::Command::build_environment(
+        profile, config, options, rule, target, std::move(saved));
+    ASSERT_EQUAL(env_value(env, "HOME"), std::string("/root"));
+    ASSERT_EQUAL(env_value(env, "SHELL"), std::string("/bin/bash"));
+    ASSERT_EQUAL(env_value(env, "USER"), std::string("root"));
+    ASSERT_EQUAL(env_value(env, "LOGNAME"), std::string("root"));
+    return true;
+}
+
+bool test_command_non_login_keeps_caller_home_without_dash_h() {
+    Voix::Config config;
+    Voix::SecurityProfile profile;
+    profile.preserve_full_environment = true;
+    Voix::Rule rule;
+    Voix::UserIdentity target{"root", 0, 0, {0}, "/root", "/bin/bash"};
+    Voix::CommandOptions options;
+
+    std::vector<std::pair<std::string, std::string>> saved = {
+        {"HOME", "/home/caller"},
+    };
+    auto env = Voix::Command::build_environment(
+        profile, config, options, rule, target, std::move(saved));
+    ASSERT_EQUAL(env_value(env, "HOME"), std::string("/home/caller"));
+    return true;
+}
+
+bool test_command_dash_h_sets_target_home() {
+    Voix::Config config;
+    Voix::SecurityProfile profile;
+    Voix::Rule rule;
+    Voix::UserIdentity target{"root", 0, 0, {0}, "/root", "/bin/bash"};
+    Voix::CommandOptions options;
+    options.set_home = true;
+
+    auto env = Voix::Command::build_environment(
+        profile, config, options, rule, target, {});
+    ASSERT_EQUAL(env_value(env, "HOME"), std::string("/root"));
+    return true;
+}
+
 void register_command_tests(TestRunner& runner) {
     runner.add_test("test_command_resolve_profile_matrix", test_command_resolve_profile_matrix);
+    runner.add_test("test_command_login_environment_forces_target_home",
+                    test_command_login_environment_forces_target_home);
+    runner.add_test("test_command_non_login_keeps_caller_home_without_dash_h",
+                    test_command_non_login_keeps_caller_home_without_dash_h);
+    runner.add_test("test_command_dash_h_sets_target_home",
+                    test_command_dash_h_sets_target_home);
 }
