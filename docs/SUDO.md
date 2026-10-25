@@ -120,13 +120,11 @@ ordinary commands typed at the prompt:
 > before and the destructive gate is unchanged — `voix -u root -i cfdisk
 > /dev/sda` stays blocked. Only the bare form depends on this.
 
-> [!WARNING]
-> `-i` does **not** set `HOME` to the target's home. If the matched rule
-> grants `keepenv`, or the target is unconfined (the shipped sample leaves
-> `root` unconfined), the caller's `HOME` survives. A login shell may then
-> read caller-owned startup files while running as the target. Use
-> `voix -H -u root -i` for a root login shell, and avoid `keepenv` on rules
-> used for login shells.
+> [!NOTE]
+> `-i` forces `HOME` and `SHELL` to the target's values, even when the rule
+> grants `keepenv` or the target is unconfined. This prevents a login shell
+> from reading caller-owned startup files as the target. `-H` applies the
+> same `HOME` override to non-login commands.
 
 ## 4. Granting Service Accounts Their Own Rites
 
@@ -171,9 +169,10 @@ root. Validate any edit before relying on it:
 redundant rules, and an empty ACL.
 
 > [!NOTE]
-> The blocklist is matched by exact path. A shell entry such as
-> `/bin/sh` catches `/bin/sh` but not `/usr/bin/./bash`. Where the intent
-> is "no interactive shells at all", write `regex:` entries instead
+> Exact-path blocklist entries are canonicalized before comparison, so
+> `/bin/sh` also blocks `/usr/bin/sh` on merged-`/usr` systems and alternate
+> spellings such as `/usr/bin/./bash`. The final component is preserved so
+> multicall applets stay distinct. Use `regex:` entries for broader patterns
 > (see [`CONFIG.md`](CONFIG.md#blocklist-optional)). The `-i` login-shell
 > form is not a substitute for a blocklist entry: the shell must be absent
 > from the blocklist for the bare form to run.
@@ -184,19 +183,19 @@ Voix includes several flags to support `sudo`-like behavior. See [`CLI.md`](CLI.
 
 Important flags include:
 
-* `-i, --login`: Runs the command via the target's login shell. Named commands stay brokered by Voix (`sudo -u root -i cfdisk /dev/sda` is still refused); used bare it opens an interactive shell as the target — see section 3. It does not set `HOME`; use `-H`.
+* `-i, --login`: Runs the command via the target's login shell. Named commands stay brokered by Voix (`sudo -u root -i cfdisk /dev/sda` is still refused); used bare it opens an interactive shell as the target — see section 3. Forces `HOME` and `SHELL` to the target's values.
 * `-E, --preserve-env`: Accepted for compatibility but has no effect. Environment preservation is enabled by a `keepenv` rule.
 * `-l, --list`: Lists permit rules for the current user. Deny-awareness is limited to an earlier deny with an identical command/args/target scope.
-* `-k`: Invalidates the persisted authentication timestamp for the invoking user.
-* `-n`: Non-interactive mode; fails instead of prompting for authentication. Persisted tickets are not consulted.
+* `-k`: Invalidates all persisted authentication tickets for the invoking user.
+* `-n`: Non-interactive mode; reuses a valid persisted ticket if the rule grants `persist`, otherwise fails instead of prompting.
 
 ## 6. Limitations
 
-* Ensure that `/etc/voix.conf` is securely configured with restricted permissions (owned by root, not world-writable) to prevent unauthorized modifications to privilege rules.
-* The shipped sample is permissive: `wheel` receives `trust, keepenv`, and `root`/`alpm` are unconfined. Review it before deployment.
+* Ensure that `/etc/voix.conf` is securely configured with restricted permissions (owned by root, not world-writable) to prevent unauthorized modifications to privilege rules. `-C` additionally rejects paths with any untrusted component.
+* The shipped sample is closed by default: no user or group is trusted, no target is unconfined, and the ACL contains no permits. Add only the rules you need and validate with `voix --check-config`.
 * Destructive disk and partition operations cannot be granted as a directly requested Voix command; a permitted shell can still run them. See section 3.
-* Commands resolved through `core.paths` or containing a relative path component are checked for root ownership and safe permissions. An absolute path supplied on the command line is executed as supplied, without that check. Prefer bare names or paths under trusted directories.
-* `-i` does not set `HOME`; see section 3. Use `-H` for login shells.
+* Every requested command — bare name, relative path, or absolute path — is canonicalized and must resolve to a regular root-owned executable without group/world write permission. The validated inode is pinned and executed with `fexecve(2)`.
+* `-i` forces `HOME`/`SHELL` to the target; `-H` does the same for `HOME` on non-login commands.
 * `-E` is accepted but ignored; `keepenv` alone controls environment preservation.
 * `-s` runs the invoking user's shell, not the target's login shell.
-* A target account with no usable password skips the credential check; see [`THREATS.md`](../THREATS.md#7-known-limitations).
+* There is no passwordless-target bypass: the caller must authenticate unless the rule grants `trust`/`nopass`, the caller is root, or a valid persisted ticket exists.

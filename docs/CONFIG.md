@@ -42,21 +42,20 @@ The configuration file (default: `/etc/voix.conf`) is composed of three main sec
   the path is a directory, but not that it or its parents are root-owned and
   non-writable.
 - `paths`: Trusted directories for executable resolution. These are used for
-  bare command names and relative paths; an absolute path supplied by the
-  caller is executed as supplied and is not checked against this list.
+  bare command names. Absolute and relative paths supplied by the caller are
+  canonicalized and validated (regular file, root-owned, not group/world
+  writable) but are not required to live under one of these directories.
 - `login_shell`: Whether to default to login shell mode.
 - `suppress_stderr`: Whether to suppress stderr log output.
 - `unconfined_targets`: List of target usernames that receive the full
   "system" treatment — retained capabilities, no seccomp, no file-descriptor
   scrubbing, and a fully preserved environment (including loader/interpreter
-  variables such as `LD_*` and `PYTHON*`). This is required for package
-  managers: `root` runs `pacman` and must `chown` its download directories
-  (needs `CAP_CHOWN`), while `alpm` is its internal unprivileged drop-user
-  that also needs the full environment for AUR helpers. Defaults to
-  `["root", "alpm"]`. Remove `root` to confine generic root commands (then
-  grant the package manager explicitly via a rule with `profile: privileged`).
-  For other distributions, set the equivalent package-manager target here
-  (for example `root` for `apt`/`dnf`, or `_apt` on Debian).
+  variables such as `LD_*` and `PYTHON*`). The default is **empty**: no target
+  is unconfined unless the configuration says so. Enable one only for a
+  specific package-manager workflow. For example, on Arch add `root` and
+  `alpm` if you want `voix pacman -Syu` to keep working; on Debian, `root` or
+  `_apt`. Prefer an explicit `profile: privileged` rule over making every
+  command for that target unconfined.
 
 Example:
 
@@ -83,11 +82,12 @@ A mapping of users or groups to rules that govern execution authorization.
       enables environment preservation; the CLI `-E` flag is accepted for
       compatibility but ignored.
     - `persist`: Maintain an authentication timestamp (default TTL: 15
-      minutes, stored under `<sanctuary>/timestamp/<uid>`) so subsequent runs
-      can skip the password prompt. Tickets are per invoking UID and are
-      recorded after account validation for any `persist` rule, including
-      trust/nopass paths. `-n` does not consult persisted tickets. Invalidate
-      with `voix -k`.
+      minutes, stored under `<sanctuary>/timestamp/<caller-uid>-<target-uid>`)
+      so subsequent runs can skip the password prompt. Tickets are scoped to
+      the caller/target UID pair and are recorded **only** after a successful
+      `pam_authenticate()`; trust/nopass/root skips and reused tickets never
+      mint or refresh one. `-n` reuses a valid ticket but never prompts.
+      Invalidate all of the invoking user's tickets with `voix -k`.
     - `nolog`: Suppress audit-log records containing the command text. An
       outcome-only summary ("execution completed, details withheld") is still
       recorded, and catastrophic-command blocks are always logged in full.
@@ -155,10 +155,12 @@ so alternate path prefixes are covered too.
 > [`docs/SUDO.md`](SUDO.md#3-destructive-operations-require-a-direct-root-login).
 
 > [!NOTE]
-> Exact-path blocklist entries are compared as literal strings, not
-> canonicalized paths. An entry of `/bin/sh` matches `/bin/sh` but not
-> `sh`, `/usr/bin/./bash`, or `/bin/../bin/sh`. Use a `regex:` entry when
-> the intent is to match a tool regardless of how its path is spelled.
+> Exact-path blocklist entries are canonicalized before comparison. An entry
+> of `/bin/sh` also blocks `/usr/bin/sh` on merged-`/usr` systems and rejects
+> alternate spellings such as `/bin/../bin/sh`. The final path component is
+> preserved so multicall applets remain distinct: `/usr/bin/ls` does not
+> block `/usr/bin/cat`. Use a `regex:` entry when the intent is to match a
+> tool by arguments or a broader path pattern.
 
 Example:
 
@@ -191,20 +193,21 @@ core:
   paths:
     - /bin
     - /usr/bin
-  unconfined_targets:
-    - alpm
+  unconfined_targets: []
 
 acl:
   group:
     wheel:
       - action: permit
-        options: [trust, keepenv]
-        profile: restricted
+        command: /usr/bin/systemctl
+        args: [restart, nginx]
   user:
     admin:
       - action: permit
-        options: [trust]
-        profile: privileged
+        options: [persist]
+        target: deploy
+        command: /usr/bin/systemctl
+        args: [restart, myapp]
 
 security:
   profiles:
@@ -221,6 +224,8 @@ security:
       preserve_full_environment: false
   blocklist:
     - /bin/sh
+    - /bin/bash
+    - /usr/bin/env
 ```
 
 </details>
