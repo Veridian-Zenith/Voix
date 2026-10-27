@@ -12,11 +12,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
 project(Voix VERSION 4.14.0 LANGUAGES CXX)
 
-# Development builds identify themselves as a beta. The CMake project version
-# stays numeric (CMake requires it); this string is what `voix --version`
-# reports so testers and bug reports can distinguish this branch from the
-# 4.13.3 release.
-set(VOIX_VERSION_STRING "4.14.0-beta.1")
+# Release builds report the project version. CMake requires a numeric project
+# version; VOIX_VERSION_STRING is what `voix --version` prints.
+set(VOIX_VERSION_STRING "4.14.0")
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
 # (disabled during CodeQL analysis to allow proper build tracing)

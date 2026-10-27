@@ -6,10 +6,10 @@ user-visible change in [`CHANGELOG.md`](CHANGELOG.md).
 
 | Field | Value |
 | :--- | :--- |
-| **Branch** | `security/p0-hardening` |
-| **Base** | `origin/master` at `8d03947` (the local `master` ref is one commit behind at `96668af`) |
-| **Development version** | `4.14.0-beta.1` (test/beta; `4.13.3` is the last release) |
-| **Status** | P0 hardening and P1 follow-ups complete; clean gate green (`134/134` tests) and all PR checks passing |
+| **Branch** | `master` (released) |
+| **Base** | `origin/master` at `da0ea5c` (merge of PR #33) |
+| **Release** | `4.14.0` (2026-10-27; `4.13.3` was the previous release) |
+| **Status** | Release prepared; post-merge CI green and no open CodeQL alerts |
 | **Last updated** | 2026-10-27 |
 
 Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by design
@@ -19,7 +19,8 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 ## 1. Merge checklist
 
 - [x] Open a pull request for `security/p0-hardening` against `master`.
-  PR [#33](https://github.com/Veridian-Zenith/Voix/pull/33) is open.
+  PR [#33](https://github.com/Veridian-Zenith/Voix/pull/33) was merged as
+  `da0ea5c`.
 - [x] Confirm CI is green on the branch: `Test Suite`, `CodeQL Analysis`, and
   the repository's CodeQL default setup.
 - [x] Re-run the local gate from a clean build directory (see
@@ -29,17 +30,18 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
   into `master`. `origin/master` is merged into this branch as `5d02461`, and
   the conflict in `.github/workflows/codeql.yml` was resolved in favour of
   `4.39.1`.
-- [ ] Re-check the CodeQL "Uncontrolled process operation" alert after the
+- [x] Re-check the CodeQL "Uncontrolled process operation" alert after the
   branch lands. Both `execv` call sites from `master` are now `fexecve` on a
-  pinned, inode-verified descriptor, so no suppression is expected unless a
-  new alert appears.
-- [ ] Decide the release vehicle. The policy defaults and exit codes are
-  breaking, so `4.14.0` is the natural next release; `4.14.0-beta.1` is
-  intentionally not a release tag.
-- [ ] When promoting out of beta, update `packaging/` `pkgver`, the manpage
-  date, and the release notes. AUR `pkgver` cannot contain `-`, so use a form
-  such as `4.14.0beta1` if the beta string must be packaged.
-- [ ] Confirm the shipped `config/voix.conf` remains closed by default and
+  pinned, inode-verified descriptor; no open alerts remain.
+- [x] Decide the release vehicle: `4.14.0`, because the policy defaults and
+  exit codes are breaking. `4.14.0-beta.1` was the development marker and is
+  not a release tag.
+- [x] Update the source version, manpage date, and release notes for `4.14.0`.
+- [ ] After the `v4.14.0` artifacts are published, update
+  `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD` (`pkgver=4.14.0`,
+  `pkgrel=1`, new checksums) and push them to the AUR. AUR `pkgver` cannot
+  contain `-`; the stable version has no suffix.
+- [x] Confirm the shipped `config/voix.conf` remains closed by default and
   document the migration for existing operators: empty ACL, no implicit
   `wheel` trust, no unconfined targets, `/var/lib/voix` sanctuary, and the new
   `sysexits(3)` exit codes.
@@ -122,7 +124,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 
 ---
 
-## 4. Completed on this branch (P0)
+## 4. Completed in 4.14.0 (P0)
 
 ### `8300d7d` — end-to-end execution coverage + FD/syslog fixes
 
@@ -206,7 +208,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 
 ## 6. Verification gate
 
-Run before every commit on this branch:
+Run before every commit:
 
 ```bash
 cmake -B build-dbg -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
