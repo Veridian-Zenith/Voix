@@ -9,7 +9,7 @@ user-visible change in [`CHANGELOG.md`](CHANGELOG.md).
 | **Branch** | `security/p0-hardening` |
 | **Base** | `origin/master` at `8d03947` (the local `master` ref is one commit behind at `96668af`) |
 | **Development version** | `4.14.0-beta.1` (test/beta; `4.13.3` is the last release) |
-| **Status** | P0 hardening and P1 follow-ups complete, build green (`134/134` tests), ready for review |
+| **Status** | P0 hardening and P1 follow-ups complete; clean gate green (`134/134` tests) and all PR checks passing |
 | **Last updated** | 2026-10-27 |
 
 Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by design
@@ -20,11 +20,11 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 
 - [x] Open a pull request for `security/p0-hardening` against `master`.
   PR [#33](https://github.com/Veridian-Zenith/Voix/pull/33) is open.
-- [ ] Confirm CI is green on the branch: `Test Suite`, `CodeQL Analysis`, and
+- [x] Confirm CI is green on the branch: `Test Suite`, `CodeQL Analysis`, and
   the repository's CodeQL default setup.
-- [ ] Re-run the local gate from a clean build directory (see
+- [x] Re-run the local gate from a clean build directory (see
   [§6](#6-verification-gate)).
-- [ ] Run `clang-tidy` over `src/*.cpp include/*.hpp`; keep it warning-free.
+- [x] Run `clang-tidy` over `src/*.cpp include/*.hpp`; keep it warning-free.
 - [x] Dependabot PR #32 (`github/codeql-action` 4.38.3 → 4.39.1) is merged
   into `master`. `origin/master` is merged into this branch as `5d02461`, and
   the conflict in `.github/workflows/codeql.yml` was resolved in favour of
