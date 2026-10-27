@@ -125,7 +125,7 @@ private:
      * @return True if the rule matches, false otherwise.
      */
     bool matchRule(const Rule& rule, uid_t uid, const std::vector<gid_t>& groups,
-                   std::string_view command, uid_t target_uid,
+                   std::string_view canonical_command, uid_t target_uid,
                    const std::vector<std::string>& args) const;
 
     /// A rule's scope with variables resolved and the command canonicalized.

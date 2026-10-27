@@ -22,16 +22,16 @@ Accepted for compatibility but has no effect. Environment preservation is enable
 Set HOME to the target user's home directory. Without this flag, HOME is not set to the target's home; it is present only if it survived sanitization.
 .TP
 .B \-i, \-\-login
-Execute the command via the target's login shell. With a named command the request stays brokered and the catastrophic-command gate applies to that command; Voix does not inspect what the command does after the shell starts. Used bare, it opens an interactive shell as the target if that shell is absent from \fIsecurity.blocklist\fR. This option forces HOME and SHELL to the target's values, even when the rule grants \fIkeepenv\fR or the target is unconfined.
+Execute the command via the target's login shell. With a named command the request stays brokered and the catastrophic-command gate applies to that command; Voix does not inspect what the command does after the shell starts. Used bare, it opens an interactive shell as the target using the target's passwd shell (fallback /bin/sh) if that shell is absent from \fIsecurity.blocklist\fR. This option forces HOME and SHELL to the target's values, even when the rule grants \fIkeepenv\fR or the target is unconfined.
 .TP
 .B \-l, \-\-list
-List the permit rules that apply to the current user. Deny-awareness is limited to an earlier deny with an identical command/args/target scope; a rule without a command is shown as "(all commands)". This is not a command-by-command prediction.
+List the permit rules that apply to the current user. Evaluation follows runtime first-match semantics: a permit fully covered by an earlier deny is omitted, and a partially covered permit is marked "(partially restricted by an earlier deny)". A rule without a command is shown as "(all commands)". This is not a command-by-command prediction.
 .TP
 .B \-n
 Non-interactive mode. A valid persisted ticket is reused if the matched rule grants \fIpersist\fR; otherwise Voix fails rather than prompting. \-n can never trigger a password prompt.
 .TP
 .B \-s
-Execute the invoking user's shell ($SHELL, falling back to the invoking user's passwd shell) as the target. This is not the target's login shell; use \-i for that.
+Execute the target account's passwd shell as the target, falling back to /bin/sh when the account has no shell. The invoking user's $SHELL is never consulted, because it is caller-controlled and must not influence a privilege transition. Use \-i for login-shell semantics.
 .TP
 .B \-u \fIUSER\fR
 Execute command as the specified target user (default: root). Requires an explicit target rule in the ACL for non-root users. There is no passwordless-target bypass: the caller must authenticate unless the rule grants trust/nopass, the caller is root, or a valid persisted ticket exists.
@@ -101,8 +101,11 @@ all capabilities are dropped, resource limits are enforced fail-closed
 is always set (independently of seccomp), a seccomp syscall
 blacklist is applied when enabled in configuration, the environment is
 scrubbed (clearenv) and rebuilt from a safe whitelist with PATH overridden to
-trusted directories unless the matched rule grants \fIkeepenv\fR, a umask of
-022 is forced, and inherited file descriptors (3+) are closed.
+trusted directories unless the matched rule grants \fIkeepenv\fR or the
+profile sets \fIscrub_environment: false\fR, a umask of
+022 is forced, and inherited file descriptors other than the pinned
+executable are closed. On the restricted tier the executable is moved to
+fd 3 and descriptors 4+ are closed.
 .PP
 .B All targets:
 signal handlers are reset to SIG_DFL, the umask is forced to 022,

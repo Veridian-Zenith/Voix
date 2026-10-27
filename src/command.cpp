@@ -342,7 +342,8 @@ Command::build_environment(
     set_entry(saved_env, "HOME", target.home_dir);
   }
   if (options.login_shell) {
-    set_entry(saved_env, "SHELL", target.shell);
+    set_entry(saved_env, "SHELL",
+              target.shell.empty() ? "/bin/sh" : target.shell);
   }
 
   // Administrator-specified rule env (KEY=VALUE entries applied after

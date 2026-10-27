@@ -247,8 +247,14 @@ int main(int argc, char* argv[]) noexcept {
 #endif
             return Voix::exit_status(e.code());
         } catch (const std::exception& e) {
+            // Keep implementation details (paths, OS errors) in the trusted
+            // local audit log; the caller only sees a fixed message.
+            Voix::Logger().log(
+                Voix::LogLevel::Error,
+                std::string("[software] unhandled exception: ") + e.what(),
+                /*echo_stderr=*/false);
             Voix::Logger().report_error(
-                Voix::ExitCode::Software, e.what(),
+                Voix::ExitCode::Software, "internal error",
                 "this is an internal error; re-run with a Debug build and "
                 "report it with the log from /var/log/voix.log");
 #ifdef VOIX_WITH_CAP
@@ -260,8 +266,14 @@ int main(int argc, char* argv[]) noexcept {
         Voix::Logger().report_error(e.code(), e.what(), e.hint());
         return Voix::exit_status(e.code());
     } catch (const std::exception& e) {
-        Voix::Logger().report_error(Voix::ExitCode::Software, e.what(),
-                                    "this is an internal error");
+        Voix::Logger().log(
+            Voix::LogLevel::Error,
+            std::string("[software] unhandled exception: ") + e.what(),
+            /*echo_stderr=*/false);
+        Voix::Logger().report_error(
+            Voix::ExitCode::Software, "internal error",
+            "this is an internal error; report it with the log from "
+            "/var/log/voix.log");
         return Voix::exit_status(Voix::ExitCode::Software);
     } catch (...) {
         Voix::Logger().report_error(Voix::ExitCode::Software,

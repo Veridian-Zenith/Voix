@@ -144,7 +144,7 @@ Environment variables (like `LD_PRELOAD` or `BASH_ENV`) are classic vectors for 
 - **Mitigation**:
     - **Strict Whitelisting**: by default the environment is dropped and only `TERM`, `DISPLAY`, `XAUTHORITY`, `LANG`, `PATH` survive, with `PATH` overridden to trusted directories. A `keepenv` grant preserves the caller's other variables (minus the dangerous names below).
     - **Dangerous Name/Prefix Filtering**: even `keepenv` runs strip `BASH_ENV`, `ENV`, `IFS`, `CDPATH`, `GCONV_PATH`, `GETCONF_DIR`, `HOSTALIASES` and any `LD_*`, `CC`, `CXX`, `CMAKE_`, `PERL*`, `PYTHON*`, `RUBY*` variable.
-    - **Policy-Gated Preservation**: `keepenv` is the only grant that enables environment preservation. The CLI `-E` flag is accepted for compatibility but ignored.
+    - **Policy-Gated Preservation**: only the rule's `keepenv` or the profile's `scrub_environment: false` enables environment preservation. The CLI `-E` flag is accepted for compatibility but ignored.
     - **Forced umask**: the child sets `umask(022)` so callers cannot influence file modes of privileged operations.
     - **Explicit Identity Setting**: `USER` and `LOGNAME` come from the resolved target identity. `HOME` is set from the target when `-H` is given, and `HOME`/`SHELL` are always forced for login shells (`-i`), even with `keepenv` or an unconfined target. This prevents a target login shell from reading caller-owned startup files.
 

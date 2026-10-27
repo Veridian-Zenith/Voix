@@ -55,6 +55,11 @@ std::optional<uid_t> rule_target_uid(const Rule& rule) {
   return std::nullopt;
 }
 
+/// True when a rule argument contains a glob metacharacter.
+bool has_glob(std::string_view value) {
+  return value.find_first_of("*?") != std::string_view::npos;
+}
+
 /// Mirrors matchRule()'s identity gate for listing.
 bool identity_matches(const Rule& rule, uid_t uid,
                       const std::vector<gid_t>& groups) {
@@ -117,63 +122,22 @@ std::string PermissionChecker::resolve_variables(const std::string& text) const 
 
 bool PermissionChecker::matchRule(const Rule &rule, uid_t uid,
                                   const std::vector<gid_t> &groups,
-                                  std::string_view command, uid_t target_uid,
+                                  std::string_view canonical_command,
+                                  uid_t target_uid,
                                   const std::vector<std::string> &args) const {
-  if (rule.ident_uid.has_value()) {
-      if (rule.ident_uid.value() != uid) {
-          return false;
-      }
-  } else if (rule.ident_gid.has_value()) {
-      bool group_found = std::ranges::find(groups, rule.ident_gid.value()) != groups.end();
-      if (!group_found) {
-          return false;
-      }
-  } else if (!rule.ident.empty()) {
-      // Fallback for cases where resolution failed or for special identifiers
-      if (rule.ident.starts_with('%')) {
-          return false;
-      }
-      // Otherwise try numeric UID match if it's a number
-      char* endptr;
-      uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
-      if (*endptr == '\0') {
-          if (rule_uid != uid) {
-              return false;
-          }
-      } else {
-          // It was a name that couldn't be resolved at config load time
-          return false;
-      }
+  if (!identity_matches(rule, uid, groups)) {
+      return false;
   }
 
-  if (rule.target_uid.has_value()) {
-      if (rule.target_uid.value() != target_uid) {
-          return false;
-      }
-  } else if (!rule.target.empty()) {
-      char* endptr;
-      uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.target).c_str(), &endptr, 10));
-      if (*endptr == '\0') {
-          if (rule_uid != target_uid) {
-              return false;
-          }
-      } else {
-          return false;
-      }
-  } else {
-      // No target specified — rule applies only to root (uid 0).
-      // Users must add explicit target rules for non-root user switching.
-      if (target_uid != 0) {
-          return false;
-      }
+  const auto rule_target = rule_target_uid(rule);
+  if (!rule_target.has_value() || rule_target.value() != target_uid) {
+      return false;
   }
 
   if (!rule.cmd.empty()) {
     std::string resolved_cmd = resolve_variables(rule.cmd);
-    const std::string requested_cmd =
-        canonical_command_for_match(command, *config_);
     resolved_cmd = canonical_command_for_match(resolved_cmd, *config_);
-    if (resolved_cmd != requested_cmd)
+    if (resolved_cmd != canonical_command)
       return false;
 
     if (!rule.cmdargs.empty()) {
@@ -207,10 +171,15 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
   uid_t uid = identity->uid;
   std::vector<gid_t> groups = identity->groups;
 
+  // Canonicalize the request once; every rule compares against the same
+  // policy path, avoiding repeated PATH/realpath/stat work per rule.
+  const std::string canonical_command =
+      canonical_command_for_match(command, *config_);
+
   auto rules = config_->getRules();
 
   for (const auto &rule : rules) {
-    if (matchRule(rule, uid, groups, command, target_uid, args)) {
+    if (matchRule(rule, uid, groups, canonical_command, target_uid, args)) {
       if (rule.action == Rule::Action::PERMIT) {
         return rule;
       } else {
@@ -272,26 +241,58 @@ PermissionChecker::Coverage PermissionChecker::scope_coverage(
     return Coverage::None;
   }
 
-  if (!deny.pattern) {
-    // Exact deny arguments only fully cover an exact permit of the same shape.
-    if (permit.pattern) {
-      return Coverage::Partial;
-    }
+  if (!deny.pattern && !permit.pattern) {
     return deny.args == permit.args ? Coverage::Full : Coverage::None;
   }
 
-  // The deny uses glob patterns. An exact permit is covered when every
-  // argument matches; a patterned permit is only provably covered when the
-  // patterns are identical.
-  if (permit.pattern) {
-    return deny.args == permit.args ? Coverage::Full : Coverage::Partial;
+  if (deny.pattern && !permit.pattern) {
+    // The deny represents a set of concrete argument lists; the permit is a
+    // single list. The deny covers it only if that exact list matches.
+    for (size_t i = 0; i < deny.args.size(); ++i) {
+      if (!match_pattern({deny.args[i], permit.args[i]})) {
+        return Coverage::None;
+      }
+    }
+    return Coverage::Full;
+  }
+
+  if (!deny.pattern && permit.pattern) {
+    // The permit represents a set of lists; the exact deny covers one point
+    // of that set only if the permit pattern matches the deny's literals.
+    for (size_t i = 0; i < deny.args.size(); ++i) {
+      if (!match_pattern({permit.args[i], deny.args[i]})) {
+        return Coverage::None;
+      }
+    }
+    return Coverage::Partial;
+  }
+
+  // Both sides use patterns. Identical patterns cover the whole permit;
+  // otherwise the deny is only partially overlapping unless an argument
+  // position proves the scopes disjoint.
+  if (deny.args == permit.args) {
+    return Coverage::Full;
   }
   for (size_t i = 0; i < deny.args.size(); ++i) {
-    if (!match_pattern({deny.args[i], permit.args[i]})) {
-      return Coverage::None;
+    const bool deny_literal = !has_glob(deny.args[i]);
+    const bool permit_literal = !has_glob(permit.args[i]);
+    if (deny_literal && permit_literal) {
+      if (deny.args[i] != permit.args[i]) {
+        return Coverage::None;
+      }
+    } else if (deny_literal) {
+      if (!match_pattern({permit.args[i], deny.args[i]})) {
+        return Coverage::None;
+      }
+    } else if (permit_literal) {
+      if (!match_pattern({deny.args[i], permit.args[i]})) {
+        return Coverage::None;
+      }
     }
+    // Both contain globs: disjointness cannot be proven cheaply, so treat
+    // the scopes as possibly overlapping.
   }
-  return Coverage::Full;
+  return Coverage::Partial;
 }
 
 std::vector<PermittedEntry> PermissionChecker::list_permitted_entries() const {
