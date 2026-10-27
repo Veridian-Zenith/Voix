@@ -4,7 +4,12 @@ All notable changes to Voix are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [4.14.0] - 2026-10-27
+
+> **Breaking:** policy is closed by default, the ACL no longer implicitly
+> trusts `wheel`, unconfined targets are empty, and fatal errors use
+> `sysexits(3)` codes. Review [`docs/CONFIG.md`](docs/CONFIG.md) and
+> [`docs/CLI.md`](docs/CLI.md) before upgrading.
 
 ### Security
 
@@ -60,9 +65,6 @@ All notable changes to Voix are documented here. The format follows
 
 ### Changed
 
-- Development builds identify themselves as `4.14.0-beta.1` (test/beta) so
-  `voix --version`, the manpage, and bug reports are distinguishable from the
-  `4.13.3` release.
 - `voix -l` now applies runtime first-match semantics across broader deny
   scopes. A permit fully covered by an earlier deny is omitted, and a permit
   only partially covered is marked `(partially restricted by an earlier

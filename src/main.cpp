@@ -31,7 +31,7 @@
 #endif
 
 #ifndef VOIX_VERSION
-#define VOIX_VERSION "4.14.0-beta.1"
+#define VOIX_VERSION "4.14.0"
 #endif
 
 /**
