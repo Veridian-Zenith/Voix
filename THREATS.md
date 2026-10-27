@@ -357,10 +357,10 @@ intentional security guarantees.
 | Area | Current limitation |
 | :--- | :--- |
 | `-E` | Accepted for compatibility but ignored. Environment preservation is granted by the rule's `keepenv` or the profile's `scrub_environment: false`. |
-| `-s` | Executes the invoking user's `$SHELL` (falling back to the invoking user's passwd shell), not the target's login shell. |
+| `-s` | Runs the target account's passwd shell, falling back to `/bin/sh` when the account has no shell. The invoking user's `$SHELL` is never consulted. |
 | Seccomp allowlist | The baseline is a starting point, not a complete sandbox: commands that mutate the filesystem namespace or create processes need those syscalls in `seccomp_allow`. |
 | Catastrophic gate | Inspects only the directly requested command. A permitted shell or interpreter can invoke blocked tools. |
-| Sanctuary | `--check-config` verifies that the sanctuary is a directory, not that it or its parents are root-owned and non-writable. Do not use `/tmp` or another world-writable directory. |
+| Sanctuary | Secure configuration load requires the sanctuary to exist, be a directory, and have every component root-owned, non-group/world-writable, and free of symlinks. An insecure `load(..., false)` (tests and programmatic configuration) skips this check. |
 | Default policy | The shipped `config/voix.conf` is closed by default: no ACL permits, no unconfined targets, and no implicit trust. Operators must add explicit rules. |
 | `-C` | Rejects untrusted path components, symlinks, and group/world-writable files. The configuration content itself remains trusted administrator input. |
-| `-l` | Lists permit rules, not command-specific predictions. Deny-awareness is limited to an earlier deny with an identical command/args/target scope. |
+| `-l` | Lists permit rules, not command-specific predictions. An earlier deny that fully covers a permit suppresses it; a partial deny marks the entry as conditional. The listing cannot enumerate every concrete command line a patterned rule accepts. |

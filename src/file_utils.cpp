@@ -301,7 +301,7 @@ std::string FileUtils::resolve_command(const ResolveCommandParams& params) const
     return result ? result->path : "";
 }
 
-bool FileUtils::is_trusted_config_path(const fs::path& path) const {
+bool FileUtils::is_trusted_path(const fs::path& path) const {
     if (path.empty() || !path.is_absolute()) {
         return false;
     }

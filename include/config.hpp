@@ -146,6 +146,19 @@ public:
    * @return True if valid, false otherwise.
    */
   bool validate() const;
+  /**
+   * @brief Validates that a sanctuary path is a trusted root-owned directory.
+   *
+   * The sanctuary holds timestamp tickets, so an attacker-writable directory
+   * would let an unprivileged user forge or delete them. The path must exist,
+   * be a directory, be absolute, and have every component root-owned and not
+   * group/world writable, with no symlinks.
+   *
+   * @param path Sanctuary path to validate.
+   * @return An error message when the path is untrusted, or std::nullopt.
+   */
+  static std::optional<std::string>
+  validate_sanctuary_path(std::string_view path);
 
 private:
   std::string sanctuary_;

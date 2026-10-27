@@ -129,6 +129,33 @@ bool test_lookup_passwd_roundtrip() {
     return true;
 }
 
+bool test_resolve_login_shell_uses_passwd_not_environment() {
+    auto root = Voix::lookup_passwd_by_name("root");
+    ASSERT_TRUE(root.has_value());
+
+    // The caller's SHELL is attacker-controlled; it must never decide which
+    // binary a privilege transition executes.
+    const std::string original_shell =
+        std::getenv("SHELL") != nullptr ? std::getenv("SHELL") : "";
+    ASSERT_EQUAL(setenv("SHELL", "/tmp/evil", 1), 0);
+    const std::string resolved = Voix::resolve_login_shell("root");
+    if (!original_shell.empty()) {
+        ASSERT_EQUAL(setenv("SHELL", original_shell.c_str(), 1), 0);
+    } else {
+        ASSERT_EQUAL(unsetenv("SHELL"), 0);
+    }
+
+    ASSERT_EQUAL(resolved, root->shell);
+    ASSERT_TRUE(resolved != "/tmp/evil");
+    return true;
+}
+
+bool test_resolve_login_shell_falls_back_for_unknown_user() {
+    ASSERT_EQUAL(Voix::resolve_login_shell("no_such_user_xyz_42"),
+                 std::string("/bin/sh"));
+    return true;
+}
+
 void register_system_utils_tests(TestRunner& runner) {
     runner.add_test("test_get_uid_by_name_root", test_get_uid_by_name_root);
     runner.add_test("test_get_uid_by_name_nonexistent", test_get_uid_by_name_nonexistent);
@@ -140,4 +167,8 @@ void register_system_utils_tests(TestRunner& runner) {
     runner.add_test("test_set_environment_empty_value", test_set_environment_empty_value);
     runner.add_test("test_set_environment_no_equals", test_set_environment_no_equals);
     runner.add_test("test_lookup_passwd_roundtrip", test_lookup_passwd_roundtrip);
+    runner.add_test("test_resolve_login_shell_uses_passwd_not_environment",
+                    test_resolve_login_shell_uses_passwd_not_environment);
+    runner.add_test("test_resolve_login_shell_falls_back_for_unknown_user",
+                    test_resolve_login_shell_falls_back_for_unknown_user);
 }

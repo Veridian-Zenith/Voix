@@ -236,14 +236,15 @@ int Voix::execute(std::string_view command,
 }
 
 int Voix::list_commands() const {
-    auto rules = permission_checker_->list_permitted_rules();
-    if (rules.empty()) {
+    auto entries = permission_checker_->list_permitted_entries();
+    if (entries.empty()) {
         std::println("No permitted commands for the current user.");
         return 0;
     }
 
     std::println("Permitted commands for user '{}':", security_->getCurrentUser());
-    for (const auto& rule : rules) {
+    for (const auto& permitted : entries) {
+        const auto& rule = permitted.rule;
         std::string entry;
         if (rule.cmd.empty()) {
             entry = "(all commands)";
@@ -264,6 +265,9 @@ int Voix::list_commands() const {
         if (rule.options & Rule::PATTERN) opts += " pattern";
         if (!opts.empty()) {
             entry += std::format(" [{}]", opts.substr(1));
+        }
+        if (permitted.conditional) {
+            entry += " (partially restricted by an earlier deny)";
         }
         std::println("  {}", entry);
     }

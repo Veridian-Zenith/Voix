@@ -27,8 +27,16 @@ All notable changes to Voix are documented here. The format follows
 - Force `HOME` and `SHELL` to the target's values for login shells (`-i`),
   so a `keepenv` grant or unconfined target cannot make the target shell
   read the caller's startup files.
+- Run `-s` with the target account's passwd shell. The invoking user's
+  `$SHELL` is caller-controlled and no longer influences which binary a
+  privilege transition executes; `-i` without a command uses the same
+  resolution.
 - Reject `-C` configuration paths unless every component is absolute,
   root-owned, non-group/world-writable, and free of symlinks.
+- Validate the sanctuary on secure configuration load: it must exist, be a
+  directory, and have every path component root-owned, not writable by group
+  or others, and free of symlinks. `--check-config` now rejects `/tmp` and
+  other attacker-writable ticket stores.
 - Change the built-in default sanctuary from `/tmp` to `/var/lib/voix`.
 - Ship a conservative sample policy: no default `wheel` trust grant, no
   unconfined targets, and an empty ACL that must be configured explicitly.
@@ -57,6 +65,10 @@ All notable changes to Voix are documented here. The format follows
   `4.13.3` release.
 - The execution audit record is written before the privilege transition and
   file descriptor scrub, so the root-owned log file remains writable.
+- `voix -l` now applies runtime first-match semantics across broader deny
+  scopes. A permit fully covered by an earlier deny is omitted, and a permit
+  only partially covered is marked `(partially restricted by an earlier
+  deny)` instead of overstating what is allowed.
 
 ### Fixed
 
@@ -102,11 +114,17 @@ All notable changes to Voix are documented here. The format follows
   executable replacement (TOCTOU) refusal, `HOME` and environment delivery,
   blacklist/allowlist execution, and ACL denial before any process is
   created.
+- Add login-shell resolution coverage proving `$SHELL` is ignored, sanctuary
+  trust coverage (`/tmp`, relative, missing, and trusted directories), and
+  `-l` deny-awareness coverage for broader, partial, pattern, target-specific,
+  and post-permit deny rules.
 
 ### Documentation
 
 - Document the new resolution, authentication, ticket, environment, and
   configuration-path behavior.
+- Document target-shell resolution for `-s`/`-i`, sanctuary trust checks, and
+  the refined `-l` deny-awareness semantics.
 
 ## [4.13.3] - 2026-10-12
 
