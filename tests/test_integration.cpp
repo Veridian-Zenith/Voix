@@ -321,6 +321,12 @@ bool test_integration_keepenv_reaches_child() {
 }
 
 bool test_integration_allowlist_mode_runs_real_command() {
+    if (syscall_instrumentation_active()) {
+        // An interposer would add syscalls the allowlist cannot know about.
+        std::cerr << "skipped: LD_PRELOAD/LD_AUDIT instrumentation is active"
+                  << std::endl;
+        return true;
+    }
     // End-to-end version of the seccomp unit test: the filter is applied in
     // the child after the privilege transition, and the target still runs.
     const fs::path ls = fs::exists("/bin/ls") ? fs::path("/bin/ls")

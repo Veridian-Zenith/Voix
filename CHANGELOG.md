@@ -106,6 +106,10 @@ All notable changes to Voix are documented here. The format follows
   start and exit 0 under both blacklist and allowlist mode, and
   `seccomp_allow`/`seccomp_mode` misconfigurations must be rejected.
 - Add environment-sanitization coverage for `scrub_environment` and `keepenv`.
+- Skip the end-to-end allowlist execution checks when a syscall-interposing
+  preload (for example CodeQL's tracer) is active; a default-deny filter would
+  kill the instrumentation rather than the program under test. The dedicated
+  Test Suite job still runs them.
 - Add an end-to-end integration suite that runs the real
   `resolve -> open -> pin -> fork -> privilege transition -> FD scrub ->
   seccomp -> fexecve(2)` path unprivileged: exit-status propagation,
