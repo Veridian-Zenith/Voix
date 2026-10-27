@@ -14,8 +14,12 @@
  */
 
 #include "test_modules.hpp"
+#include "../include/authenticator.hpp"
+#include <algorithm>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
 
 bool test_security_validate_user_valid() {
     auto identity = std::make_shared<MockIdentity>();
@@ -159,6 +163,9 @@ bool test_security_catastrophic_blocklist_exact() {
     // Exact scalar entry matches the command alone
     ASSERT_TRUE(security.isCatastrophicCommand("/bin/sh", {}, config));
     ASSERT_TRUE(!security.isCatastrophicCommand("/bin/ls", {}, config));
+    // The final component is preserved: blocking /bin/sh must not also block
+    // a different shell that merely shares the same resolved target.
+    ASSERT_TRUE(!security.isCatastrophicCommand("/bin/bash", {}, config));
 
     // regex: entries match the canonicalized full command line
     ASSERT_TRUE(security.isCatastrophicCommand("cat", {"/etc/shadow"}, config));
@@ -233,20 +240,43 @@ bool test_ticket_store_roundtrip() {
     std::filesystem::create_directories("/tmp/voix_test_tickets");
 
     Voix::TicketStore tickets("/tmp/voix_test_tickets");
-    const uid_t uid = 4242;
+    const uid_t caller = 4242;
+    const uid_t target = 0;
 
-    ASSERT_TRUE(!tickets.valid(uid));
-    ASSERT_TRUE(tickets.record(uid));
+    ASSERT_TRUE(!tickets.valid(caller, target));
+    ASSERT_TRUE(tickets.record(caller, target));
 
     // Fresh ticket is valid; expired one is not.
-    ASSERT_TRUE(tickets.valid(uid, std::chrono::minutes(15)));
-    ASSERT_TRUE(tickets.valid(uid, std::chrono::minutes(0)));
+    ASSERT_TRUE(tickets.valid(caller, target, std::chrono::minutes(15)));
+    ASSERT_TRUE(tickets.valid(caller, target, std::chrono::minutes(0)));
 
-    tickets.clear(uid);
-    ASSERT_TRUE(!tickets.valid(uid));
+    // Tickets are scoped to the caller/target pair.
+    ASSERT_TRUE(!tickets.valid(caller, 1000));
+    ASSERT_TRUE(!tickets.valid(1000, target));
+
+    tickets.clear(caller, target);
+    ASSERT_TRUE(!tickets.valid(caller, target));
 
     // Clearing twice is harmless.
-    tickets.clear(uid);
+    tickets.clear(caller, target);
+    return true;
+}
+
+bool test_ticket_store_clear_all_for_caller() {
+    ScopedTempFile guard("/tmp/voix_test_tickets_clear", true);
+    std::filesystem::create_directories("/tmp/voix_test_tickets_clear");
+
+    Voix::TicketStore tickets("/tmp/voix_test_tickets_clear");
+    const uid_t caller = 4243;
+    ASSERT_TRUE(tickets.record(caller, 0));
+    ASSERT_TRUE(tickets.record(caller, 1000));
+    ASSERT_TRUE(tickets.record(9999, 0));
+
+    tickets.clear_all_for_caller(caller);
+    ASSERT_TRUE(!tickets.valid(caller, 0));
+    ASSERT_TRUE(!tickets.valid(caller, 1000));
+    // Another caller's ticket must survive -k.
+    ASSERT_TRUE(tickets.valid(9999, 0));
     return true;
 }
 
@@ -256,28 +286,174 @@ bool test_ticket_store_garbage_rejected() {
     std::filesystem::create_directories(dir);
 
     Voix::TicketStore tickets(dir.string());
-    const uid_t uid = static_cast<uid_t>(geteuid());  // writable by us
-
+    const uid_t caller = static_cast<uid_t>(geteuid());  // writable by us
+    const uid_t target = 0;
     Voix::FileUtils fu;
     ASSERT_TRUE(fu.ensure_private_directory(dir / "timestamp"));
-    auto f = dir / "timestamp" / std::to_string(uid);
+    auto f = dir / "timestamp" /
+             (std::to_string(caller) + "-" + std::to_string(target));
     {
         std::ofstream out(f);
         out << "not-a-number";
     }
-    ASSERT_TRUE(!tickets.valid(uid));
+    ASSERT_TRUE(!tickets.valid(caller, target));
 
     {
         std::ofstream out(f);
         out << "99999999999999999999";  // Far future — tampering rejected
     }
-    ASSERT_TRUE(!tickets.valid(uid));
+    ASSERT_TRUE(!tickets.valid(caller, target));
 
-    tickets.clear(uid);
+    tickets.clear(caller, target);
     return true;
 }
 
+bool test_credential_mode_ordering() {
+    using Voix::CredentialMode;
+    using Voix::select_credential_mode;
+
+    // Trust/nopass and root callers skip the prompt without minting tickets.
+    ASSERT_TRUE(select_credential_mode(true, false, true, false, true) ==
+                CredentialMode::SkipTrusted);
+    ASSERT_TRUE(select_credential_mode(false, true, true, false, true) ==
+                CredentialMode::SkipTrusted);
+
+    // A persisted ticket is checked before -n rejects the invocation.
+    ASSERT_TRUE(select_credential_mode(false, false, true, true, true) ==
+                CredentialMode::UseTicket);
+    ASSERT_TRUE(select_credential_mode(false, false, true, true, false) ==
+                CredentialMode::UseTicket);
+
+    // No ticket + -n fails closed; interactive mode prompts.
+    ASSERT_TRUE(select_credential_mode(false, false, true, false, true) ==
+                CredentialMode::RejectNonInteractive);
+    ASSERT_TRUE(select_credential_mode(false, false, true, false, false) ==
+                CredentialMode::RequireInteractive);
+
+    // A ticket is irrelevant unless the rule grants persist.
+    ASSERT_TRUE(select_credential_mode(false, false, false, true, true) ==
+                CredentialMode::RejectNonInteractive);
+    return true;
+}
+
+#ifdef VOIX_WITH_SECCOMP
+bool test_seccomp_allowlist_baseline_can_exec() {
+    // Regression guard: the previous allowlist permitted only the dangerous
+    // syscalls from the blacklist and omitted execve, so the kernel killed
+    // the target before it could start.
+    auto baseline = Voix::Security::seccomp_allowlist_baseline();
+    ASSERT_TRUE(!baseline.empty());
+
+    auto contains = [&baseline](std::string_view name) {
+        return std::find(baseline.begin(), baseline.end(), name) !=
+               baseline.end();
+    };
+    ASSERT_TRUE(contains("execve"));
+    ASSERT_TRUE(contains("execveat"));
+    ASSERT_TRUE(contains("exit_group"));
+    ASSERT_TRUE(contains("read"));
+    ASSERT_TRUE(contains("write"));
+    ASSERT_TRUE(contains("mmap"));
+    ASSERT_TRUE(contains("statfs"));
+
+    // The baseline must not re-permit the syscalls the blacklist kills.
+    ASSERT_TRUE(!contains("reboot"));
+    ASSERT_TRUE(!contains("ptrace"));
+    ASSERT_TRUE(!contains("bpf"));
+    ASSERT_TRUE(!contains("kexec_load"));
+    return true;
+}
+
+bool test_seccomp_validate_syscall_names() {
+    ASSERT_TRUE(Voix::Security::validate_syscall_names({}).empty());
+    ASSERT_TRUE(
+        Voix::Security::validate_syscall_names({"openat2", "statx"}).empty());
+
+    const std::string unknown =
+        Voix::Security::validate_syscall_names({"definitely_not_a_syscall"});
+    ASSERT_TRUE(!unknown.empty());
+    ASSERT_TRUE(unknown.find("definitely_not_a_syscall") != std::string::npos);
+    return true;
+}
+
+bool test_seccomp_allowlist_runs_a_real_program() {
+    if (syscall_instrumentation_active()) {
+        // An interposer would add syscalls the allowlist cannot know about.
+        std::cerr << "skipped: LD_PRELOAD/LD_AUDIT instrumentation is active"
+                  << std::endl;
+        return true;
+    }
+    // End-to-end check that allowlist mode does not kill the target before it
+    // starts. The child installs the filter and execs a dynamically linked
+    // binary; a seccomp violation would terminate it with SIGSYS instead of
+    // exiting 0.
+    const char *target = "/bin/ls";
+    if (access(target, X_OK) != 0) {
+        target = "/usr/bin/ls";
+    }
+
+    pid_t pid = fork();
+    ASSERT_TRUE(pid >= 0);
+    if (pid == 0) {
+        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
+            _exit(120);
+        }
+        Voix::Security sec;
+        sec.applySeccompAllowlist({});
+        // Silence ls output; the exit status is what matters.
+        if (freopen("/dev/null", "w", stdout) == nullptr) {
+            _exit(122);
+        }
+        char *const argv[] = {const_cast<char *>(target),
+                              const_cast<char *>("--version"), nullptr};
+        execv(target, argv);
+        _exit(121);
+    }
+
+    int status = 0;
+    ASSERT_TRUE(waitpid(pid, &status, 0) == pid);
+    if (!WIFEXITED(status)) {
+        std::cerr << "allowlisted " << target << " did not exit normally"
+                  << std::endl;
+    }
+    ASSERT_TRUE(WIFEXITED(status));
+    ASSERT_EQUAL(WEXITSTATUS(status), 0);
+    return true;
+}
+
+bool test_seccomp_blacklist_runs_a_real_program() {
+    pid_t pid = fork();
+    ASSERT_TRUE(pid >= 0);
+    if (pid == 0) {
+        if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
+            _exit(120);
+        }
+        Voix::Security sec;
+        sec.applySeccompBlacklist();
+        char *const argv[] = {const_cast<char *>("/bin/true"), nullptr};
+        execv("/bin/true", argv);
+        _exit(121);
+    }
+
+    int status = 0;
+    ASSERT_TRUE(waitpid(pid, &status, 0) == pid);
+    ASSERT_TRUE(WIFEXITED(status));
+    ASSERT_EQUAL(WEXITSTATUS(status), 0);
+    return true;
+}
+#endif // VOIX_WITH_SECCOMP
+
 void register_security_tests(TestRunner& runner) {
+#ifdef VOIX_WITH_SECCOMP
+    runner.add_test("test_seccomp_allowlist_baseline_can_exec",
+                    test_seccomp_allowlist_baseline_can_exec);
+    runner.add_test("test_seccomp_validate_syscall_names",
+                    test_seccomp_validate_syscall_names);
+    runner.add_test("test_seccomp_allowlist_runs_a_real_program",
+                    test_seccomp_allowlist_runs_a_real_program);
+    runner.add_test("test_seccomp_blacklist_runs_a_real_program",
+                    test_seccomp_blacklist_runs_a_real_program);
+#endif
     runner.add_test("test_security_validate_user_valid", test_security_validate_user_valid);
     runner.add_test("test_security_validate_user_invalid", test_security_validate_user_invalid);
     runner.add_test("test_security_validate_user_too_long", test_security_validate_user_too_long);
@@ -294,5 +470,7 @@ void register_security_tests(TestRunner& runner) {
     runner.add_test("test_security_catastrophic_partition_tools", test_security_catastrophic_partition_tools);
     runner.add_test("test_security_catastrophic_safe_commands", test_security_catastrophic_safe_commands);
     runner.add_test("test_ticket_store_roundtrip", test_ticket_store_roundtrip);
+    runner.add_test("test_ticket_store_clear_all_for_caller", test_ticket_store_clear_all_for_caller);
     runner.add_test("test_ticket_store_garbage_rejected", test_ticket_store_garbage_rejected);
+    runner.add_test("test_credential_mode_ordering", test_credential_mode_ordering);
 }

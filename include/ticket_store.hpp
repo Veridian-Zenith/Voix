@@ -21,9 +21,11 @@ namespace Voix {
 constexpr std::chrono::minutes k_persist_ttl{15};
 
 /**
- * @brief Stores per-UID authentication timestamps under the configured
- *        sanctuary directory (<sanctuary>/timestamp/<uid>).
+ * @brief Stores caller/target authentication timestamps under the configured
+ *        sanctuary directory (<sanctuary>/timestamp/<caller>-<target>).
  *
+ * Tickets are scoped to both the invoking UID and the target UID, so a
+ * password verified for one target cannot authorize a switch to another.
  * Files are created/read with strict TOCTOU protection (O_NOFOLLOW,
  * owner == effective UID, mode 0600) via FileUtils. All failures are
  * fail-safe: a missing or unreadable ticket simply means "no persisted
@@ -34,23 +36,30 @@ public:
     explicit TicketStore(std::string_view sanctuary);
 
     /**
-     * @brief Checks whether a fresh (non-expired) ticket exists for uid.
+     * @brief Checks whether a fresh (non-expired) ticket exists for the
+     *        caller/target pair.
      */
-    bool valid(uid_t uid, std::chrono::minutes ttl = k_persist_ttl) const;
+    bool valid(uid_t caller_uid, uid_t target_uid,
+               std::chrono::minutes ttl = k_persist_ttl) const;
 
     /**
-     * @brief Records/refreshes the timestamp for uid.
+     * @brief Records/refreshes the timestamp for the caller/target pair.
      * @return True on success; false means the next run will require proof.
      */
-    bool record(uid_t uid) const;
+    bool record(uid_t caller_uid, uid_t target_uid) const;
 
     /**
-     * @brief Removes any existing timestamp for uid (-k behavior).
+     * @brief Removes the timestamp for one caller/target pair.
      */
-    void clear(uid_t uid) const;
+    void clear(uid_t caller_uid, uid_t target_uid) const;
+
+    /**
+     * @brief Removes every timestamp belonging to the caller (-k behavior).
+     */
+    void clear_all_for_caller(uid_t caller_uid) const;
 
 private:
-    std::filesystem::path path_for(uid_t uid) const;
+    std::filesystem::path path_for(uid_t caller_uid, uid_t target_uid) const;
 
     std::filesystem::path dir_;
 };

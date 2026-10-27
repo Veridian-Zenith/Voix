@@ -14,6 +14,7 @@
  */
 
 #include "test_modules.hpp"
+#include "../include/exit_code.hpp"
 
 bool test_logger_timestamp_format() {
     Voix::Logger logger;
@@ -40,17 +41,17 @@ bool test_logger_timestamp_current_year() {
 
 bool test_logger_log_does_not_crash() {
     Voix::Logger logger;
-    logger.log("INFO", "test message");
-    logger.log("ERROR", "error message");
-    logger.log("WARN", "warning message");
+    logger.log(Voix::LogLevel::Info, "test message");
+    logger.log(Voix::LogLevel::Error, "error message");
+    logger.log(Voix::LogLevel::Warning, "warning message");
     return true;
 }
 
 bool test_logger_log_empty_message() {
     Voix::Logger logger;
-    logger.log("", "");
-    logger.log("INFO", "");
-    logger.log("", "some message");
+    logger.log(Voix::LogLevel::Info, "");
+    logger.log(Voix::LogLevel::Error, "");
+    logger.log(Voix::LogLevel::Security, "some message");
     return true;
 }
 
@@ -76,6 +77,40 @@ bool test_logger_sanitize_control_chars() {
     return true;
 }
 
+bool test_exit_codes_are_stable() {
+    using Voix::ExitCode;
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::Success), 0);
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::Failure), 1);
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::Usage), 64);
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::Software), 70);
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::NotPermitted), 77);
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::Config), 78);
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::NoExec), 126);
+    ASSERT_EQUAL(Voix::exit_status(ExitCode::NotFound), 127);
+    return true;
+}
+
+bool test_exit_code_names() {
+    using Voix::ExitCode;
+    ASSERT_EQUAL(std::string(Voix::exit_code_name(ExitCode::Success)),
+                 std::string("success"));
+    ASSERT_EQUAL(std::string(Voix::exit_code_name(ExitCode::NotPermitted)),
+                 std::string("not-permitted"));
+    ASSERT_EQUAL(std::string(Voix::exit_code_name(ExitCode::Config)),
+                 std::string("config"));
+    ASSERT_EQUAL(std::string(Voix::exit_code_name(ExitCode::NotFound)),
+                 std::string("not-found"));
+    return true;
+}
+
+bool test_voix_error_carries_code_and_hint() {
+    Voix::VoixError error(Voix::ExitCode::Config, "bad config", "fix it");
+    ASSERT_TRUE(error.code() == Voix::ExitCode::Config);
+    ASSERT_EQUAL(std::string(error.what()), std::string("bad config"));
+    ASSERT_EQUAL(error.hint(), std::string("fix it"));
+    return true;
+}
+
 void register_logger_tests(TestRunner& runner) {
     runner.add_test("test_logger_timestamp_format", test_logger_timestamp_format);
     runner.add_test("test_logger_timestamp_current_year", test_logger_timestamp_current_year);
@@ -83,4 +118,8 @@ void register_logger_tests(TestRunner& runner) {
     runner.add_test("test_logger_log_empty_message", test_logger_log_empty_message);
     runner.add_test("test_logger_sanitize_newlines", test_logger_sanitize_newlines);
     runner.add_test("test_logger_sanitize_control_chars", test_logger_sanitize_control_chars);
+    runner.add_test("test_exit_codes_are_stable", test_exit_codes_are_stable);
+    runner.add_test("test_exit_code_names", test_exit_code_names);
+    runner.add_test("test_voix_error_carries_code_and_hint",
+                    test_voix_error_carries_code_and_hint);
 }

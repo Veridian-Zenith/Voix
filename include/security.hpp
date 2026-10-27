@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -44,11 +45,13 @@ public:
   bool validateUser(std::string_view username) const;
 
   /**
-   * @brief Logs a security-related event.
-   * @param event Description of the event.
+   * @brief Logs a security event with a stable audit code.
+   * @param code Stable identifier (see audit.hpp).
+   * @param event Human-readable detail.
    * @param user Username associated with the event.
    */
-  void logEvent(std::string_view event, std::string_view user) const;
+  void logEvent(std::string_view code, std::string_view event,
+                std::string_view user) const;
 
   /**
    * @brief Gets the current username.
@@ -102,10 +105,39 @@ public:
    * @brief Applies a Seccomp blacklist to restrict dangerous system calls.
    */
   void applySeccompBlacklist() const;
-  /// Applies a default-deny allowlist: kills every syscall except the 19
-  /// permitted ones derived from the current blacklist.
-  void applySeccompAllowlist() const;
+  /**
+   * @brief Applies a default-deny allowlist.
+   *
+   * Every syscall is killed unless it is part of the built-in process-runtime
+   * baseline or named in @p extra_syscalls. The baseline includes
+   * `execve`/`execveat` so the target can start at all; extend it with
+   * `security.profiles.<name>.seccomp_allow` for the syscalls a specific
+   * command needs.
+   *
+   * @param extra_syscalls Additional syscall names from the profile.
+   */
+  void applySeccompAllowlist(const std::vector<std::string> &extra_syscalls) const;
+  /**
+   * @brief The built-in allowlist baseline.
+   *
+   * Exposed so tests can assert the invariants that make allowlist mode
+   * usable at all (notably that `execve`/`execveat` are present).
+   */
+  static std::span<const std::string_view> seccomp_allowlist_baseline();
 #endif
+
+  /**
+   * @brief Checks that every name resolves to a syscall on this architecture.
+   *
+   * Used by `--check-config` so a typo in `seccomp_allow` is reported at
+   * configuration time instead of killing the target at exec time. Returns an
+   * empty string when every name is known, or a message naming the first
+   * unknown entry. Always succeeds in builds without seccomp support.
+   *
+   * @param names Syscall names from the profile.
+   * @return Empty on success, otherwise a user-facing error message.
+   */
+  static std::string validate_syscall_names(const std::vector<std::string> &names);
 
   std::shared_ptr<IIdentity> identity;
 };

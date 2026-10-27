@@ -12,6 +12,7 @@ add_library(voix_tests STATIC
     test_logger.cpp
     test_system_utils.cpp
     test_negative_security.cpp
+    test_integration.cpp
 )
 target_link_libraries(voix_tests PUBLIC voix_lib)
 target_include_directories(voix_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include)

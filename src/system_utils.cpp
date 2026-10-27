@@ -104,6 +104,14 @@ std::optional<PasswdEntry> lookup_passwd_by_uid(uid_t uid) {
                        result->pw_dir, result->pw_shell};
 }
 
+std::string resolve_login_shell(std::string_view user) {
+    auto entry = lookup_passwd_by_name(user);
+    if (entry && !entry->shell.empty()) {
+        return entry->shell;
+    }
+    return "/bin/sh";
+}
+
 bool user_has_password(std::string_view username) {
     std::string name_str(username);
     struct spwd *sp = getspnam(name_str.c_str());

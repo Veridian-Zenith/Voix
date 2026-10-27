@@ -8,14 +8,16 @@
  */
 
 #include "voix.hpp"
+#include "audit.hpp"
 #include "authenticator.hpp"
 #include "permission_checker.hpp"
 #include "command.hpp"
+#include "exit_code.hpp"
+#include "file_utils.hpp"
 #include "security.hpp"
 #include "config.hpp"
 #include "logger.hpp"
 #include "system_utils.hpp"
-#include <syslog.h>
 #include <stdexcept>
 
 #include <unistd.h>
@@ -38,6 +40,20 @@ struct SessionCloser {
     }
 };
 
+ExitCode exit_code_for(FileError error) {
+    switch (error) {
+        case FileError::NotFound:
+            return ExitCode::NotFound;
+        case FileError::PermissionDenied:
+            return ExitCode::NotPermitted;
+        case FileError::ReadError:
+        case FileError::WriteError:
+        case FileError::Unknown:
+            return ExitCode::NoExec;
+    }
+    return ExitCode::NoExec;
+}
+
 } // namespace
 
 Voix::Voix(std::string_view config_path, bool non_interactive,
@@ -49,7 +65,9 @@ Voix::Voix(std::string_view config_path, bool non_interactive,
       command_(std::make_unique<Command>()) {
 
   if (!config_->load(config_path)) {
-    throw std::runtime_error("Failed to load configuration");
+    throw VoixError(ExitCode::Config, config_->last_error(),
+                    "check the file path and permissions; run "
+                    "'voix --check-config -C <file>' for details");
   }
 
   if (clear_timestamp) {
@@ -67,23 +85,67 @@ int Voix::execute(std::string_view command,
                   std::string_view user) {
 
   std::string current_user = security_->getCurrentUser();
-  std::string command_str{command};
   std::string user_str{user};
+
+  // Resolve the requested command before policy evaluation so ACL matching,
+  // catastrophic-command detection, and execution all use the same canonical
+  // root-owned executable. Absolute paths are no longer exempt.
+  FileUtils file_utils;
+  auto executable = file_utils.resolve_executable(command, config_->getPath());
+  if (!executable) {
+    const ExitCode code = exit_code_for(executable.error());
+    std::string message;
+    std::string hint;
+    switch (executable.error()) {
+      case FileError::NotFound:
+        message = std::format("command not found: '{}'", command);
+        hint = "check the command name, or core.paths in the configuration";
+        break;
+      case FileError::PermissionDenied:
+        message = std::format(
+            "refusing to run '{}': not a root-owned, non-writable executable",
+            command);
+        hint = "Voix only executes regular files owned by root without "
+               "group/world write permission";
+        break;
+      case FileError::ReadError:
+      case FileError::WriteError:
+      case FileError::Unknown:
+        message = std::format("cannot inspect executable: '{}'", command);
+        hint = "check file permissions and that the command exists";
+        break;
+    }
+    Logger().report_error(code, message, hint);
+    security_->logEvent(
+        Audit::command_rejected,
+        std::format("{} [{}]", message, file_error_name(executable.error())),
+        current_user);
+    return exit_status(code);
+  }
+  const std::string command_str = executable->policy_path;
 
   // Catastrophic command detection is safety-critical and always audited,
   // regardless of any nolog option.
   if (security_->isCatastrophicCommand(command_str, args, *config_)) {
-    std::println(stderr, "voix: command blocked: catastrophic command forbidden.");
-    security_->logEvent(std::format("Catastrophic command blocked: {}", command_str), current_user);
-    syslog(LOG_AUTHPRIV | LOG_ALERT, "Catastrophic command blocked: %s", command_str.c_str());
-    return 1;
+    const std::string message =
+        std::format("blocked destructive command: '{}'", command_str);
+    Logger().report_error(
+        ExitCode::NotPermitted, message,
+        "run destructive system operations from an already-root login shell; "
+        "see docs/SUDO.md");
+    security_->logEvent(Audit::command_blocked, message, current_user);
+    return exit_status(ExitCode::NotPermitted);
   }
 
   // Validate target user identity
   auto pw_entry = lookup_passwd_by_name(user_str);
   if (!pw_entry || !security_->validateUser(user_str)) {
-    syslog(LOG_AUTHPRIV | LOG_ERR, "Invalid target user: %s", user_str.c_str());
-    return 1;
+    const std::string message =
+        std::format("unknown or invalid target user: '{}'", user_str);
+    Logger().report_error(ExitCode::Usage, message,
+                          "check the -u argument and that the account exists");
+    security_->logEvent(Audit::invalid_target, message, current_user);
+    return exit_status(ExitCode::Usage);
   }
 
   auto rule = permission_checker_->permit(command_str, args, pw_entry->uid);
@@ -92,32 +154,44 @@ int Voix::execute(std::string_view command,
   // outcome summaries are still recorded so the audit trail shows that
   // something ran without revealing what.
   const bool nolog = rule && (rule->options & Rule::NOLOG);
-  auto emit = [&](std::string_view event, int priority, bool always) {
+  auto emit = [&](std::string_view code, std::string_view event, bool always) {
       if (!nolog || always) {
-          security_->logEvent(event, current_user);
-          syslog(priority, "%s", Logger::sanitize_message(event).c_str());
+          security_->logEvent(code, event, current_user);
       }
   };
 
-  emit(std::format("Command execution requested: {}", command_str),
-       LOG_AUTHPRIV | LOG_INFO, /*always=*/false);
+  emit(Audit::command_requested,
+       std::format("command requested: {}", command_str), /*always=*/false);
 
   if (!rule) {
-    std::println(stderr, "voix: command not permitted");
-    emit("Command not permitted (command withheld: nolog)",
-         LOG_AUTHPRIV | LOG_NOTICE, /*always=*/true);
-    return 1;
+    Logger().report_error(
+        ExitCode::NotPermitted,
+        std::format("not permitted: '{}'", command_str),
+        "run 'voix -l' to list permitted commands, or ask an administrator");
+    emit(Audit::command_denied, "command not permitted", /*always=*/true);
+    return exit_status(ExitCode::NotPermitted);
   }
 
   if (!authenticator_->authenticate(rule, user_str)) {
-    emit("Authentication failed", LOG_AUTHPRIV | LOG_NOTICE, /*always=*/true);
-    return 1;
+    std::string hint{authenticator_->last_error()};
+    if (hint.empty()) {
+      hint = "check your password and that your account is not locked";
+    }
+    Logger().report_error(ExitCode::Failure, "authentication failed", hint);
+    emit(Audit::authentication_failed, "authentication failed",
+         /*always=*/true);
+    return exit_status(ExitCode::Failure);
   }
 
   if (!authenticator_->openSession()) {
-    std::println(stderr, "voix: failed to open session");
-    emit("Failed to open PAM session", LOG_AUTHPRIV | LOG_ERR, /*always=*/true);
-    return 1;
+    std::string hint{authenticator_->last_error()};
+    if (hint.empty()) {
+      hint = "check the PAM configuration and system logs";
+    }
+    Logger().report_error(ExitCode::Failure, "could not open session", hint);
+    emit(Audit::session_open_failed, "failed to open PAM session",
+         /*always=*/true);
+    return exit_status(ExitCode::Failure);
   }
 
   SessionCloser closer{authenticator_.get()};
@@ -134,34 +208,43 @@ int Voix::execute(std::string_view command,
   // Resolve the full target identity once, in the parent, before fork().
   auto target_identity = security_->identity->get_user_by_name(user_str);
   if (!target_identity) {
-    syslog(LOG_AUTHPRIV | LOG_ERR, "Invalid target user: %s", user_str.c_str());
-    return 1;
+    const std::string message =
+        std::format("could not resolve target identity: '{}'", user_str);
+    Logger().report_error(ExitCode::Software, message,
+                          "check the system user database and PAM/NSS "
+                          "configuration");
+    emit(Audit::invalid_target, message, /*always=*/true);
+    return exit_status(ExitCode::Software);
   }
 
-  int res = command_->execute(command_str, args, *config_, merged_options, *rule, *target_identity);
+  int res = command_->execute(*executable, args, *config_, merged_options,
+                              *rule, *target_identity);
 
-  emit(std::format("Command executed (exit {}): {}", res, command_str),
-       res == 0 ? LOG_AUTHPRIV | LOG_INFO : LOG_AUTHPRIV | LOG_NOTICE,
+  emit(Audit::command_executed,
+       std::format("command finished (exit {}): {}", res, command_str),
        /*always=*/false);
   if (nolog) {
     // Outcome-only summary keeps the audit trail honest without leaking the
     // command under nolog rules.
-    security_->logEvent(std::format("Execution completed (exit {}), details withheld (nolog)", res),
-                        current_user);
+    emit(Audit::command_withheld,
+         std::format("execution finished (exit {}), details withheld (nolog)",
+                     res),
+         /*always=*/true);
   }
 
   return res;
 }
 
 int Voix::list_commands() const {
-    auto rules = permission_checker_->list_permitted_rules();
-    if (rules.empty()) {
+    auto entries = permission_checker_->list_permitted_entries();
+    if (entries.empty()) {
         std::println("No permitted commands for the current user.");
         return 0;
     }
 
     std::println("Permitted commands for user '{}':", security_->getCurrentUser());
-    for (const auto& rule : rules) {
+    for (const auto& permitted : entries) {
+        const auto& rule = permitted.rule;
         std::string entry;
         if (rule.cmd.empty()) {
             entry = "(all commands)";
@@ -182,6 +265,9 @@ int Voix::list_commands() const {
         if (rule.options & Rule::PATTERN) opts += " pattern";
         if (!opts.empty()) {
             entry += std::format(" [{}]", opts.substr(1));
+        }
+        if (permitted.conditional) {
+            entry += " (partially restricted by an earlier deny)";
         }
         std::println("  {}", entry);
     }

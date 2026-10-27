@@ -32,6 +32,29 @@
 #include <chrono>
 #include <regex>
 
+/// Detect a preload-based instrumentation library (for example CodeQL's
+/// tracer). Such libraries interpose syscalls, so a default-deny seccomp
+/// allowlist would kill the instrumentation rather than the program under
+/// test. End-to-end allowlist tests are skipped in that case; the dedicated
+/// Test Suite job runs them without instrumentation.
+inline bool detect_syscall_instrumentation() {
+    for (const char* name : {"LD_PRELOAD", "LD_AUDIT"}) {
+        const char* value = std::getenv(name);
+        if (value != nullptr && *value != '\0') {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// Cached so tests that unset LD_PRELOAD in the parent process cannot hide
+/// instrumentation that was present when the suite started. run_tests()
+/// primes the cache before any test runs.
+inline bool syscall_instrumentation_active() {
+    static const bool active = detect_syscall_instrumentation();
+    return active;
+}
+
 /// Reusable in-memory identity provider for permission/security tests.
 class MockIdentity : public Voix::IIdentity {
 public:
@@ -93,3 +116,4 @@ void register_file_utils_tests(TestRunner& runner);
 void register_logger_tests(TestRunner& runner);
 void register_system_utils_tests(TestRunner& runner);
 void register_negative_security_tests(TestRunner& runner);
+void register_integration_tests(TestRunner& runner);

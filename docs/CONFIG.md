@@ -42,21 +42,20 @@ The configuration file (default: `/etc/voix.conf`) is composed of three main sec
   the path is a directory, but not that it or its parents are root-owned and
   non-writable.
 - `paths`: Trusted directories for executable resolution. These are used for
-  bare command names and relative paths; an absolute path supplied by the
-  caller is executed as supplied and is not checked against this list.
+  bare command names. Absolute and relative paths supplied by the caller are
+  canonicalized and validated (regular file, root-owned, not group/world
+  writable) but are not required to live under one of these directories.
 - `login_shell`: Whether to default to login shell mode.
 - `suppress_stderr`: Whether to suppress stderr log output.
 - `unconfined_targets`: List of target usernames that receive the full
   "system" treatment — retained capabilities, no seccomp, no file-descriptor
   scrubbing, and a fully preserved environment (including loader/interpreter
-  variables such as `LD_*` and `PYTHON*`). This is required for package
-  managers: `root` runs `pacman` and must `chown` its download directories
-  (needs `CAP_CHOWN`), while `alpm` is its internal unprivileged drop-user
-  that also needs the full environment for AUR helpers. Defaults to
-  `["root", "alpm"]`. Remove `root` to confine generic root commands (then
-  grant the package manager explicitly via a rule with `profile: privileged`).
-  For other distributions, set the equivalent package-manager target here
-  (for example `root` for `apt`/`dnf`, or `_apt` on Debian).
+  variables such as `LD_*` and `PYTHON*`). The default is **empty**: no target
+  is unconfined unless the configuration says so. Enable one only for a
+  specific package-manager workflow. For example, on Arch add `root` and
+  `alpm` if you want `voix pacman -Syu` to keep working; on Debian, `root` or
+  `_apt`. Prefer an explicit `profile: privileged` rule over making every
+  command for that target unconfined.
 
 Example:
 
@@ -83,11 +82,12 @@ A mapping of users or groups to rules that govern execution authorization.
       enables environment preservation; the CLI `-E` flag is accepted for
       compatibility but ignored.
     - `persist`: Maintain an authentication timestamp (default TTL: 15
-      minutes, stored under `<sanctuary>/timestamp/<uid>`) so subsequent runs
-      can skip the password prompt. Tickets are per invoking UID and are
-      recorded after account validation for any `persist` rule, including
-      trust/nopass paths. `-n` does not consult persisted tickets. Invalidate
-      with `voix -k`.
+      minutes, stored under `<sanctuary>/timestamp/<caller-uid>-<target-uid>`)
+      so subsequent runs can skip the password prompt. Tickets are scoped to
+      the caller/target UID pair and are recorded **only** after a successful
+      `pam_authenticate()`; trust/nopass/root skips and reused tickets never
+      mint or refresh one. `-n` reuses a valid ticket but never prompts.
+      Invalidate all of the invoking user's tickets with `voix -k`.
     - `nolog`: Suppress audit-log records containing the command text. An
       outcome-only summary ("execution completed, details withheld") is still
       recorded, and catastrophic-command blocks are always logged in full.
@@ -107,21 +107,43 @@ Defines named execution profiles that control confinement behavior:
 - `retain_full_capabilities`: Preserve all Linux capabilities (`true`) or drop all (`false`). Retaining full capabilities selects the privileged tier, which also skips `PR_SET_NO_NEW_PRIVS` and seccomp.
 - `enable_seccomp`: Apply the seccomp syscall blacklist (`true`) or bypass it (`false`). This gates only `blacklist` mode; selecting `allowlist` applies that filter regardless of this setting.
 - `enable_resource_limits`: Enforce RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_CORE (`true`) or disable (`false`).
-- `scrub_environment`: Accepted for compatibility but currently **unused** by the execution path. Environment behavior is controlled by `preserve_full_environment` and the rule's `keepenv` option.
+- `scrub_environment`: Reduce the caller's environment to a safe whitelist
+  (`true`, default). Set to `false` to keep the caller's environment after the
+  dangerous loader/interpreter variables are stripped — the same effect as
+  the rule's `keepenv`, granted at profile level. Full verbatim preservation
+  is a separate grant (`preserve_full_environment`).
 - `preserve_full_environment`: Preserve the entire inherited environment
   verbatim, without stripping loader/interpreter variables (`true`), or apply
   the normal sanitization (`false`). Intended only for unconfined system
   targets.
-- `seccomp_mode`: `blacklist` (default, allow-all then kill 19 dangerous
-  syscalls) or `allowlist` (default-deny `SCMP_ACT_KILL`, only the same 19
-  permitted via `SCMP_ACT_ALLOW`). See [`THREATS.md`](../THREATS.md#5-technical-defenses).
+- `seccomp_mode`: `blacklist` (default: allow everything, kill a fixed set of
+  dangerous syscalls) or `allowlist` (default-deny: kill everything except the
+  built-in baseline plus `seccomp_allow`). An unrecognized value is a
+  configuration error rather than an unfiltered execution.
+- `seccomp_allow`: Additional syscall names permitted in `allowlist` mode, on
+  top of the baseline (which already covers process startup — including
+  `execve`/`execveat` — memory, basic file I/O, signals, timers, polling,
+  pipes, and sockets). Unknown names are rejected when the configuration is
+  loaded, so `voix --check-config` reports them before any command runs.
+  Rejected when `seccomp_mode` is not `allowlist`.
 
-> [!WARNING]
-> `seccomp_mode: allowlist` is experimental and currently unusable as a
-> confinement boundary: it permits the 19 syscalls that the blacklist kills
-> and does not permit `execve`, so the target is killed before it can exec.
-> Do not enable it in production until the permitted set is rebuilt around
-> the syscalls a command actually needs.
+```yaml
+security:
+  profiles:
+    tightly-scoped:
+      seccomp_mode: allowlist
+      seccomp_allow:
+        - mkdir
+        - unlink
+```
+
+> [!NOTE]
+> The allowlist baseline is a starting point, not a complete sandbox for every
+> program: a command that mutates the filesystem namespace (`mkdir`,
+> `unlink`, `rename`, `chmod`, ...) or creates processes needs those syscalls
+> added to `seccomp_allow`. Test a rule with `voix --check-config` and then a
+> real invocation before relying on it. See
+> [`THREATS.md`](../THREATS.md#5-technical-defenses).
 
 #### `blocklist` (optional)
 
@@ -155,10 +177,12 @@ so alternate path prefixes are covered too.
 > [`docs/SUDO.md`](SUDO.md#3-destructive-operations-require-a-direct-root-login).
 
 > [!NOTE]
-> Exact-path blocklist entries are compared as literal strings, not
-> canonicalized paths. An entry of `/bin/sh` matches `/bin/sh` but not
-> `sh`, `/usr/bin/./bash`, or `/bin/../bin/sh`. Use a `regex:` entry when
-> the intent is to match a tool regardless of how its path is spelled.
+> Exact-path blocklist entries are canonicalized before comparison. An entry
+> of `/bin/sh` also blocks `/usr/bin/sh` on merged-`/usr` systems and rejects
+> alternate spellings such as `/bin/../bin/sh`. The final path component is
+> preserved so multicall applets remain distinct: `/usr/bin/ls` does not
+> block `/usr/bin/cat`. Use a `regex:` entry when the intent is to match a
+> tool by arguments or a broader path pattern.
 
 Example:
 
@@ -191,20 +215,21 @@ core:
   paths:
     - /bin
     - /usr/bin
-  unconfined_targets:
-    - alpm
+  unconfined_targets: []
 
 acl:
   group:
     wheel:
       - action: permit
-        options: [trust, keepenv]
-        profile: restricted
+        command: /usr/bin/systemctl
+        args: [restart, nginx]
   user:
     admin:
       - action: permit
-        options: [trust]
-        profile: privileged
+        options: [persist]
+        target: deploy
+        command: /usr/bin/systemctl
+        args: [restart, myapp]
 
 security:
   profiles:
@@ -221,6 +246,8 @@ security:
       preserve_full_environment: false
   blocklist:
     - /bin/sh
+    - /bin/bash
+    - /usr/bin/env
 ```
 
 </details>

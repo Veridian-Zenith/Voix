@@ -1,4 +1,4 @@
-.TH VOIX 1 "October 2026" "Voix 4.13.3" "User Commands"
+.TH VOIX 1 "October 2026" "Voix 4.14.0-beta.1" "User Commands"
 .SH NAME
 voix \- a Privilege Policy Enforcement Runtime
 .SH SYNOPSIS
@@ -10,34 +10,34 @@ Voix is a Privilege Policy Enforcement Runtime for Unix-like operating systems. 
 .SH OPTIONS
 .TP
 .B \-C, \-\-config \fIFILE\fR
-Use the specified file as the configuration source (default: /etc/voix.conf). The file must be a regular root-owned file with no group/world write bits. Parent-directory ownership is not checked.
+Use the specified file as the configuration source (default: /etc/voix.conf). The path must be absolute and every component must be root-owned, free of symlinks, and not group/world writable. The final file is re-checked on the opened descriptor.
 .TP
 .B \-c, \-\-check-config
 Validate the configuration file and exit. Also runs semantic policy linting (empty ACL, unconfined root target, redundant rules, open permits, missing blocklist).
 .TP
 .B \-E, \-\-preserve-env
-Accepted for compatibility but has no effect. Environment preservation is enabled by a \fIkeepenv\fR rule option; the flag does not add to it.
+Accepted for compatibility but has no effect. Environment preservation is enabled by a \fIkeepenv\fR rule option or a profile with \fIscrub_environment: false\fR; the flag does not add to it.
 .TP
 .B \-H, \-\-home
 Set HOME to the target user's home directory. Without this flag, HOME is not set to the target's home; it is present only if it survived sanitization.
 .TP
 .B \-i, \-\-login
-Execute the command via the target's login shell. With a named command the request stays brokered and the catastrophic-command gate applies to that command; a permitted shell named as the command is not inspected further. Used bare, it opens an interactive shell as the target if that shell is absent from \fIsecurity.blocklist\fR. This option does not set HOME to the target's home; use \fB\-H\fR. With \fIkeepenv\fR, the caller's HOME can survive and the login shell may read caller-owned startup files as the target.
+Execute the command via the target's login shell. With a named command the request stays brokered and the catastrophic-command gate applies to that command; Voix does not inspect what the command does after the shell starts. Used bare, it opens an interactive shell as the target using the target's passwd shell (fallback /bin/sh) if that shell is absent from \fIsecurity.blocklist\fR. This option forces HOME and SHELL to the target's values, even when the rule grants \fIkeepenv\fR or the target is unconfined.
 .TP
 .B \-l, \-\-list
-List the permit rules that apply to the current user. Deny-awareness is limited to an earlier deny with an identical command/args/target scope; a rule without a command is shown as "(all commands)". This is not a command-by-command prediction.
+List the permit rules that apply to the current user. Evaluation follows runtime first-match semantics: a permit fully covered by an earlier deny is omitted, and a partially covered permit is marked "(partially restricted by an earlier deny)". A rule without a command is shown as "(all commands)". This is not a command-by-command prediction.
 .TP
 .B \-n
-Non-interactive mode; fail if a credential check would be required. Persisted tickets are not consulted under \-n.
+Non-interactive mode. A valid persisted ticket is reused if the matched rule grants \fIpersist\fR; otherwise Voix fails rather than prompting. \-n can never trigger a password prompt.
 .TP
 .B \-s
-Execute the invoking user's shell ($SHELL, falling back to the invoking user's passwd shell) as the target. This is not the target's login shell; use \-i for that.
+Execute the target account's passwd shell as the target, falling back to /bin/sh when the account has no shell. The invoking user's $SHELL is never consulted, because it is caller-controlled and must not influence a privilege transition. Use \-i for login-shell semantics.
 .TP
 .B \-u \fIUSER\fR
-Execute command as the specified target user (default: root). Requires an explicit target rule in the ACL for non-root users.
+Execute command as the specified target user (default: root). Requires an explicit target rule in the ACL for non-root users. There is no passwordless-target bypass: the caller must authenticate unless the rule grants trust/nopass, the caller is root, or a valid persisted ticket exists.
 .TP
 .B \-k
-Invalidate the persisted authentication timestamp for the invoking user (see the \fIpersist\fR rule option). Works standalone without a command.
+Invalidate all persisted authentication tickets for the invoking user (see the \fIpersist\fR rule option). Works standalone without a command.
 .TP
 .B \-v, \-\-version
 Show the version of this artifact.
@@ -48,15 +48,33 @@ Show the help message.
 .B \-\-run-tests
 Run the built-in test suite and exit. Available only in builds configured with testing enabled (\fBBUILD_TESTING=ON\fR); in Release builds the harness is compiled out and the flag reports that tests are disabled.
 .SH EXIT CODES
+Voix uses stable values based on \fBsysexits(3)\fR where an appropriate code
+exists. A command's own exit status is propagated verbatim, so the executed
+program can also produce any of these values.
 .TP
 .B 0
 The command ran successfully (or listing/validation succeeded).
 .TP
 .B 1
-Authorization denied, authentication failed, configuration invalid, or a catastrophic command was blocked.
+Authentication failed or a generic runtime check failed.
+.TP
+.B 64
+Invalid command line: unknown flag, missing command, or bad \fB\-u\fR target.
+.TP
+.B 70
+Internal invariant failure (fork, waitpid, signal setup).
+.TP
+.B 77
+Policy denied the request, an unsafe executable was refused, or a destructive-command gate blocked it.
+.TP
+.B 78
+Configuration could not be loaded, parsed, or validated.
+.TP
+.B 126
+The command was found but could not be executed.
 .TP
 .B 127
-The command could not be resolved or executed.
+The command could not be found.
 .PP
 Otherwise, the exit status of the executed command is propagated verbatim.
 .SH CONFIGURATION
@@ -83,19 +101,26 @@ all capabilities are dropped, resource limits are enforced fail-closed
 is always set (independently of seccomp), a seccomp syscall
 blacklist is applied when enabled in configuration, the environment is
 scrubbed (clearenv) and rebuilt from a safe whitelist with PATH overridden to
-trusted directories unless the matched rule grants \fIkeepenv\fR, a umask of
-022 is forced, and inherited file descriptors (3+) are closed.
+trusted directories unless the matched rule grants \fIkeepenv\fR or the
+profile sets \fIscrub_environment: false\fR, a umask of
+022 is forced, and inherited file descriptors other than the pinned
+executable are closed. On the restricted tier the executable is moved to
+fd 3 and descriptors 4+ are closed.
 .PP
 .B All targets:
 signal handlers are reset to SIG_DFL, the umask is forced to 022,
 and all identity resolution (UID/GID/supplementary groups/home/shell) happens
 in the parent before fork(); the child performs no name-service lookups prior
-to execve.
+to execution.
 .PP
-Command names and relative paths resolved through \fIcore.paths\fR are
-verified as regular files owned by root with no group/world write bits. An
-absolute path supplied by the caller is executed as supplied and does not
-receive this check.
+Every requested command \-\- bare name, relative path, or absolute path \-\-
+is canonicalized and must resolve to a regular file owned by root with no
+group/world write bits. The validated device/inode pair is re-checked on the
+opened descriptor, which is preserved across descriptor scrubbing (moved to
+fd 3 on the restricted tier) and executed with \fBfexecve(2)\fR. Replacing the
+path after validation cannot change which file runs. ACL rules and exact
+blocklist entries use the same canonical policy path, so merged-/usr aliases
+match without collapsing multicall applets.
 .SH CATASTROPHIC COMMAND DETECTION
 Independent of any configuration, Voix blocks unequivocally destructive
 operations in the command it is asked to execute: \fBrm -rf\fR variants
@@ -112,22 +137,33 @@ Voix uses the Pluggable Authentication Modules (PAM) framework for authenticatio
 The service name is \fBvoix\fR, and its configuration can be found in \fI/etc/pam.d/voix\fR.
 Account validation (\fBpam_acct_mgmt\fR) runs for the invoking user on every
 invocation \-\- an expired or disabled caller is denied even under
-trust/nopass rules. It does not validate the target account. The credential
-check is skipped when the invoking user is root, the rule carries
-trust/nopass, the target account has no usable password, or a valid
-\fIpersist\fR ticket exists (not under \fB\-n\fR).
+trust/nopass rules. The target account is validated separately with its own
+PAM handle; that check is not credential verification and is never treated as
+proof that the target's password was checked. The credential check is skipped
+only when the invoking user is root, the rule carries trust/nopass, or a valid
+\fIpersist\fR ticket exists for the same caller/target UID pair and the rule
+carries \fIpersist\fR.
 .PP
 Rules carrying the \fIpersist\fR option store an authentication timestamp for
-15 minutes under \fI<sanctuary>/timestamp/<uid>\fR (strictly
-permission-checked). Tickets are per invoking UID and are recorded for any
-persist rule, including trust/nopass paths. Subsequent invocations can skip
-the password prompt while caller account validation still runs; \fB\-n\fR does
-not consult tickets. Use
+15 minutes under \fI<sanctuary>/timestamp/<caller-uid>-<target-uid>\fR
+(strictly permission-checked). Only a successful \fBpam_authenticate()\fR mints
+or refreshes a ticket; trust/nopass/root skips and reused tickets never do.
+\fB\-n\fR reuses a valid ticket but never prompts. Use
 .B voix -k
-to invalidate immediately.
+to invalidate all of the invoking user's tickets immediately.
 .PP
 Rules carrying the \fInolog\fR option suppress audit records containing the
 command text; an outcome-only summary remains in the audit trail.
+.SH DIAGNOSTICS
+User-facing failures are printed as \fBvoix: error:\fR followed by an optional
+\fBvoix: hint:\fR remediation line. Fatal errors are printed even when
+\fIcore.suppress_stderr\fR is enabled.
+.PP
+Audit records are written to \fI/var/log/voix.log\fR and to \fBsyslog\fR
+(facility \fBauthpriv\fR). Each line includes a timestamp, level, PID, and
+escaped control characters. Security events carry a stable code after the
+user, for example \fB[alice] [command.denied]\fR or
+\fB[alice] [auth.failed]\fR.
 .SH EXAMPLES
 Execute \fBwhoami\fR as root:
 .IP
