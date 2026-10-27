@@ -25,8 +25,10 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 - [ ] Re-run the local gate from a clean build directory (see
   [§6](#6-verification-gate)).
 - [ ] Run `clang-tidy` over `src/*.cpp include/*.hpp`; keep it warning-free.
-- [ ] Close dependabot PR #32 (`github/codeql-action` 4.38.3 → 4.39.0) as
-  superseded. The bump is already on this branch as `e8d93c7`.
+- [x] Dependabot PR #32 (`github/codeql-action` 4.38.3 → 4.39.1) is merged
+  into `master`. `origin/master` is merged into this branch as `5d02461`, and
+  the conflict in `.github/workflows/codeql.yml` was resolved in favour of
+  `4.39.1`.
 - [ ] Re-check the CodeQL "Uncontrolled process operation" alert after the
   branch lands. Both `execv` call sites from `master` are now `fexecve` on a
   pinned, inode-verified descriptor, so no suppression is expected unless a
@@ -130,10 +132,12 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 - Replaced stateful libc `syslog(3)` with a stateless `/dev/log` datagram so a
   cached descriptor cannot close the pinned executable after `fork()`.
 
-### `e8d93c7` — dependabot cherry-pick
+### `e8d93c7` / `5d02461` — dependabot sync
 
-- `github/codeql-action` 4.38.3 → 4.39.0 (`-x` attribution preserved);
-  supersedes PR #32.
+- `github/codeql-action` 4.38.3 → 4.39.1. The earlier cherry-pick (`e8d93c7`)
+  carried 4.39.0; `origin/master` now includes PR #32 with 4.39.1, merged
+  into this branch as `5d02461` with the workflow conflict resolved to
+  `4.39.1`.
 
 ### `be38a80` — seccomp and environment profile settings
 
