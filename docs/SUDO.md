@@ -185,7 +185,7 @@ Important flags include:
 
 * `-i, --login`: Runs the command via the target's login shell. Named commands stay brokered by Voix (`sudo -u root -i cfdisk /dev/sda` is still refused); used bare it opens an interactive shell as the target — see section 3. Forces `HOME` and `SHELL` to the target's values.
 * `-E, --preserve-env`: Accepted for compatibility but has no effect. Environment preservation is enabled by a `keepenv` rule or a profile with `scrub_environment: false`.
-* `-l, --list`: Lists permit rules for the current user. Deny-awareness is limited to an earlier deny with an identical command/args/target scope.
+* `-l, --list`: Lists permit rules for the current user with runtime first-match deny-awareness. A permit fully covered by an earlier deny is omitted; partial coverage is marked as conditional.
 * `-k`: Invalidates all persisted authentication tickets for the invoking user.
 * `-n`: Non-interactive mode; reuses a valid persisted ticket if the rule grants `persist`, otherwise fails instead of prompting.
 
@@ -197,5 +197,5 @@ Important flags include:
 * Every requested command — bare name, relative path, or absolute path — is canonicalized and must resolve to a regular root-owned executable without group/world write permission. The validated inode is pinned and executed with `fexecve(2)`.
 * `-i` forces `HOME`/`SHELL` to the target; `-H` does the same for `HOME` on non-login commands.
 * `-E` is accepted but ignored; `keepenv` or `scrub_environment: false` controls environment preservation.
-* `-s` runs the invoking user's shell, not the target's login shell.
+* `-s` runs the target account's passwd shell (fallback `/bin/sh`), not the invoking user's `$SHELL`; use `-i` for login-shell semantics.
 * There is no passwordless-target bypass: the caller must authenticate unless the rule grants `trust`/`nopass`, the caller is root, or a valid persisted ticket exists.

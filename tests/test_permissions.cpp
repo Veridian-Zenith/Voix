@@ -421,7 +421,7 @@ bool test_permission_checker_list_pattern_deny_suppresses_exact_permit() {
     return true;
 }
 
-bool test_permission_checker_canonicalizes_command_paths() {
+bool test_permission_checker_list_disjoint_pattern_deny_not_conditional() {
     auto mock_id = std::make_shared<MockIdentity>();
     mock_id->users = {{"alice", 1000, 1000, {1000}}};
     mock_id->current_user = "alice";
@@ -432,23 +432,68 @@ bool test_permission_checker_canonicalizes_command_paths() {
     auto config = std::make_shared<Voix::Config>();
 
     std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_list_disjoint.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        // The literal first arguments differ, so the scopes never overlap;
+        // the permit must not be labelled conditional.
+        out << "acl:\n  user:\n    1000:\n"
+            << "      - action: deny\n        command: systemctl\n"
+            << "        args: [stop, \"nginx*\"]\n"
+            << "      - action: permit\n        command: systemctl\n"
+            << "        args: [restart, \"nginx*\"]\n";
+    }
+    ASSERT_TRUE(config->load(config_path.string(), false));
+
+    Voix::PermissionChecker checker(security, config);
+    auto entries = checker.list_permitted_entries();
+    ASSERT_EQUAL(static_cast<int>(entries.size()), 1);
+    ASSERT_EQUAL(entries[0].rule.cmd, std::string("systemctl"));
+    ASSERT_TRUE(!entries[0].conditional);
+    return true;
+}
+
+bool test_permission_checker_canonicalizes_command_paths() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    // Resolve a real executable through the same search path the checker
+    // uses, so the test does not assume a particular host layout.
+    Voix::FileUtils file_utils;
+    auto resolved = file_utils.resolve_executable("true", config->getPath());
+    if (!resolved) {
+        return true; // Host has no usable `true`; nothing to canonicalize.
+    }
+
+    std::filesystem::path config_path =
         std::filesystem::temp_directory_path() / "test_perm_canon.conf";
     ScopedTempFile cleanup_guard(config_path);
     {
         std::ofstream outfile(config_path);
         outfile << "acl:\n  user:\n    1000:\n"
                 << "      - action: permit\n"
-                << "        command: /usr/bin/true\n";
+                << "        command: " << resolved->policy_path << "\n";
     }
-    config->load(config_path.string(), false);
+    ASSERT_TRUE(config->load(config_path.string(), false));
 
     Voix::PermissionChecker checker(security, config);
-    // Bare name, merged-/usr alias, and the canonical path all match the
-    // same rule because both sides are canonicalized.
+    // Bare name and the canonical policy path match the same rule because
+    // both sides are canonicalized.
     ASSERT_TRUE(checker.permit("true", {}, 0).has_value());
-    ASSERT_TRUE(checker.permit("/bin/true", {}, 0).has_value());
-    ASSERT_TRUE(checker.permit("/usr/bin/true", {}, 0).has_value());
-    ASSERT_TRUE(!checker.permit("/bin/false", {}, 0).has_value());
+    ASSERT_TRUE(checker.permit(resolved->policy_path, {}, 0).has_value());
+    if (resolved->path != resolved->policy_path) {
+        // Multicall binaries keep the applet name as their policy identity,
+        // so the shared real target path is deliberately distinct.
+        ASSERT_TRUE(!checker.permit(resolved->path, {}, 0).has_value());
+    }
+    ASSERT_TRUE(!checker.permit("false", {}, 0).has_value());
     return true;
 }
 
@@ -473,6 +518,8 @@ void register_permission_tests(TestRunner& runner) {
                     test_permission_checker_list_partial_deny_marks_conditional);
     runner.add_test("test_permission_checker_list_pattern_deny_suppresses_exact_permit",
                     test_permission_checker_list_pattern_deny_suppresses_exact_permit);
+    runner.add_test("test_permission_checker_list_disjoint_pattern_deny_not_conditional",
+                    test_permission_checker_list_disjoint_pattern_deny_not_conditional);
     runner.add_test("test_permission_checker_canonicalizes_command_paths",
                     test_permission_checker_canonicalizes_command_paths);
 }

@@ -163,6 +163,9 @@ bool test_security_catastrophic_blocklist_exact() {
     // Exact scalar entry matches the command alone
     ASSERT_TRUE(security.isCatastrophicCommand("/bin/sh", {}, config));
     ASSERT_TRUE(!security.isCatastrophicCommand("/bin/ls", {}, config));
+    // The final component is preserved: blocking /bin/sh must not also block
+    // a different shell that merely shares the same resolved target.
+    ASSERT_TRUE(!security.isCatastrophicCommand("/bin/bash", {}, config));
 
     // regex: entries match the canonicalized full command line
     ASSERT_TRUE(security.isCatastrophicCommand("cat", {"/etc/shadow"}, config));
@@ -333,6 +336,7 @@ bool test_credential_mode_ordering() {
     return true;
 }
 
+#ifdef VOIX_WITH_SECCOMP
 bool test_seccomp_allowlist_baseline_can_exec() {
     // Regression guard: the previous allowlist permitted only the dangerous
     // syscalls from the blacklist and omitted execve, so the kernel killed
@@ -350,6 +354,7 @@ bool test_seccomp_allowlist_baseline_can_exec() {
     ASSERT_TRUE(contains("read"));
     ASSERT_TRUE(contains("write"));
     ASSERT_TRUE(contains("mmap"));
+    ASSERT_TRUE(contains("statfs"));
 
     // The baseline must not re-permit the syscalls the blacklist kills.
     ASSERT_TRUE(!contains("reboot"));
@@ -430,8 +435,10 @@ bool test_seccomp_blacklist_runs_a_real_program() {
     ASSERT_EQUAL(WEXITSTATUS(status), 0);
     return true;
 }
+#endif // VOIX_WITH_SECCOMP
 
 void register_security_tests(TestRunner& runner) {
+#ifdef VOIX_WITH_SECCOMP
     runner.add_test("test_seccomp_allowlist_baseline_can_exec",
                     test_seccomp_allowlist_baseline_can_exec);
     runner.add_test("test_seccomp_validate_syscall_names",
@@ -440,6 +447,7 @@ void register_security_tests(TestRunner& runner) {
                     test_seccomp_allowlist_runs_a_real_program);
     runner.add_test("test_seccomp_blacklist_runs_a_real_program",
                     test_seccomp_blacklist_runs_a_real_program);
+#endif
     runner.add_test("test_security_validate_user_valid", test_security_validate_user_valid);
     runner.add_test("test_security_validate_user_invalid", test_security_validate_user_invalid);
     runner.add_test("test_security_validate_user_too_long", test_security_validate_user_too_long);

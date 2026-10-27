@@ -67,7 +67,9 @@ bool test_config_parses_seccomp_allow() {
     ScopedTempFile cleanup(config_path);
     {
         std::ofstream out(config_path);
-        out << "core:\n  sanctuary: /var/lib/voix\n"
+        // validate() requires an existing directory; "/" is always present.
+        // This test is about seccomp parsing, not the installed sanctuary.
+        out << "core:\n  sanctuary: /\n"
             << "security:\n  profiles:\n    tight:\n"
             << "      seccomp_mode: allowlist\n"
             << "      seccomp_allow: [openat2, mkdir]\n";

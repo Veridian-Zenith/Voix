@@ -169,7 +169,10 @@ bool test_integration_toctou_replacement_is_refused() {
 
     // Replace the validated path with a different inode between validation and
     // execution. A path-based exec would run the replacement; the pinned
-    // descriptor must refuse it.
+    // descriptor must refuse it. Keep the original inode alive through a
+    // hardlink so the filesystem cannot recycle its (dev, ino) pair.
+    const fs::path original = dir / "original";
+    ASSERT_EQUAL(link(prog.c_str(), original.c_str()), 0);
     ASSERT_EQUAL(unlink(prog.c_str()), 0);
     ASSERT_TRUE(copy_executable("/bin/false", prog));
 
@@ -261,8 +264,9 @@ bool test_integration_sanitized_environment_reaches_child() {
             return command.execute(
                 *info,
                 {"-c",
-                 "printf '%s|%s' \"${VOIX_INTEGRATION_SECRET:-unset}\" "
-                 "\"${LD_PRELOAD:-unset}\""},
+                 "case \"${LD_PRELOAD:-}\" in *not-a-real-preload*) p=leaked;; "
+                 "*) p=unset;; esac; "
+                 "printf '%s|%s' \"${VOIX_INTEGRATION_SECRET:-unset}\" \"$p\""},
                 config, options, rule, self_identity());
         },
         &status);
@@ -301,8 +305,9 @@ bool test_integration_keepenv_reaches_child() {
             return command.execute(
                 *info,
                 {"-c",
-                 "printf '%s|%s' \"${VOIX_INTEGRATION_SECRET:-unset}\" "
-                 "\"${LD_PRELOAD:-unset}\""},
+                 "case \"${LD_PRELOAD:-}\" in *not-a-real-preload*) p=leaked;; "
+                 "*) p=unset;; esac; "
+                 "printf '%s|%s' \"${VOIX_INTEGRATION_SECRET:-unset}\" \"$p\""},
                 config, options, rule, self_identity());
         },
         &status);
@@ -331,7 +336,9 @@ bool test_integration_allowlist_mode_runs_real_command() {
     const fs::path config_path = dir / "allowlist.conf";
     {
         std::ofstream out(config_path);
-        out << "core:\n  sanctuary: /var/lib/voix\n"
+        // validate() only needs an existing directory; the test's own temp
+        // directory avoids depending on an installed /var/lib/voix.
+        out << "core:\n  sanctuary: " << dir.path().string() << "\n"
             << "security:\n  profiles:\n    it-allowlist:\n"
             << "      seccomp_mode: allowlist\n";
     }

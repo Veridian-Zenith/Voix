@@ -63,8 +63,6 @@ All notable changes to Voix are documented here. The format follows
 - Development builds identify themselves as `4.14.0-beta.1` (test/beta) so
   `voix --version`, the manpage, and bug reports are distinguishable from the
   `4.13.3` release.
-- The execution audit record is written before the privilege transition and
-  file descriptor scrub, so the root-owned log file remains writable.
 - `voix -l` now applies runtime first-match semantics across broader deny
   scopes. A permit fully covered by an earlier deny is omitted, and a permit
   only partially covered is marked `(partially restricted by an earlier

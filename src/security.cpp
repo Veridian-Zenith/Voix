@@ -306,8 +306,7 @@ bool Security::isCatastrophicCommand(std::string_view command,
   for (const auto &forbidden_cmd : config.get_blocklist()) {
     if (cmd == forbidden_cmd || policy_cmd == forbidden_cmd ||
         policy_cmd == canonicalize_policy_path(forbidden_cmd) ||
-        resolved_cmd == forbidden_cmd ||
-        resolved_cmd == canonicalize_blocklist_path(forbidden_cmd)) {
+        resolved_cmd == forbidden_cmd) {
       return true;
     }
   }
@@ -407,7 +406,7 @@ constexpr std::string_view k_allowlist_baseline[] = {
     // Opening and inspecting files and directories.
     "open", "openat", "stat", "fstat", "lstat", "newfstatat", "statx",
     "access", "faccessat", "faccessat2", "getcwd", "getdents64",
-    "readlink", "readlinkat", "fstatfs",
+    "readlink", "readlinkat", "fstatfs", "statfs",
     // Waiting and event notification.
     "poll", "ppoll", "select", "pselect6", "epoll_create1", "epoll_ctl",
     "epoll_wait", "epoll_pwait", "eventfd2", "pipe", "pipe2", "futex",

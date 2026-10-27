@@ -100,9 +100,9 @@ Voix defines two primary execution tiers, selected by the target identity and th
 
 > [!NOTE]
 > The non-privileged environment is rebuilt from a whitelist unless the
-> matched rule grants `keepenv`. `keepenv` preserves the caller's variables
-> minus known loader/interpreter names; it is the only grant that enables
-> preservation.
+> matched rule grants `keepenv` or the profile sets
+> `scrub_environment: false`. `keepenv` preserves the caller's variables
+> minus known loader/interpreter names.
 
 ---
 
@@ -172,8 +172,8 @@ security:
     - /bin/sh
 ```
 
-`scrub_environment` is accepted for compatibility but currently has no effect;
-environment behavior is controlled by `preserve_full_environment`, the profile's `scrub_environment`, and the rule's `keepenv`.
+Environment behavior is controlled by `preserve_full_environment`, the
+profile's `scrub_environment`, and the rule's `keepenv`.
 
 </details>
 
@@ -290,9 +290,9 @@ The most common flags are `-u`, `-n`, `-k`, `-C`, and `-l`; the full table is in
 | <kbd>-H</kbd> | `--home` | Set `HOME` to the target user's home directory. Without it, `HOME` is not set to the target's home |
 | <kbd>-i</kbd> | `--login` | Run via the target's login shell. Forces `HOME` and `SHELL` to the target's values, even with `keepenv` or an unconfined target |
 | <kbd>-k</kbd> | | Invalidate all persisted authentication tickets for the invoking user |
-| <kbd>-l</kbd> | `--list` | List permit rules for the current user (deny-aware for identical scope) |
+| <kbd>-l</kbd> | `--list` | List permit rules for the current user with runtime first-match deny-awareness (fully covered permits omitted, partial coverage marked) |
 | <kbd>-n</kbd> | | Non-interactive mode; reuse a valid persisted ticket if one exists, otherwise fail rather than prompt |
-| <kbd>-s</kbd> | | Execute the invoking user's `$SHELL` (not the target's login shell) |
+| <kbd>-s</kbd> | | Execute the target account's passwd shell (fallback `/bin/sh`); the invoking user's `$SHELL` is ignored |
 | <kbd>-u</kbd> `USER` | | Execute as a specific target user (default: `root`) |
 | | `--run-tests` | Run the built-in test suite (testing builds only) |
 

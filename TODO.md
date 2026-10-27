@@ -9,7 +9,7 @@ user-visible change in [`CHANGELOG.md`](CHANGELOG.md).
 | **Branch** | `security/p0-hardening` |
 | **Base** | `origin/master` at `8d03947` (the local `master` ref is one commit behind at `96668af`) |
 | **Development version** | `4.14.0-beta.1` (test/beta; `4.13.3` is the last release) |
-| **Status** | P0 hardening and P1 follow-ups complete, build green (`133/133` tests), ready for review |
+| **Status** | P0 hardening and P1 follow-ups complete, build green (`134/134` tests), ready for review |
 | **Last updated** | 2026-10-27 |
 
 Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by design
@@ -18,8 +18,8 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 
 ## 1. Merge checklist
 
-- [ ] Open a pull request for `security/p0-hardening` against `master`. No PR
-  exists yet; the branch is only pushed to `origin`.
+- [x] Open a pull request for `security/p0-hardening` against `master`.
+  PR [#33](https://github.com/Veridian-Zenith/Voix/pull/33) is open.
 - [ ] Confirm CI is green on the branch: `Test Suite`, `CodeQL Analysis`, and
   the repository's CodeQL default setup.
 - [ ] Re-run the local gate from a clean build directory (see
@@ -78,6 +78,13 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 
 ## 3. P2 — follow-up hardening
 
+- [ ] **Pin the executable at resolution time.** `resolve_executable()` records
+  a `(dev, ino)` pair and `Command::execute` opens the path after
+  authentication. A root-owned replacement could in principle recycle the
+  inode before that open. Carry the validated descriptor (or a stronger
+  identity such as `ctime`/`size`) from resolution through execution. Impact
+  is low because replacing a root-owned executable requires root or a
+  writable non-sticky root-owned directory.
 - [ ] **Seccomp allowlist presets.** Document and test a small set of
   `seccomp_allow` bundles (for example `shell`, `build`, `network-client`) so
   operators do not have to discover syscalls by trial and error. Keep the
@@ -208,7 +215,7 @@ ctest --test-dir build-dbg --output-on-failure
 clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26
 ```
 
-Expected: `133/133` tests pass, `ctest` green, and `clang-tidy` reports no
+Expected: `134/134` tests pass, `ctest` green, and `clang-tidy` reports no
 warnings. The integration tests run unprivileged by passing `geteuid()` as the
 trusted executable owner; they do not cover PAM or the real setuid transition
 (see §3).
