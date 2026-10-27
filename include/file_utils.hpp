@@ -164,17 +164,18 @@ public:
      */
     std::string resolve_command(const ResolveCommandParams& params) const;
     /**
-     * @brief Checks whether a configuration path is in a trusted location.
+     * @brief Checks whether a path is in a trusted, root-controlled location.
      *
      * The path must be absolute, and every component from '/' to the final
-     * file must be root-owned and not group/world writable. Symlinked
+     * component must be root-owned and not group/world writable. Symlinked
      * components are rejected. This prevents `-C` from loading a root-owned
-     * file through an attacker-controlled directory (e.g. /tmp).
+     * file through an attacker-controlled directory (e.g. /tmp), and is also
+     * used to validate the sanctuary before tickets are read or written.
      *
-     * @param path Configuration path.
+     * @param path Path to validate.
      * @return True when the complete path is trusted.
      */
-    bool is_trusted_config_path(const fs::path& path) const;
+    bool is_trusted_path(const fs::path& path) const;
 
 private:
     uid_t executable_owner_ = 0;

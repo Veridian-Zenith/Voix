@@ -185,7 +185,7 @@ bool Config::load(std::string_view config_path, bool verify_security) {
     // in an attacker-controlled directory. Every path component must be
     // root-owned and non-writable, with no symlinked components. The
     // descriptor-level checks in read_file_secure then cover the final file.
-    if (!file_utils.is_trusted_config_path(path_str)) {
+    if (!file_utils.is_trusted_path(path_str)) {
       return fail(std::format(
           "configuration path is not trusted: {} (must be absolute, every "
           "component root-owned and not group/world writable, with no "
@@ -358,6 +358,15 @@ bool Config::load(std::string_view config_path, bool verify_security) {
     return fail(std::format("failed to load configuration: {}", e.what()));
   }
 
+  if (verify_security) {
+    // The sanctuary stores timestamp tickets. Validate its trust before any
+    // ticket is read or written; insecure loads exist only for tests and
+    // programmatically constructed configurations.
+    if (auto error = validate_sanctuary_path(sanctuary_)) {
+      return fail(*error);
+    }
+  }
+
   return true;
 }
 
@@ -371,6 +380,35 @@ std::string Config::getPath() const {
   return std::accumulate(
       std::next(path_list_.begin()), path_list_.end(), path_list_[0],
       [](const std::string &a, const std::string &b) { return a + ":" + b; });
+}
+
+std::optional<std::string>
+Config::validate_sanctuary_path(std::string_view path) {
+  const std::string path_str{path};
+  if (path_str.empty()) {
+    return std::string("core.sanctuary must not be empty");
+  }
+
+  std::error_code ec;
+  if (!std::filesystem::is_directory(path_str, ec)) {
+    if (ec == std::errc::no_such_file_or_directory) {
+      return std::format("core.sanctuary does not exist: {}", path_str);
+    }
+    if (ec) {
+      return std::format("core.sanctuary is not accessible: {} ({})",
+                         path_str, ec.message());
+    }
+    return std::format("core.sanctuary is not a directory: {}", path_str);
+  }
+
+  FileUtils file_utils;
+  if (!file_utils.is_trusted_path(path_str)) {
+    return std::format(
+        "core.sanctuary is not trusted: {} (must be absolute, root-owned, "
+        "not group/world writable, with no symlinks)",
+        path_str);
+  }
+  return std::nullopt;
 }
 
 bool Config::validate() const {

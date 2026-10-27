@@ -261,6 +261,166 @@ bool test_permission_checker_list_respects_first_match_deny() {
     return true;
 }
 
+bool test_permission_checker_list_broader_deny_suppresses() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_list_broader_deny.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        // A deny with no args covers every rm invocation, so the narrower
+        // later permit is dead policy and must not be advertised.
+        out << "acl:\n  user:\n    1000:\n"
+            << "      - action: deny\n        command: rm\n"
+            << "      - action: permit\n        command: rm\n"
+            << "        args: [-rf]\n"
+            << "      - action: permit\n        command: cat\n";
+    }
+    ASSERT_TRUE(config->load(config_path.string(), false));
+
+    Voix::PermissionChecker checker(security, config);
+    auto entries = checker.list_permitted_entries();
+    ASSERT_EQUAL(static_cast<int>(entries.size()), 1);
+    ASSERT_EQUAL(entries[0].rule.cmd, std::string("cat"));
+    ASSERT_TRUE(!entries[0].conditional);
+    return true;
+}
+
+bool test_permission_checker_list_deny_for_other_target() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_list_other_target.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        // The deny applies to target uid 1, the permit to root (the default),
+        // so it must not qualify the permit.
+        out << "acl:\n  user:\n    1000:\n"
+            << "      - action: deny\n        command: rm\n"
+            << "        target: \"1\"\n"
+            << "      - action: permit\n        command: rm\n";
+    }
+    ASSERT_TRUE(config->load(config_path.string(), false));
+
+    Voix::PermissionChecker checker(security, config);
+    auto entries = checker.list_permitted_entries();
+    ASSERT_EQUAL(static_cast<int>(entries.size()), 1);
+    ASSERT_EQUAL(entries[0].rule.cmd, std::string("rm"));
+    ASSERT_TRUE(!entries[0].conditional);
+    return true;
+}
+
+bool test_permission_checker_list_deny_after_permit_keeps_entry() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_list_deny_after.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        // First-match: the earlier permit wins, so the later deny is
+        // unreachable for this scope.
+        out << "acl:\n  user:\n    1000:\n"
+            << "      - action: permit\n        command: rm\n"
+            << "      - action: deny\n        command: rm\n";
+    }
+    ASSERT_TRUE(config->load(config_path.string(), false));
+
+    Voix::PermissionChecker checker(security, config);
+    auto entries = checker.list_permitted_entries();
+    ASSERT_EQUAL(static_cast<int>(entries.size()), 1);
+    ASSERT_EQUAL(entries[0].rule.cmd, std::string("rm"));
+    ASSERT_TRUE(!entries[0].conditional);
+    return true;
+}
+
+bool test_permission_checker_list_partial_deny_marks_conditional() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_list_partial_deny.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        // The deny blocks only "rm -rf"; the permit still allows other rm
+        // invocations, so the listing must mark it as partial.
+        out << "acl:\n  user:\n    1000:\n"
+            << "      - action: deny\n        command: rm\n"
+            << "        args: [-rf]\n"
+            << "      - action: permit\n        command: rm\n";
+    }
+    ASSERT_TRUE(config->load(config_path.string(), false));
+
+    Voix::PermissionChecker checker(security, config);
+    auto entries = checker.list_permitted_entries();
+    ASSERT_EQUAL(static_cast<int>(entries.size()), 1);
+    ASSERT_EQUAL(entries[0].rule.cmd, std::string("rm"));
+    ASSERT_TRUE(entries[0].conditional);
+    return true;
+}
+
+bool test_permission_checker_list_pattern_deny_suppresses_exact_permit() {
+    auto mock_id = std::make_shared<MockIdentity>();
+    mock_id->users = {{"alice", 1000, 1000, {1000}}};
+    mock_id->current_user = "alice";
+    mock_id->current_uid = 1000;
+    mock_id->current_groups = {1000};
+
+    auto security = std::make_shared<Voix::Security>(mock_id);
+    auto config = std::make_shared<Voix::Config>();
+
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_list_pattern_deny.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        // The glob deny covers the exact permit argument.
+        out << "acl:\n  user:\n    1000:\n"
+            << "      - action: deny\n        command: rm\n"
+            << "        args: [\"-*\"]\n"
+            << "      - action: permit\n        command: rm\n"
+            << "        args: [\"-rf\"]\n"
+            << "      - action: permit\n        command: cat\n";
+    }
+    ASSERT_TRUE(config->load(config_path.string(), false));
+
+    Voix::PermissionChecker checker(security, config);
+    auto entries = checker.list_permitted_entries();
+    ASSERT_EQUAL(static_cast<int>(entries.size()), 1);
+    ASSERT_EQUAL(entries[0].rule.cmd, std::string("cat"));
+    return true;
+}
+
 bool test_permission_checker_canonicalizes_command_paths() {
     auto mock_id = std::make_shared<MockIdentity>();
     mock_id->users = {{"alice", 1000, 1000, {1000}}};
@@ -303,6 +463,16 @@ void register_permission_tests(TestRunner& runner) {
     runner.add_test("test_permission_checker_list_permitted_rules", test_permission_checker_list_permitted_rules);
     runner.add_test("test_permission_checker_list_respects_first_match_deny",
                     test_permission_checker_list_respects_first_match_deny);
+    runner.add_test("test_permission_checker_list_broader_deny_suppresses",
+                    test_permission_checker_list_broader_deny_suppresses);
+    runner.add_test("test_permission_checker_list_deny_for_other_target",
+                    test_permission_checker_list_deny_for_other_target);
+    runner.add_test("test_permission_checker_list_deny_after_permit_keeps_entry",
+                    test_permission_checker_list_deny_after_permit_keeps_entry);
+    runner.add_test("test_permission_checker_list_partial_deny_marks_conditional",
+                    test_permission_checker_list_partial_deny_marks_conditional);
+    runner.add_test("test_permission_checker_list_pattern_deny_suppresses_exact_permit",
+                    test_permission_checker_list_pattern_deny_suppresses_exact_permit);
     runner.add_test("test_permission_checker_canonicalizes_command_paths",
                     test_permission_checker_canonicalizes_command_paths);
 }

@@ -158,22 +158,13 @@ int main(int argc, char* argv[]) noexcept {
         argc -= optind;
         argv += optind;
 
-        // Handle shell mode
-        if (sflag) {
-            char* shell_var = getenv("SHELL");
-            std::string shell;
-            if (!shell_var || !*shell_var) {
-                auto pw_entry = Voix::lookup_passwd_by_uid(getuid());
-                shell = pw_entry ? pw_entry->shell : "/bin/sh";
-            } else {
-                shell = shell_var;
-            }
-            command_args.push_back(shell);
-        } else if (options.login_shell && argc < 1) {
-            // -i without a command: open interactive login shell as target
-            auto pw_entry = Voix::lookup_passwd_by_name(target_user);
-            std::string shell = pw_entry ? pw_entry->shell : "/bin/sh";
-            command_args.push_back(shell);
+        // Interactive modes run the target account's login shell. The
+        // caller's $SHELL is caller-controlled and must never influence a
+        // privilege transition, so resolve_login_shell() reads the target's
+        // passwd entry instead.
+        if (sflag || (options.login_shell && argc < 1)) {
+            // -s, or -i without a command: open a login shell as the target.
+            command_args.push_back(Voix::resolve_login_shell(target_user));
         } else if (argc < 1 && !options.list_commands && !options.check_config &&
                    !clear_timestamp && !options.login_shell) {
             Voix::Logger().report_error(

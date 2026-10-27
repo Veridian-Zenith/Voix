@@ -320,10 +320,10 @@ bool test_executable_replacement_is_pinned() {
 
 bool test_config_path_trust() {
     Voix::FileUtils fu;
-    ASSERT_TRUE(fu.is_trusted_config_path("/etc/passwd"));
-    ASSERT_TRUE(!fu.is_trusted_config_path("relative.conf"));
-    ASSERT_TRUE(!fu.is_trusted_config_path("/tmp/attacker.conf"));
-    ASSERT_TRUE(!fu.is_trusted_config_path("/etc/../tmp/attacker.conf"));
+    ASSERT_TRUE(fu.is_trusted_path("/etc/passwd"));
+    ASSERT_TRUE(!fu.is_trusted_path("relative.conf"));
+    ASSERT_TRUE(!fu.is_trusted_path("/tmp/attacker.conf"));
+    ASSERT_TRUE(!fu.is_trusted_path("/etc/../tmp/attacker.conf"));
     return true;
 }
 

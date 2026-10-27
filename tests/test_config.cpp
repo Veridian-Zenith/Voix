@@ -417,6 +417,51 @@ bool test_config_validate_empty_sanctuary() {
     return true;
 }
 
+bool test_config_sanctuary_rejects_empty() {
+    auto error = Voix::Config::validate_sanctuary_path("");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("must not be empty") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_rejects_relative() {
+    // "." exists as a directory but is not absolute.
+    auto error = Voix::Config::validate_sanctuary_path(".");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("not trusted") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_rejects_world_writable() {
+    // /tmp exists and is a directory, but it is group/world writable, so an
+    // unprivileged user could forge timestamp tickets there.
+    auto error = Voix::Config::validate_sanctuary_path("/tmp");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("not trusted") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_rejects_missing_directory() {
+    auto error =
+        Voix::Config::validate_sanctuary_path("/nonexistent/voix-sanctuary");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("does not exist") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_accepts_trusted_directory() {
+    // "/" is root-owned and not group/world writable.
+    ASSERT_TRUE(!Voix::Config::validate_sanctuary_path("/").has_value());
+
+    // The shipped sanctuary must pass on systems where it has been installed.
+    std::error_code ec;
+    if (std::filesystem::is_directory("/var/lib/voix", ec)) {
+        ASSERT_TRUE(
+            !Voix::Config::validate_sanctuary_path("/var/lib/voix").has_value());
+    }
+    return true;
+}
+
 bool test_config_security_profile_rule_survives_parse() {
     // Regression: rules referencing security.profiles must not be swallowed
     // by any template-expansion path — they resolve at execution time.
@@ -473,4 +518,14 @@ void register_config_tests(TestRunner& runner) {
     runner.add_test("test_config_validate_valid_config", test_config_validate_valid_config);
     runner.add_test("test_config_validate_relative_path", test_config_validate_relative_path);
     runner.add_test("test_config_validate_empty_sanctuary", test_config_validate_empty_sanctuary);
+    runner.add_test("test_config_sanctuary_rejects_empty",
+                    test_config_sanctuary_rejects_empty);
+    runner.add_test("test_config_sanctuary_rejects_relative",
+                    test_config_sanctuary_rejects_relative);
+    runner.add_test("test_config_sanctuary_rejects_world_writable",
+                    test_config_sanctuary_rejects_world_writable);
+    runner.add_test("test_config_sanctuary_rejects_missing_directory",
+                    test_config_sanctuary_rejects_missing_directory);
+    runner.add_test("test_config_sanctuary_accepts_trusted_directory",
+                    test_config_sanctuary_accepts_trusted_directory);
 }

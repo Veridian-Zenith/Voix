@@ -9,6 +9,8 @@
 #ifndef PERMISSION_CHECKER_H
 #define PERMISSION_CHECKER_H
 
+#include "rule.hpp"
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -20,7 +22,20 @@ namespace Voix {
 
 class Security;
 class Config;
-class Rule;
+
+/**
+ * @brief A permit rule as shown by `voix -l`.
+ *
+ * `conditional` is set when an earlier DENY rule covers only part of the
+ * permit's scope (for example a deny with narrower arguments, or a deny for a
+ * single command while the permit matches all commands). Such a permit is
+ * still usable, but the listing must not imply that every invocation is
+ * allowed.
+ */
+struct PermittedEntry {
+    Rule rule;
+    bool conditional = false;
+};
 
 /**
  * @brief Handles permission checks for command execution based on rules.
@@ -54,12 +69,23 @@ public:
                 uid_t target_uid) const;
 
     /**
+     * @brief Returns permits for the current user together with deny context.
+     *
+     * Applies runtime first-match semantics over the whole ordered rule list:
+     * a permit fully covered by an earlier identity-matching DENY is omitted,
+     * and a permit only partially covered is returned with
+     * `conditional = true`.
+     *
+     * @return Permitted entries for the current user.
+     */
+    std::vector<PermittedEntry> list_permitted_entries() const;
+
+    /**
      * @brief Returns rules that permit actions for the current user.
      *
-     * Mirrors runtime first-match semantics: a PERMIT rule whose scope is
-     * already covered by an earlier identity-matching DENY rule (same
-     * command, argument pattern and target) is suppressed, because at run
-     * time the DENY would win.
+     * Compatibility wrapper around list_permitted_entries(). Entries that are
+     * only partially restricted are included; callers that want to render the
+     * distinction should use list_permitted_entries().
      *
      * @return Vector of permitted rules for the current user.
      */
@@ -101,6 +127,30 @@ private:
     bool matchRule(const Rule& rule, uid_t uid, const std::vector<gid_t>& groups,
                    std::string_view command, uid_t target_uid,
                    const std::vector<std::string>& args) const;
+
+    /// A rule's scope with variables resolved and the command canonicalized.
+    struct NormalizedRuleScope {
+        std::optional<uid_t> target_uid; ///< nullopt = rule can never match.
+        std::string command;             ///< Empty means "any command".
+        std::vector<std::string> args;   ///< Empty means "any arguments".
+        bool pattern = false;            ///< Args are glob patterns.
+    };
+
+    /// How much of a permit's scope an earlier deny covers.
+    enum class Coverage : std::uint8_t { None, Partial, Full };
+
+    /**
+     * @brief Normalizes a rule for scope comparison.
+     * @return The normalized scope, or nullopt when the rule can never match
+     *         (for example an unresolvable target name).
+     */
+    std::optional<NormalizedRuleScope> normalize_scope(const Rule& rule) const;
+
+    /**
+     * @brief Determines how much of @p permit an earlier @p deny covers.
+     */
+    Coverage scope_coverage(const NormalizedRuleScope& deny,
+                            const NormalizedRuleScope& permit) const;
 };
 
 } // namespace Voix

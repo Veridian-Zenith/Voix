@@ -9,8 +9,8 @@ user-visible change in [`CHANGELOG.md`](CHANGELOG.md).
 | **Branch** | `security/p0-hardening` |
 | **Base** | `origin/master` at `8d03947` (the local `master` ref is one commit behind at `96668af`) |
 | **Development version** | `4.14.0-beta.1` (test/beta; `4.13.3` is the last release) |
-| **Status** | P0 hardening complete, build green (`121/121` tests), ready for review |
-| **Last updated** | 2026-10-25 |
+| **Status** | P0 hardening and P1 follow-ups complete, build green (`133/133` tests), ready for review |
+| **Last updated** | 2026-10-27 |
 
 Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by design
 
@@ -44,63 +44,33 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 
 ---
 
-## 2. P1 — finish before merge
+## 2. P1 — completed follow-ups
 
-### 2.1 `-s` must use the target account's login shell
-
-- **Problem:** `-s` prefers the caller's `$SHELL` and only falls back to the
-  *invoking* user's passwd shell (`src/main.cpp`). Ascending to another
-  account therefore runs a shell the target may not own, and `$SHELL` is
-  caller-controlled. `-i` without a command already uses the target's passwd
-  shell, so the two interactive paths disagree.
-- **Fix:** resolve the target identity first, then use the target's passwd
-  shell (final fallback `/bin/sh`) for both `-s` and `-i` without a command.
-  Do not consult `$SHELL` for a privilege transition. If compatibility
-  requires honoring it, gate it behind an explicit policy grant.
-- **Acceptance:** `voix -u other -s` executes `other`'s passwd shell; a caller
-  with `SHELL=/tmp/evil` cannot influence the executed binary; login-shell
-  `HOME`/`SHELL` tests cover both paths; the target shell still has to pass
-  the root-owned, non-writable executable check.
-- **Files:** `src/main.cpp`, `src/voix.cpp`, `include/system_identity.hpp`,
-  `tests/test_command.cpp`, `tests/test_integration.cpp`, `docs/CLI.md`,
-  `THREATS.md` §7.
-
-### 2.2 Validate the sanctuary's ownership and parent chain
-
-- **Problem:** `Config::validate()` only checks that `core.sanctuary` is a
-  directory (`src/config.cpp`). A root-owned config can point at `/tmp` or
-  another attacker-writable directory, letting an unprivileged user tamper
-  with timestamp tickets.
-- **Fix:** extract the trust walk used for `-C`
-  (`FileUtils::is_trusted_config_path`) into a shared helper and apply it to
-  the sanctuary: every component root-owned, not group/world-writable, and
-  free of symlinks (or resolve symlinks and validate the target). Validate
-  before any ticket is read or written.
-- **Acceptance:** `--check-config` rejects `/tmp`, symlinked sanctuaries, and
-  any path with a non-root or writable component; the shipped
-  `/var/lib/voix` passes; regression tests cover each rejection.
-- **Files:** `src/config.cpp`, `src/file_utils.cpp`,
-  `include/file_utils.hpp`, `tests/test_config.cpp`,
-  `tests/test_file_utils.cpp`, `THREATS.md` §7.
-
-### 2.3 Broaden `-l` deny-awareness
-
-- **Problem:** `PermissionChecker::list_permitted_rules()` suppresses a permit
-  only when an earlier deny has an *identical* command/args/target scope
-  (`src/permission_checker.cpp`). Broader denies — a deny with empty args, or
-  a deny whose scope covers the permit — are not reflected, so `-l` can
-  advertise commands that runtime first-match denies.
-- **Fix:** evaluate each permit against the same ordered rule list the
-  executor uses and list it only when the first matching rule for its concrete
-  scope is a permit. Where a rule scope is broader than a single command line,
-  either narrow the listing to fully determined scopes or mark the entry as
-  conditional instead of overstating it.
-- **Acceptance:** tests cover (a) deny with empty args before a permit with
-  args, (b) deny for a different target, (c) deny after permit (permit should
-  still list), and (d) exact-scope behavior unchanged.
-- **Files:** `src/permission_checker.cpp`,
-  `include/permission_checker.hpp`, `tests/test_permissions.cpp`,
-  `docs/CLI.md`, `THREATS.md` §7.
+- [x] **2.1 `-s` uses the target account's login shell.** `-s` and bare `-i`
+  now resolve the target's passwd shell through
+  `resolve_login_shell()` (`src/system_utils.cpp`) with `/bin/sh` as the
+  fallback. The caller's `$SHELL` is never consulted, so a caller cannot
+  influence the executed binary. Unit coverage asserts that `$SHELL` is
+  ignored and that unknown accounts fall back safely; the executed shell is
+  still subject to the root-owned/non-writable executable check. `-s` and
+  bare `-i` share one branch. See `docs/CLI.md` and `THREATS.md` §7.
+- [x] **2.2 Sanctuary ownership and parent-chain validation.**
+  `FileUtils::is_trusted_config_path()` was generalized to
+  `FileUtils::is_trusted_path()`, and `Config::validate_sanctuary_path()` now
+  requires the sanctuary to exist, be a directory, and have every component
+  root-owned, non-group/world-writable, and free of symlinks. Secure loads
+  (`Config::load(..., true)`, used by production and `--check-config`)
+  enforce it before any ticket is read or written; insecure test loads keep
+  working. Regression tests cover `/tmp`, relative, missing, empty, `/`, and
+  the installed `/var/lib/voix` sanctuary.
+- [x] **2.3 `-l` deny-awareness.** `PermissionChecker::list_permitted_entries()`
+  evaluates permits against the same ordered rules as execution. A deny that
+  fully covers a permit suppresses it; a partial cover marks the entry
+  `conditional`, rendered by `voix -l` as
+  `(partially restricted by an earlier deny)`. `list_permitted_rules()` stays
+  as a compatibility wrapper. Tests cover broader denies, partial/pattern
+  denies, a deny for another target, a deny after a permit, and the original
+  exact-scope behavior.
 
 ---
 
@@ -234,7 +204,7 @@ ctest --test-dir build-dbg --output-on-failure
 clang-tidy -p build-dbg src/*.cpp include/*.hpp -- -Iinclude -std=c++26
 ```
 
-Expected: `121/121` tests pass, `ctest` green, and `clang-tidy` reports no
+Expected: `133/133` tests pass, `ctest` green, and `clang-tidy` reports no
 warnings. The integration tests run unprivileged by passing `geteuid()` as the
 trusted executable owner; they do not cover PAM or the real setuid transition
 (see §3).
