@@ -377,6 +377,12 @@ bool test_seccomp_validate_syscall_names() {
 }
 
 bool test_seccomp_allowlist_runs_a_real_program() {
+    if (syscall_instrumentation_active()) {
+        // An interposer would add syscalls the allowlist cannot know about.
+        std::cerr << "skipped: LD_PRELOAD/LD_AUDIT instrumentation is active"
+                  << std::endl;
+        return true;
+    }
     // End-to-end check that allowlist mode does not kill the target before it
     // starts. The child installs the filter and execs a dynamically linked
     // binary; a seccomp violation would terminate it with SIGSYS instead of
