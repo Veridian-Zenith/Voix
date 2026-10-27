@@ -17,13 +17,16 @@ namespace Voix {
 TicketStore::TicketStore(std::string_view sanctuary)
     : dir_(std::filesystem::path(sanctuary) / "timestamp") {}
 
-std::filesystem::path TicketStore::path_for(uid_t uid) const {
-    return dir_ / std::to_string(uid);
+std::filesystem::path TicketStore::path_for(uid_t caller_uid,
+                                            uid_t target_uid) const {
+    return dir_ / (std::to_string(caller_uid) + "-" +
+                   std::to_string(target_uid));
 }
 
-bool TicketStore::valid(uid_t uid, std::chrono::minutes ttl) const {
+bool TicketStore::valid(uid_t caller_uid, uid_t target_uid,
+                        std::chrono::minutes ttl) const {
     FileUtils fu;
-    auto content = fu.read_file_secure(path_for(uid));
+    auto content = fu.read_file_secure(path_for(caller_uid, target_uid));
     if (!content || content->empty()) return false;
 
     std::uint64_t epoch = 0;
@@ -38,18 +41,35 @@ bool TicketStore::valid(uid_t uid, std::chrono::minutes ttl) const {
     return (now - written) <= ttl;
 }
 
-bool TicketStore::record(uid_t uid) const {
+bool TicketStore::record(uid_t caller_uid, uid_t target_uid) const {
     FileUtils fu;
     if (!fu.ensure_private_directory(dir_)) return false;
 
     const auto now = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch());
-    return fu.write_file_secure(path_for(uid), std::to_string(now.count())).has_value();
+    return fu.write_file_secure(path_for(caller_uid, target_uid),
+                                std::to_string(now.count()))
+        .has_value();
 }
 
-void TicketStore::clear(uid_t uid) const {
+void TicketStore::clear(uid_t caller_uid, uid_t target_uid) const {
     std::error_code ec;
-    std::filesystem::remove(path_for(uid), ec);
+    std::filesystem::remove(path_for(caller_uid, target_uid), ec);
+}
+
+void TicketStore::clear_all_for_caller(uid_t caller_uid) const {
+    std::error_code ec;
+    if (!std::filesystem::is_directory(dir_, ec)) return;
+
+    const std::string prefix = std::to_string(caller_uid) + "-";
+    for (std::filesystem::directory_iterator it(dir_, ec), end;
+         !ec && it != end; it.increment(ec)) {
+        const std::string name = it->path().filename().string();
+        if (name.starts_with(prefix)) {
+            std::error_code remove_ec;
+            std::filesystem::remove(it->path(), remove_ec);
+        }
+    }
 }
 
 } // namespace Voix

@@ -15,6 +15,146 @@
 
 #include "test_modules.hpp"
 
+bool test_config_default_sanctuary() {
+    Voix::Config config;
+    ASSERT_EQUAL(config.getSanctuary(), std::string("/var/lib/voix"));
+    return true;
+}
+
+bool test_shipped_config_is_closed_by_default() {
+    const std::filesystem::path repo =
+        std::filesystem::path(__FILE__).parent_path().parent_path();
+    const std::filesystem::path config_path = repo / "config/voix.conf";
+
+    Voix::Config config;
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(config.getRules().empty());
+    ASSERT_TRUE(config.get_unconfined_targets().empty());
+    ASSERT_EQUAL(config.getSanctuary(), std::string("/var/lib/voix"));
+    return true;
+}
+
+bool test_config_last_error_is_reported() {
+    Voix::Config config;
+    ASSERT_TRUE(!config.load("/nonexistent/voix-test.conf", false));
+    ASSERT_TRUE(!config.last_error().empty());
+    ASSERT_TRUE(config.last_error().find("not found") != std::string::npos);
+    return true;
+}
+
+bool test_config_rejects_unknown_seccomp_mode() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_mode.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /var/lib/voix\n"
+            << "security:\n  profiles:\n    tight:\n"
+            << "      seccomp_mode: blaklist\n";
+    }
+
+    Voix::Config config;
+    // Rejected at load time so a bad profile can never reach execution.
+    ASSERT_TRUE(!config.load(config_path.string(), false));
+    // A typo must never silently disable filtering.
+    ASSERT_TRUE(config.last_error().find("seccomp_mode") != std::string::npos);
+    return true;
+}
+
+bool test_config_parses_seccomp_allow() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_allow.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        // validate() requires an existing directory; "/" is always present.
+        // This test is about seccomp parsing, not the installed sanctuary.
+        out << "core:\n  sanctuary: /\n"
+            << "security:\n  profiles:\n    tight:\n"
+            << "      seccomp_mode: allowlist\n"
+            << "      seccomp_allow: [openat2, mkdir]\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(config.validate());
+    auto profile = config.get_profile("tight");
+    ASSERT_EQUAL(profile.seccomp_mode, std::string("allowlist"));
+    ASSERT_EQUAL(profile.seccomp_allow.size(), std::size_t{2});
+    ASSERT_EQUAL(profile.seccomp_allow[0], std::string("openat2"));
+    ASSERT_EQUAL(profile.seccomp_allow[1], std::string("mkdir"));
+    return true;
+}
+
+bool test_config_rejects_unknown_seccomp_allow_name() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_badname.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /var/lib/voix\n"
+            << "security:\n  profiles:\n    tight:\n"
+            << "      seccomp_mode: allowlist\n"
+            << "      seccomp_allow: [not_a_real_syscall]\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(!config.load(config_path.string(), false));
+    ASSERT_TRUE(config.last_error().find("not_a_real_syscall") !=
+                std::string::npos);
+    return true;
+}
+
+bool test_config_rejects_seccomp_allow_without_allowlist() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_seccomp_mismatch.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /var/lib/voix\n"
+            << "security:\n  profiles:\n    loose:\n"
+            << "      seccomp_mode: blacklist\n"
+            << "      seccomp_allow: [mkdir]\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(!config.load(config_path.string(), false));
+    ASSERT_TRUE(config.last_error().find("seccomp_allow") != std::string::npos);
+    return true;
+}
+
+bool test_config_validate_reports_reason() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_validate_reason.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: relative/path\n";
+    }
+
+    Voix::Config config;
+    ASSERT_TRUE(config.load(config_path.string(), false));
+    ASSERT_TRUE(!config.validate());
+    ASSERT_TRUE(!config.last_error().empty());
+    return true;
+}
+
+bool test_config_rejects_untrusted_path() {
+    std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "test_untrusted_path.conf";
+    ScopedTempFile cleanup(config_path);
+    {
+        std::ofstream out(config_path);
+        out << "core:\n  sanctuary: /tmp\n";
+    }
+
+    Voix::Config config;
+    // /tmp is group/world writable, so -C-style secure loading must refuse it
+    // even if the file itself happens to be owned by the caller.
+    ASSERT_TRUE(!config.load(config_path.string(), true));
+    return true;
+}
+
 bool test_config_load_valid() {
     std::string config_path = "test_voix.conf";
     std::ofstream outfile(config_path);
@@ -219,8 +359,9 @@ bool test_config_seccomp_default_enabled() {
 
 bool test_config_unconfined_targets() {
     Voix::Config config;
-    ASSERT_TRUE(config.is_unconfined_target("root"));
-    ASSERT_TRUE(config.is_unconfined_target("alpm"));
+    // Fail closed: no target is unconfined unless the configuration says so.
+    ASSERT_TRUE(!config.is_unconfined_target("root"));
+    ASSERT_TRUE(!config.is_unconfined_target("alpm"));
     ASSERT_TRUE(!config.is_unconfined_target("guest"));
 
     std::filesystem::path config_path = std::filesystem::temp_directory_path() / "test_unconfined_targets.conf";
@@ -278,6 +419,51 @@ bool test_config_validate_empty_sanctuary() {
     return true;
 }
 
+bool test_config_sanctuary_rejects_empty() {
+    auto error = Voix::Config::validate_sanctuary_path("");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("must not be empty") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_rejects_relative() {
+    // "." exists as a directory but is not absolute.
+    auto error = Voix::Config::validate_sanctuary_path(".");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("not trusted") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_rejects_world_writable() {
+    // /tmp exists and is a directory, but it is group/world writable, so an
+    // unprivileged user could forge timestamp tickets there.
+    auto error = Voix::Config::validate_sanctuary_path("/tmp");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("not trusted") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_rejects_missing_directory() {
+    auto error =
+        Voix::Config::validate_sanctuary_path("/nonexistent/voix-sanctuary");
+    ASSERT_TRUE(error.has_value());
+    ASSERT_TRUE(error->find("does not exist") != std::string::npos);
+    return true;
+}
+
+bool test_config_sanctuary_accepts_trusted_directory() {
+    // "/" is root-owned and not group/world writable.
+    ASSERT_TRUE(!Voix::Config::validate_sanctuary_path("/").has_value());
+
+    // The shipped sanctuary must pass on systems where it has been installed.
+    std::error_code ec;
+    if (std::filesystem::is_directory("/var/lib/voix", ec)) {
+        ASSERT_TRUE(
+            !Voix::Config::validate_sanctuary_path("/var/lib/voix").has_value());
+    }
+    return true;
+}
+
 bool test_config_security_profile_rule_survives_parse() {
     // Regression: rules referencing security.profiles must not be swallowed
     // by any template-expansion path — they resolve at execution time.
@@ -299,6 +485,22 @@ bool test_config_security_profile_rule_survives_parse() {
 }
 
 void register_config_tests(TestRunner& runner) {
+    runner.add_test("test_config_default_sanctuary", test_config_default_sanctuary);
+    runner.add_test("test_shipped_config_is_closed_by_default",
+                    test_shipped_config_is_closed_by_default);
+    runner.add_test("test_config_last_error_is_reported",
+                    test_config_last_error_is_reported);
+    runner.add_test("test_config_validate_reports_reason",
+                    test_config_validate_reports_reason);
+    runner.add_test("test_config_rejects_unknown_seccomp_mode",
+                    test_config_rejects_unknown_seccomp_mode);
+    runner.add_test("test_config_parses_seccomp_allow",
+                    test_config_parses_seccomp_allow);
+    runner.add_test("test_config_rejects_unknown_seccomp_allow_name",
+                    test_config_rejects_unknown_seccomp_allow_name);
+    runner.add_test("test_config_rejects_seccomp_allow_without_allowlist",
+                    test_config_rejects_seccomp_allow_without_allowlist);
+    runner.add_test("test_config_rejects_untrusted_path", test_config_rejects_untrusted_path);
     runner.add_test("test_config_load_valid", test_config_load_valid);
     runner.add_test("test_config_load_invalid_yaml", test_config_load_invalid_yaml);
     runner.add_test("test_config_load_nonexistent", test_config_load_nonexistent);
@@ -318,4 +520,14 @@ void register_config_tests(TestRunner& runner) {
     runner.add_test("test_config_validate_valid_config", test_config_validate_valid_config);
     runner.add_test("test_config_validate_relative_path", test_config_validate_relative_path);
     runner.add_test("test_config_validate_empty_sanctuary", test_config_validate_empty_sanctuary);
+    runner.add_test("test_config_sanctuary_rejects_empty",
+                    test_config_sanctuary_rejects_empty);
+    runner.add_test("test_config_sanctuary_rejects_relative",
+                    test_config_sanctuary_rejects_relative);
+    runner.add_test("test_config_sanctuary_rejects_world_writable",
+                    test_config_sanctuary_rejects_world_writable);
+    runner.add_test("test_config_sanctuary_rejects_missing_directory",
+                    test_config_sanctuary_rejects_missing_directory);
+    runner.add_test("test_config_sanctuary_accepts_trusted_directory",
+                    test_config_sanctuary_accepts_trusted_directory);
 }

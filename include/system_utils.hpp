@@ -79,6 +79,18 @@ std::optional<PasswdEntry> lookup_passwd_by_name(std::string_view name);
 std::optional<PasswdEntry> lookup_passwd_by_uid(uid_t uid);
 
 /**
+ * @brief Resolves an account's login shell from the passwd database.
+ *
+ * The caller's `$SHELL` is deliberately ignored: it is caller-controlled and
+ * must never influence which binary a privilege transition executes. An
+ * unknown account or an empty shell field falls back to `/bin/sh`.
+ *
+ * @param user Target account name.
+ * @return The target account's shell, or `/bin/sh`.
+ */
+std::string resolve_login_shell(std::string_view user);
+
+/**
  * @brief Checks whether a user has a usable password.
  *
  * Reads the shadow entry for the given username and returns false when

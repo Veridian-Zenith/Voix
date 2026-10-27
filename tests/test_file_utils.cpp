@@ -16,7 +16,9 @@
 #include "test_modules.hpp"
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
+#include <cstring>
 
 bool test_file_exists() {
     Voix::FileUtils file_utils;
@@ -214,6 +216,117 @@ bool test_private_directory_enforced() {
     return true;
 }
 
+bool test_resolve_executable_rejects_user_owned_by_default() {
+    ScopedTempFile guard("/tmp/voix_test_exec_owner", true);
+    auto dir = std::filesystem::temp_directory_path() / "voix_test_exec_owner";
+    std::filesystem::create_directories(dir);
+    auto exe = dir / "tool";
+    {
+        std::ofstream out(exe);
+        out << "#!/bin/sh\nexit 0\n";
+    }
+    std::filesystem::permissions(exe, std::filesystem::perms::owner_all,
+                                 std::filesystem::perm_options::replace);
+
+    Voix::FileUtils production;
+    ASSERT_TRUE(!production.resolve_executable(exe.string(), ""));
+
+    Voix::FileUtils test_owned(geteuid());
+    auto resolved = test_owned.resolve_executable(exe.string(), "");
+    ASSERT_TRUE(resolved.has_value());
+    ASSERT_EQUAL(resolved->path, std::filesystem::canonical(exe).string());
+    return true;
+}
+
+bool test_resolve_executable_canonicalizes_symlink() {
+    Voix::FileUtils fu;
+    auto resolved = fu.resolve_executable("/bin/true", "");
+    ASSERT_TRUE(resolved.has_value());
+    ASSERT_EQUAL(resolved->path, std::filesystem::canonical("/bin/true").string());
+    return true;
+}
+
+bool test_executable_replacement_is_pinned() {
+    ScopedTempFile guard("/tmp/voix_test_exec_replace", true);
+    auto dir = std::filesystem::temp_directory_path() / "voix_test_exec_replace";
+    std::filesystem::create_directories(dir);
+    auto exe = dir / "tool";
+    auto replacement = dir / "replacement";
+
+    // Start from a real ELF executable so fexecve() does not depend on the
+    // kernel's script-interpreter re-open path.
+    std::filesystem::copy_file("/bin/sh", exe,
+                               std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::permissions(exe, std::filesystem::perms::owner_all,
+                                 std::filesystem::perm_options::replace);
+
+    Voix::FileUtils fu(geteuid());
+    auto info = fu.resolve_executable(exe.string(), "");
+    ASSERT_TRUE(info.has_value());
+    auto opened = fu.open_executable(*info);
+    ASSERT_TRUE(opened.has_value());
+    const int fd = *opened;
+
+    // Replace the path after validation. The old inode stays pinned by fd.
+    {
+        std::ofstream out(replacement);
+        out << "#!/bin/sh\necho replaced\n";
+    }
+    std::filesystem::permissions(replacement, std::filesystem::perms::owner_all,
+                                 std::filesystem::perm_options::replace);
+    std::filesystem::rename(replacement, exe);
+
+    // Re-opening the validated path must refuse the new inode.
+    auto reopened = fu.open_executable(*info);
+    ASSERT_TRUE(!reopened.has_value());
+
+    int pipefd[2];
+    ASSERT_TRUE(pipe(pipefd) == 0);
+    pid_t pid = fork();
+    ASSERT_TRUE(pid >= 0);
+    if (pid == 0) {
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]);
+
+        const int flags = fcntl(fd, F_GETFD);
+        if (flags == -1 ||
+            fcntl(fd, F_SETFD, flags & ~FD_CLOEXEC) == -1) {
+            _exit(126);
+        }
+
+        extern char **environ;
+        char* argv[] = {const_cast<char*>(exe.c_str()),
+                        const_cast<char*>("-c"),
+                        const_cast<char*>("echo original"), nullptr};
+        fexecve(fd, argv, environ);
+        _exit(127);
+    }
+
+    close(pipefd[1]);
+    char buffer[64] = {};
+    ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+    close(pipefd[0]);
+    int status = 0;
+    ASSERT_TRUE(waitpid(pid, &status, 0) == pid);
+    close(fd);
+
+    ASSERT_TRUE(WIFEXITED(status));
+    ASSERT_EQUAL(WEXITSTATUS(status), 0);
+    ASSERT_TRUE(n > 0);
+    ASSERT_TRUE(std::string(buffer, static_cast<size_t>(n)) == "original\n");
+    return true;
+}
+
+bool test_config_path_trust() {
+    Voix::FileUtils fu;
+    ASSERT_TRUE(fu.is_trusted_path("/etc/passwd"));
+    ASSERT_TRUE(!fu.is_trusted_path("relative.conf"));
+    ASSERT_TRUE(!fu.is_trusted_path("/tmp/attacker.conf"));
+    ASSERT_TRUE(!fu.is_trusted_path("/etc/../tmp/attacker.conf"));
+    return true;
+}
+
 void register_file_utils_tests(TestRunner& runner) {
     runner.add_test("test_file_exists", test_file_exists);
     runner.add_test("test_read_file_success", test_read_file_success);
@@ -226,4 +339,11 @@ void register_file_utils_tests(TestRunner& runner) {
     runner.add_test("test_secure_read_write_roundtrip", test_secure_read_write_roundtrip);
     runner.add_test("test_secure_io_rejects_symlink", test_secure_io_rejects_symlink);
     runner.add_test("test_private_directory_enforced", test_private_directory_enforced);
+    runner.add_test("test_resolve_executable_rejects_user_owned_by_default",
+                    test_resolve_executable_rejects_user_owned_by_default);
+    runner.add_test("test_resolve_executable_canonicalizes_symlink",
+                    test_resolve_executable_canonicalizes_symlink);
+    runner.add_test("test_executable_replacement_is_pinned",
+                    test_executable_replacement_is_pinned);
+    runner.add_test("test_config_path_trust", test_config_path_trust);
 }

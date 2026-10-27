@@ -21,6 +21,8 @@ namespace VoixTest {
 
 int run_tests(int /*argc*/, char* /*argv*/[]) {
     Voix::Logger::suppress_stderr = true;
+    // Capture instrumentation state before any test mutates the environment.
+    (void)syscall_instrumentation_active();
     TestRunner runner;
 
     register_permission_tests(runner);
@@ -31,6 +33,7 @@ int run_tests(int /*argc*/, char* /*argv*/[]) {
     register_logger_tests(runner);
     register_system_utils_tests(runner);
     register_negative_security_tests(runner);
+    register_integration_tests(runner);
 
     return runner.run();
 }

@@ -9,9 +9,11 @@
 #include "permission_checker.hpp"
 #include "security.hpp"
 #include "config.hpp"
+#include "file_utils.hpp"
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
+#include <cstdlib>
 #include <cstring>
 #include <utility>
 #include <vector>
@@ -20,6 +22,70 @@
 #include <regex>
 
 namespace Voix {
+
+namespace {
+
+/// Canonicalize a command for ACL comparison. A command that cannot be
+/// resolved to a safe executable is kept literal so policy tests and rules
+/// for non-executable strings retain their exact-match behavior; the
+/// execution path independently refuses such commands.
+std::string canonical_command_for_match(std::string_view command,
+                                        const Config& config) {
+  FileUtils file_utils;
+  auto resolved = file_utils.resolve_executable(command, config.getPath());
+  return resolved ? resolved->policy_path : std::string(command);
+}
+
+/// Resolve a rule's target to a concrete UID. An empty target means root (the
+/// runtime default). An unresolvable name yields nullopt because matchRule()
+/// rejects every invocation for such a rule.
+std::optional<uid_t> rule_target_uid(const Rule& rule) {
+  if (rule.target_uid.has_value()) {
+    return rule.target_uid;
+  }
+  if (rule.target.empty()) {
+    return static_cast<uid_t>(0);
+  }
+  char* endptr = nullptr;
+  const uid_t uid =
+      static_cast<uid_t>(strtol(rule.target.c_str(), &endptr, 10));
+  if (endptr != rule.target.c_str() && endptr != nullptr && *endptr == '\0') {
+    return uid;
+  }
+  return std::nullopt;
+}
+
+/// True when a rule argument contains a glob metacharacter.
+bool has_glob(std::string_view value) {
+  return value.find_first_of("*?") != std::string_view::npos;
+}
+
+/// Mirrors matchRule()'s identity gate for listing.
+bool identity_matches(const Rule& rule, uid_t uid,
+                      const std::vector<gid_t>& groups) {
+  if (rule.ident_uid.has_value()) {
+    return rule.ident_uid.value() == uid;
+  }
+  if (rule.ident_gid.has_value()) {
+    return std::ranges::find(groups, rule.ident_gid.value()) != groups.end();
+  }
+  if (!rule.ident.empty()) {
+    if (rule.ident.starts_with('%')) {
+      return false;
+    }
+    char* endptr = nullptr;
+    const uid_t rule_uid =
+        static_cast<uid_t>(strtol(rule.ident.c_str(), &endptr, 10));
+    if (endptr != rule.ident.c_str() && endptr != nullptr && *endptr == '\0') {
+      return rule_uid == uid;
+    }
+    return false;
+  }
+  // No identity constraint: the rule applies to every caller.
+  return true;
+}
+
+} // namespace
 
 PermissionChecker::PermissionChecker(std::shared_ptr<Security> security,
                                      std::shared_ptr<Config> config)
@@ -56,60 +122,22 @@ std::string PermissionChecker::resolve_variables(const std::string& text) const 
 
 bool PermissionChecker::matchRule(const Rule &rule, uid_t uid,
                                   const std::vector<gid_t> &groups,
-                                  std::string_view command, uid_t target_uid,
+                                  std::string_view canonical_command,
+                                  uid_t target_uid,
                                   const std::vector<std::string> &args) const {
-  if (rule.ident_uid.has_value()) {
-      if (rule.ident_uid.value() != uid) {
-          return false;
-      }
-  } else if (rule.ident_gid.has_value()) {
-      bool group_found = std::ranges::find(groups, rule.ident_gid.value()) != groups.end();
-      if (!group_found) {
-          return false;
-      }
-  } else if (!rule.ident.empty()) {
-      // Fallback for cases where resolution failed or for special identifiers
-      if (rule.ident.starts_with('%')) {
-          return false;
-      }
-      // Otherwise try numeric UID match if it's a number
-      char* endptr;
-      uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
-      if (*endptr == '\0') {
-          if (rule_uid != uid) {
-              return false;
-          }
-      } else {
-          // It was a name that couldn't be resolved at config load time
-          return false;
-      }
+  if (!identity_matches(rule, uid, groups)) {
+      return false;
   }
 
-  if (rule.target_uid.has_value()) {
-      if (rule.target_uid.value() != target_uid) {
-          return false;
-      }
-  } else if (!rule.target.empty()) {
-      char* endptr;
-      uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.target).c_str(), &endptr, 10));
-      if (*endptr == '\0') {
-          if (rule_uid != target_uid) {
-              return false;
-          }
-      } else {
-          return false;
-      }
-  } else {
-      // No target specified — rule applies only to root (uid 0).
-      // Users must add explicit target rules for non-root user switching.
-      if (target_uid != 0) {
-          return false;
-      }
+  const auto rule_target = rule_target_uid(rule);
+  if (!rule_target.has_value() || rule_target.value() != target_uid) {
+      return false;
   }
 
   if (!rule.cmd.empty()) {
     std::string resolved_cmd = resolve_variables(rule.cmd);
-    if (resolved_cmd != command)
+    resolved_cmd = canonical_command_for_match(resolved_cmd, *config_);
+    if (resolved_cmd != canonical_command)
       return false;
 
     if (!rule.cmdargs.empty()) {
@@ -143,10 +171,15 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
   uid_t uid = identity->uid;
   std::vector<gid_t> groups = identity->groups;
 
+  // Canonicalize the request once; every rule compares against the same
+  // policy path, avoiding repeated PATH/realpath/stat work per rule.
+  const std::string canonical_command =
+      canonical_command_for_match(command, *config_);
+
   auto rules = config_->getRules();
 
   for (const auto &rule : rules) {
-    if (matchRule(rule, uid, groups, command, target_uid, args)) {
+    if (matchRule(rule, uid, groups, canonical_command, target_uid, args)) {
       if (rule.action == Rule::Action::PERMIT) {
         return rule;
       } else {
@@ -159,60 +192,168 @@ std::optional<Rule> PermissionChecker::permit(std::string_view command,
 }
 
 
-std::vector<Rule> PermissionChecker::list_permitted_rules() const {
-    std::vector<Rule> permitted;
-    std::string current_user = security_->getCurrentUser();
-    auto identity = security_->identity->get_user_by_name(current_user);
-    if (!identity) return permitted;
+std::optional<PermissionChecker::NormalizedRuleScope>
+PermissionChecker::normalize_scope(const Rule& rule) const {
+  NormalizedRuleScope scope;
+  scope.target_uid = rule_target_uid(rule);
+  if (!scope.target_uid.has_value()) {
+    return std::nullopt;
+  }
 
-    uid_t uid = identity->uid;
-    std::vector<gid_t> groups = identity->groups;
+  if (!rule.cmd.empty()) {
+    scope.command =
+        canonical_command_for_match(resolve_variables(rule.cmd), *config_);
+  }
+  scope.pattern = (rule.options & Rule::PATTERN) != 0;
+  scope.args.reserve(rule.cmdargs.size());
+  for (const auto& arg : rule.cmdargs) {
+    scope.args.push_back(resolve_variables(arg));
+  }
+  return scope;
+}
 
-    struct RuleScope {
-        std::string cmd;
-        std::vector<std::string> cmdargs;
-        std::optional<uid_t> target_uid;
-    };
-    auto scope_of = [](const Rule& r) -> RuleScope {
-        return {r.cmd, r.cmdargs, r.target_uid};
-    };
-    auto scope_equal = [](const RuleScope& a, const RuleScope& b) {
-        return a.cmd == b.cmd && a.cmdargs == b.cmdargs &&
-               a.target_uid == b.target_uid;
-    };
+PermissionChecker::Coverage PermissionChecker::scope_coverage(
+    const NormalizedRuleScope& deny, const NormalizedRuleScope& permit) const {
+  if (!deny.target_uid.has_value() || !permit.target_uid.has_value() ||
+      deny.target_uid.value() != permit.target_uid.value()) {
+    return Coverage::None;
+  }
 
-    std::vector<RuleScope> denied_scopes;
-    auto rules = config_->getRules();
-    for (const auto& rule : rules) {
-        // Identity match mirrors matchRule().
-        bool identity_match = false;
-        if (rule.ident_uid.has_value()) {
-            identity_match = (rule.ident_uid.value() == uid);
-        } else if (rule.ident_gid.has_value()) {
-            identity_match = std::ranges::find(groups, rule.ident_gid.value()) != groups.end();
-        } else if (!rule.ident.empty() && !rule.ident.starts_with('%')) {
-            char* endptr;
-            uid_t rule_uid = static_cast<uid_t>(strtol(std::string(rule.ident).c_str(), &endptr, 10));
-            identity_match = (*endptr == '\0' && rule_uid == uid);
-        }
+  // An empty command/argument list in a rule means "any": matchRule() skips
+  // the corresponding comparison entirely.
+  if (deny.command.empty()) {
+    return Coverage::Full;
+  }
+  if (permit.command.empty()) {
+    return Coverage::Partial;
+  }
+  if (deny.command != permit.command) {
+    return Coverage::None;
+  }
 
-        if (!identity_match) continue;
+  if (deny.args.empty()) {
+    return Coverage::Full;
+  }
+  if (permit.args.empty()) {
+    return Coverage::Partial;
+  }
+  if (deny.args.size() != permit.args.size()) {
+    return Coverage::None;
+  }
 
-        if (rule.action == Rule::Action::DENY) {
-            // Track denied scopes so later PERMIT rules with identical scope
-            // are not advertised (first-match would deny them at runtime).
-            denied_scopes.push_back(scope_of(rule));
-            continue;
-        }
+  if (!deny.pattern && !permit.pattern) {
+    return deny.args == permit.args ? Coverage::Full : Coverage::None;
+  }
 
-        const auto scope = scope_of(rule);
-        bool suppressed = std::any_of(denied_scopes.begin(), denied_scopes.end(),
-                                      [&](const RuleScope& d) { return scope_equal(d, scope); });
-        if (!suppressed) {
-            permitted.push_back(rule);
-        }
+  if (deny.pattern && !permit.pattern) {
+    // The deny represents a set of concrete argument lists; the permit is a
+    // single list. The deny covers it only if that exact list matches.
+    for (size_t i = 0; i < deny.args.size(); ++i) {
+      if (!match_pattern({deny.args[i], permit.args[i]})) {
+        return Coverage::None;
+      }
     }
-    return permitted;
+    return Coverage::Full;
+  }
+
+  if (!deny.pattern && permit.pattern) {
+    // The permit represents a set of lists; the exact deny covers one point
+    // of that set only if the permit pattern matches the deny's literals.
+    for (size_t i = 0; i < deny.args.size(); ++i) {
+      if (!match_pattern({permit.args[i], deny.args[i]})) {
+        return Coverage::None;
+      }
+    }
+    return Coverage::Partial;
+  }
+
+  // Both sides use patterns. Identical patterns cover the whole permit;
+  // otherwise the deny is only partially overlapping unless an argument
+  // position proves the scopes disjoint.
+  if (deny.args == permit.args) {
+    return Coverage::Full;
+  }
+  for (size_t i = 0; i < deny.args.size(); ++i) {
+    const bool deny_literal = !has_glob(deny.args[i]);
+    const bool permit_literal = !has_glob(permit.args[i]);
+    if (deny_literal && permit_literal) {
+      if (deny.args[i] != permit.args[i]) {
+        return Coverage::None;
+      }
+    } else if (deny_literal) {
+      if (!match_pattern({permit.args[i], deny.args[i]})) {
+        return Coverage::None;
+      }
+    } else if (permit_literal) {
+      if (!match_pattern({deny.args[i], permit.args[i]})) {
+        return Coverage::None;
+      }
+    }
+    // Both contain globs: disjointness cannot be proven cheaply, so treat
+    // the scopes as possibly overlapping.
+  }
+  return Coverage::Partial;
+}
+
+std::vector<PermittedEntry> PermissionChecker::list_permitted_entries() const {
+  std::vector<PermittedEntry> permitted;
+  std::string current_user = security_->getCurrentUser();
+  auto identity = security_->identity->get_user_by_name(current_user);
+  if (!identity) return permitted;
+
+  const uid_t uid = identity->uid;
+  const std::vector<gid_t> groups = identity->groups;
+
+  // First-match semantics: only DENY rules seen before a permit can suppress
+  // or qualify it, so accumulate them in configuration order.
+  std::vector<NormalizedRuleScope> denied_scopes;
+  for (const auto& rule : config_->getRules()) {
+    if (!identity_matches(rule, uid, groups)) {
+      continue;
+    }
+
+    auto scope = normalize_scope(rule);
+    if (!scope.has_value()) {
+      // Unresolvable target: the rule can never match at runtime.
+      continue;
+    }
+
+    if (rule.action == Rule::Action::DENY) {
+      denied_scopes.push_back(std::move(*scope));
+      continue;
+    }
+
+    bool suppressed = false;
+    bool conditional = false;
+    for (const auto& deny : denied_scopes) {
+      switch (scope_coverage(deny, *scope)) {
+        case Coverage::Full:
+          suppressed = true;
+          break;
+        case Coverage::Partial:
+          conditional = true;
+          break;
+        case Coverage::None:
+          break;
+      }
+      if (suppressed) {
+        break;
+      }
+    }
+
+    if (!suppressed) {
+      permitted.push_back({rule, conditional});
+    }
+  }
+  return permitted;
+}
+
+std::vector<Rule> PermissionChecker::list_permitted_rules() const {
+  std::vector<Rule> rules;
+  for (auto& entry : list_permitted_entries()) {
+    rules.push_back(std::move(entry.rule));
+  }
+  return rules;
 }
 
 } // namespace Voix

@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <cerrno>
 #include <format>
+#include <optional>
 #include <sstream>
 
 namespace Voix {
@@ -180,51 +181,167 @@ bool FileUtils::ensure_private_directory(const fs::path& path) const {
     return true;
 }
 
-std::string FileUtils::resolve_command(const ResolveCommandParams& params) const {
-    const std::string& cmd = params.command;
-    const std::string& paths = params.path_env;
-    if (cmd.empty()) return "";
-
-    // Helper: verify a candidate path is a safe root-owned executable.
-    // Runs in the forked child AFTER the privilege drop, so ownership is
-    // checked against root (uid 0) explicitly — never against the current
-    // effective user.
-    auto check_path_safe = [](const fs::path& p) -> bool {
-        char resolved_path[PATH_MAX];
-        if (realpath(p.c_str(), resolved_path) == nullptr) {
-            return false;
-        }
-
-        int fd = open_no_follow(resolved_path);
-        if (fd == -1) return false;
-        struct stat st;
-        bool safe = false;
-        if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) &&
-            st.st_uid == 0 &&
-            !(st.st_mode & static_cast<mode_t>(S_IWOTH | S_IWGRP))) {
-            safe = true;
-        }
-        close(fd);
-        return safe;
-    };
-
-    // 1. If command contains '/', it's an explicit path.
-    if (cmd.find('/') != std::string::npos) {
-        fs::path p = fs::absolute(cmd);
-        return check_path_safe(p) ? p.string() : "";
+std::expected<ExecutableInfo, FileError>
+// The parameter names make the call sites self-documenting
+// (`resolve_executable(name, config.getPath())`); a strong type for the
+// search path would add ceremony without preventing a real mistake.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+FileUtils::resolve_executable(std::string_view command,
+                              std::string_view path_env) const {
+    if (command.empty()) {
+        return std::unexpected(FileError::NotFound);
     }
 
-    // 2. Otherwise, look up in $PATH.
-    std::stringstream ss(paths);
+    // Validate one candidate and return its canonical path plus the inode
+    // identity. realpath(3) collapses symlinks and relative components; the
+    // ownership/mode checks are performed on that canonical path.
+    auto check_candidate = [this](const fs::path& candidate)
+        -> std::expected<ExecutableInfo, FileError> {
+        char resolved_path[PATH_MAX];
+        if (realpath(candidate.c_str(), resolved_path) == nullptr) {
+            return std::unexpected(errno_to_file_error(errno, FileError::NotFound));
+        }
+
+        struct stat st;
+        if (::stat(resolved_path, &st) != 0) {
+            return std::unexpected(errno_to_file_error(errno, FileError::ReadError));
+        }
+
+        if (!S_ISREG(st.st_mode)) {
+            return std::unexpected(FileError::PermissionDenied);
+        }
+        if (st.st_uid != executable_owner_) {
+            return std::unexpected(FileError::PermissionDenied);
+        }
+        if (st.st_mode & static_cast<mode_t>(S_IWOTH | S_IWGRP)) {
+            return std::unexpected(FileError::PermissionDenied);
+        }
+        if ((st.st_mode & static_cast<mode_t>(S_IXUSR | S_IXGRP | S_IXOTH)) == 0) {
+            return std::unexpected(FileError::PermissionDenied);
+        }
+
+        // Preserve the final component while canonicalizing its directory.
+        // Resolving the final symlink would make every multicall applet
+        // (/usr/bin/ls, /usr/bin/cat, ...) share one policy identity.
+        std::error_code ec;
+        fs::path absolute = fs::absolute(candidate, ec);
+        std::string policy_path =
+            ec ? std::string(resolved_path) : absolute.lexically_normal().string();
+        if (!ec && !absolute.filename().empty()) {
+            char resolved_parent[PATH_MAX];
+            if (realpath(absolute.parent_path().c_str(), resolved_parent) != nullptr) {
+                policy_path =
+                    (fs::path(resolved_parent) / absolute.filename()).string();
+            }
+        }
+
+        return ExecutableInfo{resolved_path, policy_path, st.st_dev, st.st_ino};
+    };
+
+    // 1. A path containing '/' is explicit (absolute or relative).
+    if (command.find('/') != std::string_view::npos) {
+        std::error_code ec;
+        fs::path absolute = fs::absolute(fs::path(command), ec);
+        if (ec) {
+            return std::unexpected(FileError::NotFound);
+        }
+        return check_candidate(absolute);
+    }
+
+    // 2. Otherwise search the configured PATH in order. Remember the first
+    // non-NotFound failure so an unsafe-but-present candidate produces
+    // "permission denied" rather than a misleading "not found".
+    std::optional<FileError> first_error;
+    std::stringstream ss{std::string(path_env)};
     std::string item;
     while (std::getline(ss, item, ':')) {
         if (item.empty()) continue;
-        fs::path p = fs::path(item) / cmd;
-        if (check_path_safe(p)) {
-            return p.string();
+        auto result = check_candidate(fs::path(item) / std::string(command));
+        if (result) {
+            return result;
+        }
+        if (result.error() != FileError::NotFound && !first_error) {
+            first_error = result.error();
         }
     }
-    return "";
+    return std::unexpected(first_error.value_or(FileError::NotFound));
+}
+
+std::expected<int, FileError>
+FileUtils::open_executable(const ExecutableInfo& info) const {
+    int fd = open_no_follow(info.path.c_str());
+    if (fd == -1) {
+        return std::unexpected(errno_to_file_error(errno, FileError::ReadError));
+    }
+
+    struct stat st;
+    if (fstat(fd, &st) != 0) {
+        close(fd);
+        return std::unexpected(FileError::ReadError);
+    }
+
+    // The path may have been replaced after resolve_executable(). Refuse any
+    // inode other than the one that was validated.
+    if (st.st_dev != info.device || st.st_ino != info.inode) {
+        close(fd);
+        return std::unexpected(FileError::PermissionDenied);
+    }
+    if (!S_ISREG(st.st_mode) || st.st_uid != executable_owner_ ||
+        (st.st_mode & static_cast<mode_t>(S_IWOTH | S_IWGRP)) != 0 ||
+        (st.st_mode & static_cast<mode_t>(S_IXUSR | S_IXGRP | S_IXOTH)) == 0) {
+        close(fd);
+        return std::unexpected(FileError::PermissionDenied);
+    }
+
+    return fd;
+}
+
+std::string FileUtils::resolve_command(const ResolveCommandParams& params) const {
+    auto result = resolve_executable(params.command, params.path_env);
+    return result ? result->path : "";
+}
+
+bool FileUtils::is_trusted_path(const fs::path& path) const {
+    if (path.empty() || !path.is_absolute()) {
+        return false;
+    }
+
+    // Walk the original (lexically normalized) path rather than realpath() so
+    // a symlinked component is rejected instead of silently followed.
+    fs::path normalized = path.lexically_normal();
+    fs::path current;
+    for (const auto& component : normalized) {
+        if (component == "/") {
+            current = "/";
+            continue;
+        }
+        if (component == ".") {
+            continue;
+        }
+        if (component == "..") {
+            return false;
+        }
+        current /= component;
+
+        struct stat st;
+        if (::lstat(current.c_str(), &st) != 0) {
+            return false;
+        }
+        if (S_ISLNK(st.st_mode)) {
+            return false;
+        }
+        if (st.st_uid != 0) {
+            return false;
+        }
+        if (st.st_mode & static_cast<mode_t>(S_IWOTH | S_IWGRP)) {
+            return false;
+        }
+        if (current != normalized && !S_ISDIR(st.st_mode)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace Voix

@@ -10,10 +10,13 @@
 #define COMMAND_H
 
 #include "config.hpp"
+#include "file_utils.hpp"
 #include "rule.hpp"
 #include "system_identity.hpp"
+#include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace Voix {
@@ -39,9 +42,14 @@ struct CommandOptions {
 class Command {
 public:
   /**
-   * @brief Default constructor for Command.
+   * @brief Constructs a Command executor.
+   * @param executable_owner UID that must own resolved executables. The
+   *        production default is root (0). Tests running unprivileged may
+   *        pass geteuid() so a temporary executable can be exercised through
+   *        the real fork/fexecve path.
    */
-  Command() = default;
+  explicit Command(uid_t executable_owner = 0)
+      : executable_owner_(executable_owner) {}
   /**
    * @brief Default destructor for Command.
    */
@@ -53,7 +61,7 @@ public:
    * All identity resolution happens in the parent before fork(); the child
    * performs no name-service lookups between fork() and execve().
    *
-   * @param command The command to execute.
+   * @param command Validated executable identity (canonical path + inode).
    * @param args The arguments for the command.
    * @param config The configuration to use.
    * @param options The options for command execution.
@@ -61,9 +69,10 @@ public:
    * @param target Fully resolved identity of the target user.
    * @return The return code of the command, or a non-zero value on failure.
    */
-  int execute(std::string_view command, const std::vector<std::string> &args,
-              const Config &config, const CommandOptions &options,
-              const Rule &rule, const UserIdentity &target);
+  int execute(const ExecutableInfo &command,
+              const std::vector<std::string> &args, const Config &config,
+              const CommandOptions &options, const Rule &rule,
+              const UserIdentity &target);
 
   /**
    * @brief Resolves the security profile to apply for a matched rule and
@@ -86,7 +95,45 @@ public:
   static SecurityProfile resolve_profile(const Config &config, const Rule &rule,
                                          std::string_view target_user);
 
+  /**
+   * @brief Filters a raw environment according to the resolved profile.
+   *
+   * A pure function (no access to `environ`) so the security-relevant policy
+   * can be unit tested directly. Preservation is granted by
+   * `preserve_full_environment` (verbatim), or by either `keepenv` on the
+   * rule or `scrub_environment: false` on the profile (dangerous names and
+   * prefixes still removed); otherwise only the safe whitelist survives.
+   *
+   * @param profile The resolved security profile.
+   * @param options The options for command execution.
+   * @param raw_env Environment entries in `KEY=VALUE` form.
+   * @return The retained key/value pairs, in input order.
+   */
+  static std::vector<std::pair<std::string, std::string>>
+  sanitize_environment(const SecurityProfile &profile,
+                       const CommandOptions &options,
+                       std::span<const std::string> raw_env);
+
+  /**
+   * @brief Builds the child environment from the sanitized snapshot.
+   *
+   * Exposed for unit testing because it contains security-relevant identity
+   * overrides: USER/LOGNAME always come from the target, HOME is forced to
+   * the target's home for login shells (and for -H), and SHELL is installed
+   * for login shells. Administrator envlist entries are applied last.
+   */
+  static std::vector<std::pair<std::string, std::string>>
+  build_environment(const SecurityProfile &profile, const Config &config,
+                    const CommandOptions &options, const Rule &rule,
+                    const UserIdentity &target,
+                    std::vector<std::pair<std::string, std::string>> saved_env);
+
 private:
+  /// UID that must own executables resolved by this executor. Root in
+  /// production; overridable so tests can exercise the real execution path
+  /// with a user-owned temporary file.
+  uid_t executable_owner_ = 0;
+
   /**
    * @brief Sets resource limits for the executed command.
    */
@@ -135,25 +182,28 @@ private:
                     std::vector<std::pair<std::string, std::string>> saved_env);
 
   /// Apply profile-driven resource limits and scrub inherited file
-  /// descriptors on the restricted tier. Privileged targets deliberately
-  /// retain inherited FDs (e.g. D-Bus sockets for pacman hooks); see the
-  /// FD-management invariant documented at the close-loop site.
-  void apply_resource_limits_and_close_fds(const SecurityProfile &profile);
-
-  /// Resolve a non-absolute command against the configured PATH and reject
-  /// anything that does not canonicalize to an absolute path. Returns the
-  /// absolute path. _exit(127)s on failure (the child cannot recover).
-  std::string resolve_absolute_command(std::string command,
-                                       const Config &config);
+  /// descriptors on the restricted tier. The executable descriptor is
+  /// preserved (moved to fd 3) because fexecve() executes that exact inode.
+  /// Privileged targets deliberately retain inherited FDs (e.g. D-Bus
+  /// sockets for pacman hooks); see the FD-management invariant documented
+  /// at the close-loop site.
+  /// @return The descriptor number holding the pinned executable after the
+  ///         scrub. Callers must pass this to do_exec(); it is 3 on the
+  ///         restricted tier and the original descriptor on the privileged
+  ///         tier.
+  int apply_resource_limits_and_close_fds(const SecurityProfile &profile,
+                                          int executable_fd);
 
   /// PR_SET_NO_NEW_PRIVS is unconditional on the restricted tier; seccomp
   /// follows the profile's choice between blacklist and allowlist mode.
   void apply_kernel_confinement(const SecurityProfile &profile,
                                 const Config &config);
 
-  /// Login-shell vs direct execv dispatch. _exit(127) on exec failure.
+  /// Login-shell vs direct exec dispatch. Uses fexecve() on the pinned
+  /// executable descriptor and _exit(127) on failure.
   void do_exec(const std::string &cmd_str, const std::vector<std::string> &args,
-               const CommandOptions &options, const UserIdentity &target);
+               const CommandOptions &options, const UserIdentity &target,
+               int executable_fd);
 };
 
 } // namespace Voix

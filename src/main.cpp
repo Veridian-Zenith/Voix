@@ -12,7 +12,6 @@
 #include <vector>
 #include <cstdlib>
 #include <unistd.h>
-#include <syslog.h>
 #include <cstring>
 #include <memory>
 #ifdef VOIX_WITH_CAP
@@ -21,6 +20,8 @@
 #include <getopt.h>
 #include "voix.hpp"
 #include "config.hpp"
+#include "exit_code.hpp"
+#include "logger.hpp"
 #include "security.hpp"
 #include "system_utils.hpp"
 #include "policy_analyzer.hpp"
@@ -30,7 +31,7 @@
 #endif
 
 #ifndef VOIX_VERSION
-#define VOIX_VERSION "4.13.3"
+#define VOIX_VERSION "4.14.0-beta.1"
 #endif
 
 /**
@@ -72,7 +73,7 @@ int main(int argc, char* argv[]) noexcept {
     try {
         if (argc < 2) {
             printUsage();
-            return 1;
+            return Voix::exit_status(Voix::ExitCode::Usage);
         }
 
         // Parse command line arguments (enhanced with OpenDoas options)
@@ -93,7 +94,7 @@ int main(int argc, char* argv[]) noexcept {
             return VoixTest::run_tests(argc, argv);
 #else
             std::println(stderr, "Tests are not enabled in this build.");
-            return 1;
+            return Voix::exit_status(Voix::ExitCode::Software);
 #endif
         }
 
@@ -151,33 +152,26 @@ int main(int argc, char* argv[]) noexcept {
                 default:
                     // getopt_long already prints an error for unknown options
                     printUsage();
-                    return 1;
+                    return Voix::exit_status(Voix::ExitCode::Usage);
             }
         }
         argc -= optind;
         argv += optind;
 
-        // Handle shell mode
-        if (sflag) {
-            char* shell_var = getenv("SHELL");
-            std::string shell;
-            if (!shell_var || !*shell_var) {
-                auto pw_entry = Voix::lookup_passwd_by_uid(getuid());
-                shell = pw_entry ? pw_entry->shell : "/bin/sh";
-            } else {
-                shell = shell_var;
-            }
-            command_args.push_back(shell);
-        } else if (options.login_shell && argc < 1) {
-            // -i without a command: open interactive login shell as target
-            auto pw_entry = Voix::lookup_passwd_by_name(target_user);
-            std::string shell = pw_entry ? pw_entry->shell : "/bin/sh";
-            command_args.push_back(shell);
+        // Interactive modes run the target account's login shell. The
+        // caller's $SHELL is caller-controlled and must never influence a
+        // privilege transition, so resolve_login_shell() reads the target's
+        // passwd entry instead.
+        if (sflag || (options.login_shell && argc < 1)) {
+            // -s, or -i without a command: open a login shell as the target.
+            command_args.push_back(Voix::resolve_login_shell(target_user));
         } else if (argc < 1 && !options.list_commands && !options.check_config &&
                    !clear_timestamp && !options.login_shell) {
-            std::println(stderr, "Error: No command specified");
-            printUsage();
-            return 1;
+            Voix::Logger().report_error(
+                Voix::ExitCode::Usage, "no command specified",
+                "run 'voix --help' for usage, or 'voix -l' to list permitted "
+                "commands");
+            return Voix::exit_status(Voix::ExitCode::Usage);
         } else if (argc > 0) {
             for (int i = 0; i < argc; ++i) {
                 command_args.push_back(argv[i]);
@@ -186,9 +180,18 @@ int main(int argc, char* argv[]) noexcept {
 
         if (options.check_config) {
             Voix::Config config;
-            if (!config.load(config_path, true) || !config.validate()) {
-                std::println(stderr, "Error: Invalid configuration schema or permissions.");
-                return 1;
+            if (!config.load(config_path, true)) {
+                Voix::Logger().report_error(
+                    Voix::ExitCode::Config, config.last_error(),
+                    "check that the file exists, is root-owned, and has no "
+                    "group/world write permission");
+                return Voix::exit_status(Voix::ExitCode::Config);
+            }
+            if (!config.validate()) {
+                Voix::Logger().report_error(
+                    Voix::ExitCode::Config, config.last_error(),
+                    "fix the reported setting and re-run 'voix --check-config'");
+                return Voix::exit_status(Voix::ExitCode::Config);
             }
             std::println("Configuration is valid.");
 
@@ -202,7 +205,7 @@ int main(int argc, char* argv[]) noexcept {
                     std::println("  [{}] {}", severity, f.message);
                 }
             }
-            return 0;
+            return Voix::exit_status(Voix::ExitCode::Success);
         }
 
         Voix::Security security;
@@ -237,21 +240,45 @@ int main(int argc, char* argv[]) noexcept {
             security.dropCapabilities();
 #endif
             return result;
-        } catch (const std::exception& e) {
-            std::println(stderr, "Error: {}", e.what());
-            syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: %s", e.what());
+        } catch (const Voix::VoixError& e) {
+            Voix::Logger().report_error(e.code(), e.what(), e.hint());
 #ifdef VOIX_WITH_CAP
             security.dropCapabilities();
 #endif
-            return 1;
+            return Voix::exit_status(e.code());
+        } catch (const std::exception& e) {
+            // Keep implementation details (paths, OS errors) in the trusted
+            // local audit log; the caller only sees a fixed message.
+            Voix::Logger().log(
+                Voix::LogLevel::Error,
+                std::string("[software] unhandled exception: ") + e.what(),
+                /*echo_stderr=*/false);
+            Voix::Logger().report_error(
+                Voix::ExitCode::Software, "internal error",
+                "this is an internal error; re-run with a Debug build and "
+                "report it with the log from /var/log/voix.log");
+#ifdef VOIX_WITH_CAP
+            security.dropCapabilities();
+#endif
+            return Voix::exit_status(Voix::ExitCode::Software);
         }
+    } catch (const Voix::VoixError& e) {
+        Voix::Logger().report_error(e.code(), e.what(), e.hint());
+        return Voix::exit_status(e.code());
     } catch (const std::exception& e) {
-        std::println(stderr, "Error: {}", e.what());
-        syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: %s", e.what());
-        return 1;
+        Voix::Logger().log(
+            Voix::LogLevel::Error,
+            std::string("[software] unhandled exception: ") + e.what(),
+            /*echo_stderr=*/false);
+        Voix::Logger().report_error(
+            Voix::ExitCode::Software, "internal error",
+            "this is an internal error; report it with the log from "
+            "/var/log/voix.log");
+        return Voix::exit_status(Voix::ExitCode::Software);
     } catch (...) {
-        std::println(stderr, "Error: Unknown exception occurred");
-        syslog(LOG_AUTHPRIV | LOG_ERR, "Voix error: Unknown exception");
-        return 1;
+        Voix::Logger().report_error(Voix::ExitCode::Software,
+                                    "unknown exception occurred",
+                                    "this is an internal error");
+        return Voix::exit_status(Voix::ExitCode::Software);
     }
 }

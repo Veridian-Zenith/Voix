@@ -26,13 +26,25 @@ struct SecurityProfile {
   bool retain_full_capabilities = false;
   bool enable_seccomp = true;
   bool enable_resource_limits = true;
+  /// When false, the caller's environment is preserved after the dangerous
+  /// variable filter instead of being reduced to the whitelist. This is the
+  /// profile-level equivalent of the rule's `keepenv` option.
   bool scrub_environment = true;
   bool preserve_full_environment = false;
-  /// seccomp_mode: "blacklist" (default, current behavior: allow-all,
-  /// kill 19 dangerous syscalls) or "allowlist" (default-deny: kill
-  /// everything except the 19 permitted syscalls).
+  /// seccomp_mode: "blacklist" (default: allow-all, kill a fixed set of
+  /// dangerous syscalls) or "allowlist" (default-deny: kill everything except
+  /// the built-in baseline plus `seccomp_allow`).
   std::string seccomp_mode = "blacklist";
+  /// Additional syscall names permitted in "allowlist" mode, on top of the
+  /// built-in baseline. Names are resolved with seccomp_syscall_resolve_name()
+  /// and rejected at load time when unknown.
+  std::vector<std::string> seccomp_allow;
 };
+
+/// The seccomp modes Voix understands. Anything else is a configuration error
+/// rather than a silently unfiltered execution.
+constexpr std::string_view k_seccomp_mode_blacklist = "blacklist";
+constexpr std::string_view k_seccomp_mode_allowlist = "allowlist";
 
 class Config {
 public:
@@ -53,6 +65,11 @@ public:
    * @return True if the configuration was loaded successfully, false otherwise.
    */
   bool load(std::string_view config_path, bool verify_security = true);
+  /**
+   * @brief Gets the reason the last load() failed.
+   * @return Empty when the last load succeeded.
+   */
+  const std::string &last_error() const { return last_error_; }
   /**
    * @brief Gets the list of rules from the configuration.
    * @return A vector of Rule objects.
@@ -129,6 +146,19 @@ public:
    * @return True if valid, false otherwise.
    */
   bool validate() const;
+  /**
+   * @brief Validates that a sanctuary path is a trusted root-owned directory.
+   *
+   * The sanctuary holds timestamp tickets, so an attacker-writable directory
+   * would let an unprivileged user forge or delete them. The path must exist,
+   * be a directory, be absolute, and have every component root-owned and not
+   * group/world writable, with no symlinks.
+   *
+   * @param path Sanctuary path to validate.
+   * @return An error message when the path is untrusted, or std::nullopt.
+   */
+  static std::optional<std::string>
+  validate_sanctuary_path(std::string_view path);
 
 private:
   std::string sanctuary_;
@@ -141,6 +171,7 @@ private:
   bool seccomp_enabled_ = true;
   bool login_shell_default_ = false;
   bool suppress_stderr_ = true;
+  mutable std::string last_error_;
 };
 
 } // namespace Voix
