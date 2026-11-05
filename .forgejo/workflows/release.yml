@@ -1,0 +1,232 @@
+name: Release Artifacts
+
+# Forgejo Actions workflow for git.gay.
+#
+# x86_64 only: git.gay provides no aarch64 runner, and cross-building aarch64
+# from x86_64 cannot link the required aarch64 PAM/libcap/libseccomp/yaml-cpp
+# (see packaging/README.md). The former build-aarch64 job therefore has no
+# successor here.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to rebuild and sign (e.g. v4.14.0). Leave empty for a build-only run (no release)."
+        required: false
+        type: string
+
+env:
+  # Full 40-character fingerprint of the primary GPG release-signing key (ed25519).
+  GPG_FINGERPRINT: "7887165D6B07DE7785BD536E5239ACB42207EE03"
+
+jobs:
+  resolve:
+    name: Resolve release tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - name: Determine target tag
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            tag="$REF_NAME"
+          else
+            tag="$INPUT_TAG"
+          fi
+          if [[ -n "$tag" ]]; then
+            publish=true
+          else
+            publish=false
+          fi
+          echo "tag=$tag" >>"$GITHUB_OUTPUT"
+          echo "publish=$publish" >>"$GITHUB_OUTPUT"
+          echo "Resolved tag='${tag}' publish='${publish}'"
+
+  build:
+    name: Build x86_64-bin
+    needs: resolve
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: https://code.forgejo.org/actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Install LLVM 22
+        run: |
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends \
+            ca-certificates curl wget gnupg libpam0g-dev libcap-dev \
+            libseccomp-dev libyaml-cpp-dev ninja-build
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          $SUDO ./llvm.sh 22
+          $SUDO apt-get install -y --no-install-recommends clang-22 lld-22
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DCMAKE_C_COMPILER=clang-22 \
+            -DVOIX_ARCH=x86-64 \
+            -DVOIX_STATIC_YAML_CPP=ON \
+            -DENABLE_PERMISSIONS=OFF
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Verify binary architecture
+        run: |
+          set -euo pipefail
+          machine=$(readelf -h build/voix | sed -n 's/^ *Machine: *//p')
+          echo "ELF machine: ${machine}"
+          if [ "${machine}" != "Advanced Micro Devices X86-64" ]; then
+            echo "error: expected x86-64 binary, got '${machine}'" >&2
+            exit 1
+          fi
+
+      - name: Prepare Package
+        run: |
+          set -euo pipefail
+          mkdir -p voix-bin
+          cp build/voix voix-bin/
+          cp pam.d/voix voix-bin/voix.pam
+          cp config/voix.conf voix-bin/
+          cp docs/voix.1 voix-bin/
+          cp README.md voix-bin/
+          cp LICENSE voix-bin/
+          tar -czf voix-x86_64-bin.tar.gz voix-bin/
+
+      # Forgejo stores workflow artifacts server-side (ARTIFACT_RETENTION_DAYS,
+      # 90 days by default), so build-only dispatches still leave a downloadable
+      # tarball in the Actions UI.
+      - name: Upload Artifact
+        uses: https://code.forgejo.org/actions/upload-artifact@v7.0.2
+        with:
+          name: voix-x86_64-bin
+          path: voix-x86_64-bin.tar.gz
+
+  publish:
+    name: Sign and publish release
+    needs: [resolve, build]
+    if: needs.resolve.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+    steps:
+      - name: Checkout repository at the release tag
+        uses: https://code.forgejo.org/actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: https://code.forgejo.org/actions/download-artifact@v8.0.2
+        with:
+          name: voix-x86_64-bin
+          path: dist
+
+      - name: Import GPG signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+          command -v gpg >/dev/null 2>&1 || {
+            $SUDO apt-get update
+            $SUDO apt-get install -y --no-install-recommends gnupg jq
+          }
+          install -d -m 700 "$HOME/.gnupg"
+          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --quiet --import
+          gpg --batch --with-colons --list-secret-keys \
+            | grep -q "^fpr:::::::::${GPG_FINGERPRINT}:$" \
+            || { echo "error: signing key ${GPG_FINGERPRINT} missing after import" >&2; exit 1; }
+
+      # The source archive is produced from the checked-out tag with an explicit
+      # prefix instead of being downloaded from the forge: GitHub's tarball
+      # strips the leading `v` from the ref while Forgejo keeps it, and the AUR
+      # PKGBUILDs require the `Voix-$pkgver/` prefix.
+      - name: Build signed source archive for the tag
+        run: |
+          set -euo pipefail
+          ver="${RELEASE_TAG#v}"
+          archive="dist/voix-src-${ver}.tar.gz"
+          git archive --format=tar.gz --prefix="Voix-${ver}/" \
+            -o "$archive" "$RELEASE_TAG"
+          first_entry=$(tar -tzf "$archive" | head -n 1)
+          if [ "$first_entry" != "Voix-${ver}/" ]; then
+            echo "error: source archive is not prefixed with Voix-${ver}/ (got '${first_entry}')" >&2
+            exit 1
+          fi
+          tar -tzf "$archive" | grep -qx "Voix-${ver}/CMakeLists.txt" \
+            || { echo "error: source archive is missing CMakeLists.txt" >&2; exit 1; }
+
+      - name: Sign artifacts (detached, armored)
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          sign() {
+            local file="$1"
+            printf '%s' "$GPG_PASSPHRASE" | gpg --batch --yes \
+              --pinentry-mode loopback --passphrase-fd 0 \
+              --local-user "$GPG_FINGERPRINT" \
+              --armor --detach-sign --output "${file}.asc" "$file"
+            gpg --batch --verify "${file}.asc" "$file"
+          }
+          ver="${RELEASE_TAG#v}"
+          sign "dist/voix-x86_64-bin.tar.gz"
+          sign "dist/voix-src-${ver}.tar.gz"
+          ls -l dist
+
+      # Kept outside dist: forgejo-release uploads every file in release-dir.
+      - name: Generate release notes
+        run: |
+          set -euo pipefail
+          mkdir -p .release
+          prev=$(git describe --tags --abbrev=0 "${RELEASE_TAG}^" 2>/dev/null || true)
+          if [ -n "$prev" ]; then
+            range="${prev}..${RELEASE_TAG}"
+            heading="Changes since ${prev}"
+          else
+            range="${RELEASE_TAG}"
+            heading="Changes"
+          fi
+          {
+            echo "## ${heading}"
+            echo
+            git log --no-merges --pretty='- %s (`%h`)' "$range"
+            echo
+            echo "Every asset has a detached armored signature (\`.asc\`) made with"
+            echo "key \`${GPG_FINGERPRINT}\`."
+          } > .release/notes.md
+
+      # `url` and `token` are left at the action's defaults, which resolve to
+      # this instance's FORGEJO_SERVER_URL and the run's automatic token.
+      # `override: true` deletes and recreates the release for an existing tag,
+      # which is what makes rebuilding a cut release idempotent.
+      - name: Create / update release
+        uses: https://code.forgejo.org/actions/forgejo-release@v2.13.4
+        with:
+          direction: upload
+          tag: ${{ needs.resolve.outputs.tag }}
+          release-dir: dist
+          release-notes-file: .release/notes.md
+          hide-archive-link: 'true'
+          override: 'true'
+          verbose: 'true'

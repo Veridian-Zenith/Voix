@@ -1,0 +1,55 @@
+name: Static Analysis
+
+# Replaces the former CodeQL workflow. Code scanning and
+# github/codeql-action depend on GitHub's code-scanning API, which git.gay
+# does not provide, so the equivalent gate is the project's own clang-tidy
+# configuration (.clang-tidy) run with warnings treated as errors, matching
+# the contribution requirement in CONTRIBUTING.md.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "33 21 * * 1"
+
+jobs:
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: https://code.forgejo.org/actions/checkout@v7.0.1
+
+      - name: Install dependencies and LLVM 22
+        run: |
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends \
+            ca-certificates curl wget gnupg libpam0g-dev libcap-dev \
+            libseccomp-dev libyaml-cpp-dev ninja-build
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          $SUDO ./llvm.sh 22
+          $SUDO apt-get install -y --no-install-recommends clang-22 clang-tidy-22 lld-22
+
+      # clang-tidy only needs compile_commands.json; the sources are not built.
+      - name: Configure CMake (compile database)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_C_COMPILER=clang-22 \
+            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DENABLE_PERMISSIONS=OFF
+
+      - name: Run clang-tidy
+        run: |
+          set -euo pipefail
+          mapfile -t sources < <(git ls-files 'src/*.cpp' 'include/*.hpp')
+          printf 'Checking %d files\n' "${#sources[@]}"
+          clang-tidy-22 -p build --warnings-as-errors='*' \
+            "${sources[@]}" -- -Iinclude -std=c++26

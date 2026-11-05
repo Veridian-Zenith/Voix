@@ -10,11 +10,11 @@ set(CMAKE_CXX_FLAGS "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "" CACHE STRING "" FORCE)
 
-project(Voix VERSION 4.14.0 LANGUAGES CXX)
+project(Voix VERSION 4.15.0 LANGUAGES CXX)
 
 # Release builds report the project version. CMake requires a numeric project
 # version; VOIX_VERSION_STRING is what `voix --version` prints.
-set(VOIX_VERSION_STRING "4.14.0")
+set(VOIX_VERSION_STRING "4.15.0")
 # ---- Cache Acceleration ----
 # Explicitly use ccache as the compiler launcher for speed and consistency
 # (disabled during CodeQL analysis to allow proper build tracing)
@@ -53,21 +53,23 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "Clang required. Found: ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
-# ---- Architecture-Conditioned Control-Flow Hardening ----
-# x86_64 and aarch64 hardening flags are mutually exclusive, and the wrong one
-# is a hard error rather than a warning:
-#   x86_64 + -mbranch-protection : unsupported option '-mbranch-protection=' for target 'x86_64-...'
-#   aarch64 + -fcf-protection    : option 'cf-protection=return' cannot be specified on this target
-# Select on the *target* processor so native and cross builds both compile.
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-    # Inert at the armv8-a baseline the release workflow requests: BTI needs
-    # ARMv8.5 (or an explicit +bti feature) and PAC needs +pauth, so clang
-    # accepts this and emits neither. Raise VOIX_ARCH to armv8-a+bti+pauth (or
-    # armv8.5-a) to get the CET analogue, accepting a higher CPU baseline.
-    set(VOIX_CTRL_FLOW_FLAGS "-mbranch-protection=standard")
-else()
-    set(VOIX_CTRL_FLOW_FLAGS "-fcf-protection=full")
+# ---- Supported Architecture ----
+# x86_64 only. aarch64 is unsupported: the release pipeline runs on a forge
+# with no native aarch64 runner, and cross-compiling from x86_64 cannot link
+# the required aarch64 PAM, libcap, libseccomp, and yaml-cpp. Reject any other
+# target at configure time instead of emitting flags for an artifact that is
+# never built or shipped.
+if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+    message(FATAL_ERROR
+            "Voix supports x86_64 only (detected target: '${CMAKE_SYSTEM_PROCESSOR}'). "
+            "aarch64 is not supported: there is no native aarch64 runner for the "
+            "release pipeline and no aarch64 sysroot for cross-compilation.")
 endif()
+
+# ---- Control-Flow Hardening ----
+# CET: the aarch64 alternative (-mbranch-protection=standard) is gone with
+# aarch64 support, so the x86_64 flag is unconditional.
+set(VOIX_CTRL_FLOW_FLAGS "-fcf-protection=full")
 message(STATUS "Control-flow hardening: ${VOIX_CTRL_FLOW_FLAGS}")
 
 # ---- Compiler & Feature Flags ----
@@ -77,7 +79,7 @@ message(STATUS "Control-flow hardening: ${VOIX_CTRL_FLOW_FLAGS}")
 #   -fstack-protector-strong / -fstack-clash-protection : stack safety
 #   -D_FORTIFY_SOURCE=3 : fortified libc functions
 #   -ftrivial-auto-var-init=zero : deterministic stack (kills uninit-read UAF/info-leak)
-#   ${VOIX_CTRL_FLOW_FLAGS} : CET (x86_64) or BTI+PAC (aarch64) control-flow integrity
+#   ${VOIX_CTRL_FLOW_FLAGS} : CET control-flow integrity
 #   -fexperimental-library : C++26 experimental features
 set(COMMON_FLAGS "-march=${VOIX_ARCH} -pipe -fno-plt -fstack-protector-strong \
 -fstack-clash-protection -D_FORTIFY_SOURCE=3 -fPIE -flto=thin -fvisibility=hidden \

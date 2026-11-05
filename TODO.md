@@ -8,9 +8,9 @@ user-visible change in [`CHANGELOG.md`](CHANGELOG.md).
 | :--- | :--- |
 | **Branch** | `master` (released) |
 | **Base** | `origin/master` at `da0ea5c` (merge of PR #33) |
-| **Release** | `4.14.0` (2026-10-27; `4.13.3` was the previous release) |
-| **Status** | Release prepared; post-merge CI green and no open CodeQL alerts |
-| **Last updated** | 2026-10-27 |
+| **Release** | `4.15.0` (prepared 2026-11-05, not tagged; `4.14.0` was the previous release) |
+| **Status** | `4.15.0` prepared: x86_64-only artifacts, Forgejo Actions. Tag not created or pushed. |
+| **Last updated** | 2026-11-05 |
 
 Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by design
 
@@ -118,9 +118,6 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 - [ ] **Catastrophic-gate depth.** The gate inspects only the directly
   requested command; a permitted shell can invoke blocked tools. Document a
   "no shells" policy pattern and consider an opt-in wrapper check.
-- [ ] **Multi-arch release verification.** Add a CI smoke test that runs
-  `voix --version` from both release tarballs and asserts the `Machine:` field
-  matches the artifact name. The v4.13.3 `aarch64` asset was an x86-64 ELF.
 
 ---
 

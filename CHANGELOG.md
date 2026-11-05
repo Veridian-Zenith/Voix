@@ -4,6 +4,28 @@ All notable changes to Voix are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use
 [Semantic Versioning](https://semver.org/).
 
+## [4.15.0] - 2026-11-05
+
+### Removed
+
+- aarch64 support. The project's release pipeline now runs on git.gay
+  (Forgejo), which provides no native aarch64 runner, and cross-compiling from
+  x86_64 cannot link the required aarch64 PAM/libcap/libseccomp/yaml-cpp. No
+  aarch64 release artifact is built or published, both AUR packages are
+  `x86_64`-only, and `CMakeLists.txt` rejects any non-x86_64 target at
+  configure time.
+
+### Changed
+
+- CI moved from GitHub Actions to Forgejo Actions (`.forgejo/workflows`).
+  Static analysis runs the project's own `clang-tidy` configuration instead of
+  CodeQL, which requires GitHub's code-scanning API, and releases are published
+  to the git.gay release page with the same detached GPG signatures.
+- The signed source archive is produced with `git archive
+  --prefix=Voix-<version>/` rather than downloaded from the forge, because
+  GitHub strips the leading `v` from archive directories while Forgejo keeps
+  it; the AUR `cd Voix-$pkgver` prefix is now independent of the host.
+
 ## [4.14.0] - 2026-10-27
 
 > **Breaking:** policy is closed by default, the ACL no longer implicitly

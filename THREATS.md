@@ -3,7 +3,7 @@
 Voix is a Privilege Policy Enforcement Runtime designed as a policy-driven alternative to traditional privilege escalation tools, with a more transparent, minimal, and strictly controlled security model. This document outlines the attack surface, the threat model, and the technical mitigations implemented to ensure system integrity.
 
 > [!IMPORTANT]
-> This document describes the implemented behavior of `4.14.0` (the current
+> This document describes the implemented behavior of `4.15.0` (the current
 > release; `4.13.3` was the previous release). Where a control has a known
 > limitation, it is called out inline and summarized in
 > [Known Limitations](#7-known-limitations). The test suite (`tests/`, 134
@@ -30,7 +30,7 @@ To ensure transparency and auditability, Voix maintains a minimal TCB. Unlike tr
 
 | Metric | Traditional Tools (approx.) | Voix | Note |
 | :--- | :--- | :--- | :--- |
-| **Lines of Code** | ~180,000 | **5,540** (`src/*.cpp`: 3,828 + `include/*.hpp`: 1,712; `4.14.0`) | ~32x smaller attack surface |
+| **Lines of Code** | ~180,000 | **5,540** (`src/*.cpp`: 3,828 + `include/*.hpp`: 1,712; `4.15.0`) | ~32x smaller attack surface |
 | **Test Suite** | varies | 3,136 lines, 134 tests incl. adversarial and unprivileged end-to-end cases | Ships with the repo |
 | **External Dependencies** | Many (varies) | 2 required, 2 optional | `yaml-cpp`, `pam` (required); `libcap`, `libseccomp` (optional) |
 | **Binary Size (Release)** | ~1.2 MB | **511 KB** distro (dynamic `yaml-cpp`) / **794 KB** portable `voix-bin` (bundled) — x86_64 v4.13.3, both stripped; compressed packages 236 KB / 340 KB | Clang `-O2` + ThinLTO + ICF + `--gc-sections` + `--strip-all`; bundling `yaml-cpp` costs ~283 KB but removes the `libyaml-cpp.so.N` soname requirement |

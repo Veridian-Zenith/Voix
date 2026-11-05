@@ -1,0 +1,62 @@
+name: Test Suite
+
+# Forgejo Actions workflow for git.gay.
+# Workflows are read from .forgejo/workflows. Every `uses:` is a fully
+# qualified URL (https://code.forgejo.org/actions/...) so resolution never
+# depends on the instance's DEFAULT_ACTIONS_URL.
+# `runs-on: ubuntu-latest` must match a label advertised by the runner
+# registered on git.gay; change it here if yours is labelled differently.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: https://code.forgejo.org/actions/checkout@v7.0.1
+
+      - name: Install dependencies and LLVM 22
+        run: |
+          set -euo pipefail
+          # Forgejo runs job steps as root inside the runner's container image,
+          # which does not necessarily ship sudo.
+          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends \
+            ca-certificates curl wget gnupg libpam0g-dev libcap-dev \
+            libseccomp-dev libyaml-cpp-dev ninja-build ccache
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          $SUDO ./llvm.sh 22
+          $SUDO apt-get install -y --no-install-recommends clang-22 lld-22
+
+      # Forgejo stores the cache on the runner, not the server. Caching only
+      # affects build time, so a cache server that is unavailable or
+      # misconfigured must not fail the suite.
+      - name: Restore ccache
+        continue-on-error: true
+        uses: https://code.forgejo.org/actions/cache@v6.1.0
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ forgejo.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
+      - name: Configure CMake (Debug mode)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang-22 \
+            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DENABLE_PERMISSIONS=OFF
+
+      - name: Build and Run Tests
+        run: |
+          cmake --build build
+          ctest --test-dir build --output-on-failure
