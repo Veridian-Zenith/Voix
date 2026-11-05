@@ -244,10 +244,11 @@ jobs:
         run: |
           set -euo pipefail
           install -d -m 700 "$HOME/.gnupg"
-          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --quiet --import
+          printf '%s' "$GPG_PRIVATE_KEY" | base64 -d | gpg --batch --quiet --import
           gpg --batch --with-colons --list-secret-keys \
             | grep -q "^fpr:::::::::${GPG_FINGERPRINT}:$" \
             || { echo "error: signing key ${GPG_FINGERPRINT} missing after import" >&2; exit 1; }
+
 
       # The source archive is produced from the checked-out tag with an explicit
       # prefix instead of being downloaded from the forge: GitHub's tarball
