@@ -203,7 +203,7 @@ jobs:
       # 90 days by default), so build-only dispatches still leave a downloadable
       # tarball in the Actions UI.
       - name: Upload Artifact
-        uses: https://code.forgejo.org/actions/upload-artifact@v7.0.2
+        uses: https://code.forgejo.org/actions/upload-artifact@v3.2.2
         with:
           name: voix-x86_64-bin
           path: voix-x86_64-bin.tar.gz
@@ -234,7 +234,7 @@ jobs:
           gpg --version | head -n 1
 
       - name: Download build artifacts
-        uses: https://code.forgejo.org/actions/download-artifact@v8.0.2
+        uses: https://code.forgejo.org/actions/download-artifact@v3.1.0
         with:
           name: voix-x86_64-bin
           path: dist
