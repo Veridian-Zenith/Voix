@@ -142,8 +142,8 @@ jobs:
             exit 0
           fi
 
-          echo "libyaml-cpp.a not found; building yaml-cpp 0.8.0 from source"
-          git clone --depth 1 --branch 0.8.0 https://github.com/jbeder/yaml-cpp.git /tmp/yaml-cpp
+          echo "libyaml-cpp.a not found; building yaml-cpp 0.9.0 from source"
+          git clone --depth 1 --branch yaml-cpp-0.9.0 https://github.com/jbeder/yaml-cpp.git /tmp/yaml-cpp
           cmake -S /tmp/yaml-cpp -B /tmp/yaml-cpp/build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=clang++-22 \
