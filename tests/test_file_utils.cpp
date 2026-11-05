@@ -228,10 +228,21 @@ bool test_resolve_executable_rejects_user_owned_by_default() {
     std::filesystem::permissions(exe, std::filesystem::perms::owner_all,
                                  std::filesystem::perm_options::replace);
 
-    Voix::FileUtils production;
-    ASSERT_TRUE(!production.resolve_executable(exe.string(), ""));
+    const uid_t file_owner = geteuid();
 
-    Voix::FileUtils test_owned(geteuid());
+    // The production default trusts only root-owned files. When the suite runs
+    // as root the fixture is root-owned too, so exercise the ownership check
+    // with an explicitly foreign owner instead of assuming an unprivileged
+    // runner.
+    if (file_owner != 0) {
+        Voix::FileUtils production;
+        ASSERT_TRUE(!production.resolve_executable(exe.string(), ""));
+    }
+
+    Voix::FileUtils foreign_owner(static_cast<uid_t>(file_owner == 0 ? 1 : 0));
+    ASSERT_TRUE(!foreign_owner.resolve_executable(exe.string(), ""));
+
+    Voix::FileUtils test_owned(file_owner);
     auto resolved = test_owned.resolve_executable(exe.string(), "");
     ASSERT_TRUE(resolved.has_value());
     ASSERT_EQUAL(resolved->path, std::filesystem::canonical(exe).string());
