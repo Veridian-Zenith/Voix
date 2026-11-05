@@ -4,8 +4,11 @@ name: Release Artifacts
 #
 # x86_64 only: git.gay provides no aarch64 runner, and cross-building aarch64
 # from x86_64 cannot link the required aarch64 PAM/libcap/libseccomp/yaml-cpp
-# (see packaging/README.md). The former build-aarch64 job therefore has no
-# successor here.
+# (see packaging/README.md). There is no aarch64 job.
+#
+# The job runs in a bare Debian container (unprivileged runner), so every tool
+# the build touches is installed explicitly here instead of being inherited
+# from a GitHub hosted image.
 
 on:
   push:
@@ -14,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to rebuild and sign (e.g. v4.14.0). Leave empty for a build-only run (no release)."
+        description: "Existing tag to rebuild and sign (e.g. v4.15.0). Leave empty for a build-only run (no release)."
         required: false
         type: string
 
@@ -56,6 +59,9 @@ jobs:
     name: Build x86_64-bin
     needs: resolve
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
 
     steps:
       - name: Checkout repository
@@ -64,24 +70,89 @@ jobs:
           ref: ${{ needs.resolve.outputs.tag || github.ref }}
           fetch-depth: 0
 
-      - name: Install LLVM 22
+      - name: Install the full build toolchain
         run: |
           set -euo pipefail
           if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
-          # llvm.sh needs lsb_release and add-apt-repository, neither of which is
-          # in the runner image: it exits 127 without lsb_release and 4 without
-          # add-apt-repository (software-properties-common), before any install.
-          # The image also ships no cmake, pkg-config, or readelf (binutils).
+
+          # The runner image ships no cmake, pkg-config, lsb_release, or
+          # add-apt-repository; llvm.sh exits 127 without lsb_release and 4
+          # without add-apt-repository, before it installs anything. xz-utils is
+          # needed to unpack the LLVM tarballs, binutils supplies readelf.
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends \
-            ca-certificates curl wget gnupg lsb-release \
-            software-properties-common cmake pkg-config binutils \
-            libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev \
-            ninja-build
+            ca-certificates curl wget git gnupg lsb-release xz-utils \
+            software-properties-common \
+            cmake pkg-config ninja-build binutils \
+            libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev
+
           wget -q https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           $SUDO ./llvm.sh 22
           $SUDO apt-get install -y --no-install-recommends clang-22 lld-22
+
+          # CMakeLists requires >= 3.30; Debian oldstable ships 3.25, so fall
+          # back to the pinned upstream build (checksum from the release API).
+          cmake_ver=4.4.5
+          cmake_sha=ed85135c5a5135b45e50423cb406dea04ca3338da0b8ef3c9ede963559680be0
+          have=$(cmake --version 2>/dev/null | sed -n '1s/.*version *//p' || true)
+          if [ -z "$have" ] || [ "$(printf '%s\n3.30\n' "$have" | sort -V | head -n 1)" != "3.30" ]; then
+            echo "cmake ${have:-missing} is older than 3.30; installing CMake ${cmake_ver}"
+            archive="/tmp/cmake-${cmake_ver}.tar.gz"
+            curl -fsSL -o "$archive" \
+              "https://github.com/Kitware/CMake/releases/download/v${cmake_ver}/cmake-${cmake_ver}-linux-x86_64.tar.gz"
+            printf '%s  %s\n' "$cmake_sha" "$archive" | sha256sum -c -
+            if [ -w /usr/local/bin ]; then
+              tar -xzf "$archive" -C /usr/local --strip-components=1
+            else
+              mkdir -p "$HOME/.local/cmake"
+              tar -xzf "$archive" -C "$HOME/.local/cmake" --strip-components=1
+              for path_file in "${GITHUB_PATH:-}" "${FORGEJO_PATH:-}"; do
+                [ -n "$path_file" ] && echo "$HOME/.local/cmake/bin" >>"$path_file"
+              done
+              export PATH="$HOME/.local/cmake/bin:$PATH"
+            fi
+          fi
+
+          cmake --version | head -n 1
+          clang-22 --version | head -n 1
+          ninja --version
+
+      - name: Verify the tag matches the project version
+        if: needs.resolve.outputs.tag != ''
+        run: |
+          set -euo pipefail
+          ver="${RELEASE_TAG#v}"
+          grep -q "set(VOIX_VERSION_STRING \"${ver}\")" CMakeLists.txt \
+            || { echo "error: tag ${RELEASE_TAG} does not match VOIX_VERSION_STRING in CMakeLists.txt" >&2; exit 1; }
+          echo "tag ${RELEASE_TAG} matches project version ${ver}"
+
+      - name: Ensure a static libyaml-cpp.a is available
+        run: |
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+
+          # VOIX_STATIC_YAML_CPP=ON links libyaml-cpp.a so the shipped binary
+          # carries no versioned yaml-cpp soname. Not every -dev package ships
+          # the archive, and find_library() would abort the configure, so build
+          # yaml-cpp from source when the distro has no static library.
+          if find /usr/lib /usr/local/lib -name 'libyaml-cpp.a' -print -quit 2>/dev/null | grep -q .; then
+            echo "using the installed static archive:"
+            find /usr/lib /usr/local/lib -name 'libyaml-cpp.a' -print
+            exit 0
+          fi
+
+          echo "libyaml-cpp.a not found; building yaml-cpp 0.8.0 from source"
+          git clone --depth 1 --branch 0.8.0 https://github.com/jbeder/yaml-cpp.git /tmp/yaml-cpp
+          cmake -S /tmp/yaml-cpp -B /tmp/yaml-cpp/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DYAML_CPP_BUILD_TOOLS=OFF \
+            -DYAML_CPP_BUILD_TESTS=OFF \
+            -DYAML_CPP_BUILD_CONTRIB=OFF
+          cmake --build /tmp/yaml-cpp/build
+          $SUDO cmake --install /tmp/yaml-cpp/build --prefix /usr/local
+          test -f /usr/local/lib/libyaml-cpp.a
 
       - name: Configure CMake
         run: |
@@ -96,7 +167,7 @@ jobs:
       - name: Build
         run: cmake --build build
 
-      - name: Verify binary architecture
+      - name: Verify binary architecture and linkage
         run: |
           set -euo pipefail
           machine=$(readelf -h build/voix | sed -n 's/^ *Machine: *//p')
@@ -105,6 +176,14 @@ jobs:
             echo "error: expected x86-64 binary, got '${machine}'" >&2
             exit 1
           fi
+          # The portable artifact must not depend on a versioned yaml-cpp soname.
+          if ldd build/voix | grep -q 'libyaml-cpp'; then
+            echo "error: binary still links libyaml-cpp dynamically" >&2
+            ldd build/voix | grep 'libyaml-cpp' >&2
+            exit 1
+          fi
+          echo "no dynamic yaml-cpp dependency"
+          ./build/voix --version
 
       - name: Prepare Package
         run: |
@@ -117,6 +196,7 @@ jobs:
           cp README.md voix-bin/
           cp LICENSE voix-bin/
           tar -czf voix-x86_64-bin.tar.gz voix-bin/
+          tar -tzf voix-x86_64-bin.tar.gz | sort
 
       # Forgejo stores workflow artifacts server-side (ARTIFACT_RETENTION_DAYS,
       # 90 days by default), so build-only dispatches still leave a downloadable
@@ -132,6 +212,7 @@ jobs:
     needs: [resolve, build]
     if: needs.resolve.outputs.publish == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
     steps:
@@ -140,6 +221,16 @@ jobs:
         with:
           ref: ${{ needs.resolve.outputs.tag }}
           fetch-depth: 0
+
+      - name: Install publish tools
+        run: |
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+          # jq and curl are used by forgejo-release; gnupg signs the assets.
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends \
+            ca-certificates curl jq git gnupg
+          gpg --version | head -n 1
 
       - name: Download build artifacts
         uses: https://code.forgejo.org/actions/download-artifact@v8.0.2
@@ -152,11 +243,6 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
-          command -v gpg >/dev/null 2>&1 || {
-            $SUDO apt-get update
-            $SUDO apt-get install -y --no-install-recommends gnupg jq
-          }
           install -d -m 700 "$HOME/.gnupg"
           printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --quiet --import
           gpg --batch --with-colons --list-secret-keys \
@@ -167,7 +253,7 @@ jobs:
       # prefix instead of being downloaded from the forge: GitHub's tarball
       # strips the leading `v` from the ref while Forgejo keeps it, and the AUR
       # PKGBUILDs require the `Voix-$pkgver/` prefix.
-      - name: Build signed source archive for the tag
+      - name: Build the source archive for the tag
         run: |
           set -euo pipefail
           ver="${RELEASE_TAG#v}"
@@ -181,6 +267,7 @@ jobs:
           fi
           tar -tzf "$archive" | grep -qx "Voix-${ver}/CMakeLists.txt" \
             || { echo "error: source archive is missing CMakeLists.txt" >&2; exit 1; }
+          ls -l dist
 
       - name: Sign artifacts (detached, armored)
         env:
@@ -221,6 +308,7 @@ jobs:
             echo "Every asset has a detached armored signature (\`.asc\`) made with"
             echo "key \`${GPG_FINGERPRINT}\`."
           } > .release/notes.md
+          cat .release/notes.md
 
       # `url` and `token` are left at the action's defaults, which resolve to
       # this instance's FORGEJO_SERVER_URL and the run's automatic token.
