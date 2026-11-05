@@ -24,9 +24,6 @@ jobs:
       - name: Install dependencies and LLVM 23
         run: |
           set -euo pipefail
-          # Bare Debian container, not ubuntu-latest: no cmake, pkg-config,
-          # lsb_release, or add-apt-repository (llvm.sh exits 127/4 without the
-          # last two), and xz-utils is needed to unpack the LLVM tarballs.
           if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends \
@@ -34,11 +31,13 @@ jobs:
             software-properties-common \
             cmake pkg-config ninja-build \
             libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev \
+            libstdc++-14-dev \
             ccache
           wget -q https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           $SUDO ./llvm.sh 23
           $SUDO apt-get install -y --no-install-recommends clang-23 lld-23
+
 
           # CMakeLists requires >= 3.30; Debian oldstable ships 3.25.
           cmake_ver=4.4.5
