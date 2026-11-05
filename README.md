@@ -4,9 +4,9 @@
 
 **Privilege Policy Enforcement Runtime**
 
-[![Tests](https://github.com/Veridian-Zenith/Voix/actions/workflows/tests.yml/badge.svg)](https://github.com/Veridian-Zenith/Voix/actions/workflows/tests.yml)
-[![CodeQL](https://github.com/Veridian-Zenith/Voix/actions/workflows/codeql.yml/badge.svg)](https://github.com/Veridian-Zenith/Voix/actions/workflows/codeql.yml)
-[![Release](https://img.shields.io/github/v/release/Veridian-Zenith/Voix)](https://github.com/Veridian-Zenith/Voix/releases)
+[![Tests](https://git.gay/Veridian-Zenith/Voix/actions/workflows/tests.yml/badge.svg)](https://git.gay/Veridian-Zenith/Voix/actions/workflows/tests.yml)
+[![CodeQL](https://git.gay/Veridian-Zenith/Voix/actions/workflows/codeql.yml/badge.svg)](https://git.gay/Veridian-Zenith/Voix/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/Veridian-Zenith/Voix)](https://git.gay/Veridian-Zenith/Voix/releases)
 [![AUR version](https://img.shields.io/aur/version/voix)](https://aur.archlinux.org/packages/voix)
 [![License](https://img.shields.io/badge/license-OSL--3.0-blue)](./LICENSE)
 
@@ -243,7 +243,7 @@ Voix may be used in workflows similar to `sudo` or `doas` for operational famili
 1. **Clone the repository**:
 
     ```bash
-    git clone https://github.com/Veridian-Zenith/Voix.git && cd Voix
+    git clone https://git.gay/Veridian-Zenith/Voix.git && cd Voix
     ```
 
 2. **Configure and build**:

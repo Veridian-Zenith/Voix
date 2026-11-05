@@ -19,7 +19,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
 ## 1. Merge checklist
 
 - [x] Open a pull request for `security/p0-hardening` against `master`.
-  PR [#33](https://github.com/Veridian-Zenith/Voix/pull/33) was merged as
+  PR [#33](https://git.gay/Veridian-Zenith/Voix/pull/33) was merged as
   `da0ea5c`.
 - [x] Confirm CI is green on the branch: `Test Suite`, `CodeQL Analysis`, and
   the repository's CodeQL default setup.
