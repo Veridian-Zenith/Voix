@@ -4,7 +4,7 @@ Voix is a Privilege Policy Enforcement Runtime designed as a policy-driven alter
 
 > [!IMPORTANT]
 > This document describes the implemented behavior of `4.15.0` (the current
-> release; `4.13.3` was the previous release). Where a control has a known
+> release; `4.14.0` was the previous release). Where a control has a known
 > limitation, it is called out inline and summarized in
 > [Known Limitations](#7-known-limitations). The test suite (`tests/`, 134
 > tests) covers policy, configuration, path, ticket, catastrophic-command

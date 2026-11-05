@@ -8,8 +8,8 @@ user-visible change in [`CHANGELOG.md`](CHANGELOG.md).
 | :--- | :--- |
 | **Branch** | `master` (released) |
 | **Base** | `origin/master` at `da0ea5c` (merge of PR #33) |
-| **Release** | `4.15.0` (prepared 2026-11-05, not tagged; `4.14.0` was the previous release) |
-| **Status** | `4.15.0` prepared: x86_64-only artifacts, Forgejo Actions. Tag not created or pushed. |
+| **Release** | `4.15.0` (tagged locally 2026-11-05; `4.14.0` was the previous release) |
+| **Status** | `4.15.0` prepared: x86_64-only artifacts, Forgejo Actions. Signed tag created locally; not pushed. |
 | **Last updated** | 2026-11-05 |
 
 Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by design
@@ -37,10 +37,10 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · `[>]` deferred by desig
   exit codes are breaking. `4.14.0-beta.1` was the development marker and is
   not a release tag.
 - [x] Update the source version, manpage date, and release notes for `4.14.0`.
-- [ ] After the `v4.14.0` artifacts are published, update
-  `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD` (`pkgver=4.14.0`,
-  `pkgrel=1`, new checksums) and push them to the AUR. AUR `pkgver` cannot
-  contain `-`; the stable version has no suffix.
+- [ ] After the `v4.15.0` artifacts are published, refresh the checksums in
+  `pkg/voix/PKGBUILD` and `pkg/voix-bin/PKGBUILD` (`pkgver=4.15.0`,
+  `pkgrel=1`) and push both AUR repositories. AUR `pkgver` cannot contain `-`;
+  the stable version has no suffix.
 - [x] Confirm the shipped `config/voix.conf` remains closed by default and
   document the migration for existing operators: empty ACL, no implicit
   `wheel` trust, no unconfined targets, `/var/lib/voix` sanctuary, and the new
