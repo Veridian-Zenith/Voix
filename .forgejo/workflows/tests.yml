@@ -27,10 +27,12 @@ jobs:
           # Forgejo runs job steps as root inside the runner's container image,
           # which does not necessarily ship sudo.
           if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+          # lsb-release is not in the runner image and llvm.sh dies without it
+          # ("lsb_release: command not found", exit 127) when it detects the distro.
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends \
-            ca-certificates curl wget gnupg libpam0g-dev libcap-dev \
-            libseccomp-dev libyaml-cpp-dev ninja-build ccache
+            ca-certificates curl wget gnupg lsb-release libpam0g-dev \
+            libcap-dev libseccomp-dev libyaml-cpp-dev ninja-build ccache
           wget -q https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           $SUDO ./llvm.sh 22
