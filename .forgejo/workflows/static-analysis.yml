@@ -23,7 +23,7 @@ jobs:
       - name: Checkout repository
         uses: https://code.forgejo.org/actions/checkout@v7.0.1
 
-      - name: Install dependencies and LLVM 22
+      - name: Install dependencies and LLVM 23
         run: |
           set -euo pipefail
           # Bare Debian container, not ubuntu-latest: no cmake, pkg-config,
@@ -38,8 +38,8 @@ jobs:
             libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev
           wget -q https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          $SUDO ./llvm.sh 22
-          $SUDO apt-get install -y --no-install-recommends clang-22 clang-tidy-22 lld-22
+          $SUDO ./llvm.sh 23
+          $SUDO apt-get install -y --no-install-recommends clang-23 clang-tidy-23 lld-23
 
           # CMakeLists requires >= 3.30; Debian oldstable ships 3.25.
           cmake_ver=4.4.5
@@ -70,8 +70,8 @@ jobs:
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_C_COMPILER=clang-22 \
-            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DCMAKE_C_COMPILER=clang-23 \
+            -DCMAKE_CXX_COMPILER=clang++-23 \
             -DENABLE_PERMISSIONS=OFF
 
       - name: Run clang-tidy
@@ -79,5 +79,5 @@ jobs:
           set -euo pipefail
           mapfile -t sources < <(git ls-files 'src/*.cpp' 'include/*.hpp')
           printf 'Checking %d files\n' "${#sources[@]}"
-          clang-tidy-22 -p build --warnings-as-errors='*' \
+          clang-tidy-23 -p build --warnings-as-errors='*' \
             "${sources[@]}" -- -Iinclude -std=c++26

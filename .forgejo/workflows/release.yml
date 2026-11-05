@@ -88,8 +88,8 @@ jobs:
 
           wget -q https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          $SUDO ./llvm.sh 22
-          $SUDO apt-get install -y --no-install-recommends clang-22 lld-22
+          $SUDO ./llvm.sh 23
+          $SUDO apt-get install -y --no-install-recommends clang-23 lld-23
 
           # CMakeLists requires >= 3.30; Debian oldstable ships 3.25, so fall
           # back to the pinned upstream build (checksum from the release API).
@@ -115,7 +115,7 @@ jobs:
           fi
 
           cmake --version | head -n 1
-          clang-22 --version | head -n 1
+          clang-23 --version | head -n 1
           ninja --version
 
       - name: Verify the tag matches the project version
@@ -146,7 +146,7 @@ jobs:
           git clone --depth 1 --branch yaml-cpp-0.9.0 https://github.com/jbeder/yaml-cpp.git /tmp/yaml-cpp
           cmake -S /tmp/yaml-cpp -B /tmp/yaml-cpp/build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=clang++-22 \
+            -DCMAKE_CXX_COMPILER=clang++-23 \
             -DYAML_CPP_BUILD_TOOLS=OFF \
             -DYAML_CPP_BUILD_TESTS=OFF \
             -DYAML_CPP_BUILD_CONTRIB=OFF
@@ -158,8 +158,8 @@ jobs:
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=clang++-22 \
-            -DCMAKE_C_COMPILER=clang-22 \
+            -DCMAKE_CXX_COMPILER=clang++-23 \
+            -DCMAKE_C_COMPILER=clang-23 \
             -DVOIX_ARCH=x86-64 \
             -DVOIX_STATIC_YAML_CPP=ON \
             -DENABLE_PERMISSIONS=OFF
