@@ -30,11 +30,13 @@ jobs:
           # llvm.sh needs lsb_release and add-apt-repository, neither of which is
           # in the runner image: it exits 127 without lsb_release and 4 without
           # add-apt-repository (software-properties-common), before any install.
+          # The image also ships no cmake or pkg-config, unlike ubuntu-latest.
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends \
             ca-certificates curl wget gnupg lsb-release \
-            software-properties-common libpam0g-dev libcap-dev \
-            libseccomp-dev libyaml-cpp-dev ninja-build ccache
+            software-properties-common cmake pkg-config \
+            libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev \
+            ninja-build ccache
           wget -q https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           $SUDO ./llvm.sh 22
