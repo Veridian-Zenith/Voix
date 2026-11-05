@@ -262,12 +262,15 @@ jobs:
           archive="dist/voix-src-${ver}.tar.gz"
           git archive --format=tar.gz --prefix="Voix-${ver}/" \
             -o "$archive" "$RELEASE_TAG"
-          first_entry=$(tar -tzf "$archive" | head -n 1)
+          listing=$(mktemp)
+          trap 'rm -f "$listing"' EXIT
+          tar -tzf "$archive" >"$listing"
+          first_entry=$(head -n 1 "$listing")
           if [ "$first_entry" != "Voix-${ver}/" ]; then
             echo "error: source archive is not prefixed with Voix-${ver}/ (got '${first_entry}')" >&2
             exit 1
           fi
-          tar -tzf "$archive" | grep -qx "Voix-${ver}/CMakeLists.txt" \
+          grep -qx "Voix-${ver}/CMakeLists.txt" "$listing" \
             || { echo "error: source archive is missing CMakeLists.txt" >&2; exit 1; }
           ls -l dist
 
