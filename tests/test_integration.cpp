@@ -320,17 +320,18 @@ bool test_integration_keepenv_reaches_child() {
     return true;
 }
 
-/// A system `ls` whose real binary is named `ls`.
+/// A system `ls` at its standard location.
 ///
 /// Some images ship Rust coreutils as one multiplexer binary that dispatches on
-/// argv[0]. There `/bin/ls` canonicalises to a binary called `coreutils`, and
-/// the identity check refuses it -- correctly, because the executable's name no
-/// longer identifies the tool. Such a host has no plain `ls` to test with.
+/// argv[0]; there `/bin/ls` resolves into the multiplexer's own tree, and the
+/// executable the kernel runs is not the utility that was asked for, so the
+/// identity check refuses it. Such a host has no plain `ls` to test with, and
+/// the standard locations are the only ones worth trusting for the test.
 static fs::path find_plain_ls() {
     for (const char* candidate : {"/bin/ls", "/usr/bin/ls"}) {
         std::error_code ec;
         const fs::path real = fs::canonical(candidate, ec);
-        if (!ec && real.filename() == "ls") {
+        if (!ec && (real == "/bin/ls" || real == "/usr/bin/ls")) {
             return real;
         }
     }
@@ -348,7 +349,8 @@ bool test_integration_allowlist_mode_runs_real_command() {
     // the child after the privilege transition, and the target still runs.
     const fs::path ls = find_plain_ls();
     if (ls.empty()) {
-        std::cerr << "skipped: no plain ls on this host (coreutils multiplexer)"
+        std::cerr << "skipped: ls resolves outside /bin or /usr/bin "
+                     "(coreutils multiplexer)"
                   << std::endl;
         return true;
     }
@@ -400,7 +402,8 @@ bool test_integration_blacklist_mode_runs_real_command() {
     }
     const fs::path ls = find_plain_ls();
     if (ls.empty()) {
-        std::cerr << "skipped: no plain ls on this host (coreutils multiplexer)"
+        std::cerr << "skipped: ls resolves outside /bin or /usr/bin "
+                     "(coreutils multiplexer)"
                   << std::endl;
         return true;
     }
