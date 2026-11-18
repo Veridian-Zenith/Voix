@@ -54,16 +54,16 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # ---- Supported Architecture ----
-# x86_64 only. aarch64 is unsupported: the release pipeline runs on a forge
-# with no native aarch64 runner, and cross-compiling from x86_64 cannot link
-# the required aarch64 PAM, libcap, libseccomp, and yaml-cpp. Reject any other
-# target at configure time instead of emitting flags for an artifact that is
-# never built or shipped.
+# x86_64 only. aarch64 is unsupported: support was removed, cross-compiling from
+# x86_64 cannot link the required aarch64 PAM, libcap, libseccomp, and yaml-cpp,
+# and neither forge pipeline has an aarch64 job. Reject any other target at
+# configure time instead of emitting flags for an artifact that is never built
+# or shipped.
 if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
     message(FATAL_ERROR
             "Voix supports x86_64 only (detected target: '${CMAKE_SYSTEM_PROCESSOR}'). "
-            "aarch64 is not supported: there is no native aarch64 runner for the "
-            "release pipeline and no aarch64 sysroot for cross-compilation.")
+            "aarch64 is not supported: there is no aarch64 sysroot for "
+            "cross-compilation and neither forge pipeline builds it.")
 endif()
 
 # ---- Control-Flow Hardening ----

@@ -1,5 +1,10 @@
 name: Release Artifacts
 
+# x86_64 only. aarch64 support was removed, so this pipeline builds, signs and
+# publishes the x86_64 tarball and the tagged source archive only; CMakeLists.txt
+# rejects any other target at configure time. The Forgejo copy in
+# .forgejo/workflows/release.yml builds the same single architecture.
+
 on:
   push:
     tags:
@@ -48,61 +53,6 @@ jobs:
           echo "tag=$tag" >>"$GITHUB_OUTPUT"
           echo "publish=$publish" >>"$GITHUB_OUTPUT"
           echo "Resolved tag='${tag}' publish='${publish}'"
-
-  build-aarch64:
-    name: Build aarch64-bin
-    needs: resolve
-    # Native arm64 runner (free for public repositories). Building on real aarch64
-    # hardware replaces the old x86_64 "cross" job, which silently produced an
-    # x86-64 binary: CMakeLists.txt FORCE-clears the CMAKE_C/CXX_FLAGS cache, so
-    # the --target=aarch64-linux-gnu it passed never reached the compiler.
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.resolve.outputs.tag || github.ref }}
-          fetch-depth: 0
-      - name: Install LLVM 22
-        run: |
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 22
-          sudo apt-get install -y clang-22 lld-22 libpam0g-dev libcap-dev libyaml-cpp-dev libseccomp-dev ninja-build
-      - name: Configure CMake (native arm64)
-        run: |
-          cmake -B build-aarch64 -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=clang++-22 \
-            -DCMAKE_C_COMPILER=clang-22 \
-            -DVOIX_ARCH=armv8-a \
-            -DVOIX_STATIC_YAML_CPP=ON \
-            -DENABLE_PERMISSIONS=OFF
-      - name: Build (native arm64)
-        run: cmake --build build-aarch64
-      - name: Verify binary architecture
-        run: |
-          set -euo pipefail
-          machine=$(readelf -h build-aarch64/voix | sed -n 's/^ *Machine: *//p')
-          echo "ELF machine: ${machine}"
-          # Check the ELF machine type, never `file <path> | grep aarch64`:
-          # the path `build-aarch64/voix` contains "aarch64", so that guard
-          # matched the filename and green-lit x86-64 artifacts.
-          [ "${machine}" = "AArch64" ] || { echo "::error::expected AArch64 binary, got '${machine}'"; exit 1; }
-      - name: Prepare Package
-        run: |
-          mkdir -p voix-aarch64-bin
-          cp build-aarch64/voix voix-aarch64-bin/
-          cp pam.d/voix voix-aarch64-bin/voix.pam
-          cp config/voix.conf voix-aarch64-bin/
-          cp docs/voix.1 voix-aarch64-bin/
-          cp README.md voix-aarch64-bin/
-          cp LICENSE voix-aarch64-bin/
-          tar -czf voix-aarch64-bin.tar.gz voix-aarch64-bin/
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: voix-aarch64-bin
-          path: voix-aarch64-bin.tar.gz
 
   build-linux:
     name: Build x86_64-bin
@@ -161,7 +111,7 @@ jobs:
 
   publish:
     name: Sign and publish release
-    needs: [resolve, build-aarch64, build-linux]
+    needs: [resolve, build-linux]
     if: needs.resolve.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -214,7 +164,6 @@ jobs:
           }
           ver="${RELEASE_TAG#v}"
           sign "dist/voix-x86_64-bin.tar.gz"
-          sign "dist/voix-aarch64-bin.tar.gz"
           sign "dist/voix-src-${ver}.tar.gz"
           ls -l dist
 
@@ -226,8 +175,6 @@ jobs:
           files: |
             dist/voix-x86_64-bin.tar.gz
             dist/voix-x86_64-bin.tar.gz.asc
-            dist/voix-aarch64-bin.tar.gz
-            dist/voix-aarch64-bin.tar.gz.asc
             dist/voix-src-*.tar.gz
             dist/voix-src-*.tar.gz.asc
         env:

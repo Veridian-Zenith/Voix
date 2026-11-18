@@ -119,12 +119,11 @@ sha256sum -c <(printf '%s  %s\n' "<sha256 from .SRCINFO>" voix-x86_64-bin.tar.gz
 
 ## Architecture
 
-x86_64 only. aarch64 support has been removed: the release pipeline runs on
-git.gay (Forgejo), which provides no native aarch64 runner, and cross-compiling
-from x86_64 cannot link the required aarch64 `PAM`/`libcap`/`libseccomp`/
-`libyaml-cpp`. No aarch64 artifact is built, published, or packaged, both AUR
-packages are `x86_64`-only, and `CMakeLists.txt` rejects any other target at
-configure time.
+x86_64 only. aarch64 support has been removed: cross-compiling from x86_64
+cannot link the required aarch64 `PAM`/`libcap`/`libseccomp`/`libyaml-cpp`, and
+the `pkg/` packaging tree lives on git.gay, whose runners carry no aarch64
+label. Neither forge pipeline builds an aarch64 artifact; both AUR packages are
+`x86_64`-only, and `CMakeLists.txt` rejects any other target at configure time.
 
 > [!IMPORTANT]
 > 32-bit (`i386`/`i686`) is intentionally **not** supported: the minimal TCB,
