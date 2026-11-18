@@ -320,6 +320,23 @@ bool test_integration_keepenv_reaches_child() {
     return true;
 }
 
+/// A system `ls` whose real binary is named `ls`.
+///
+/// Some images ship Rust coreutils as one multiplexer binary that dispatches on
+/// argv[0]. There `/bin/ls` canonicalises to a binary called `coreutils`, and
+/// the identity check refuses it -- correctly, because the executable's name no
+/// longer identifies the tool. Such a host has no plain `ls` to test with.
+static fs::path find_plain_ls() {
+    for (const char* candidate : {"/bin/ls", "/usr/bin/ls"}) {
+        std::error_code ec;
+        const fs::path real = fs::canonical(candidate, ec);
+        if (!ec && real.filename() == "ls") {
+            return real;
+        }
+    }
+    return {};
+}
+
 bool test_integration_allowlist_mode_runs_real_command() {
     if (syscall_instrumentation_active()) {
         // An interposer would add syscalls the allowlist cannot know about.
@@ -329,9 +346,12 @@ bool test_integration_allowlist_mode_runs_real_command() {
     }
     // End-to-end version of the seccomp unit test: the filter is applied in
     // the child after the privilege transition, and the target still runs.
-    const fs::path ls = fs::exists("/bin/ls") ? fs::path("/bin/ls")
-                                              : fs::path("/usr/bin/ls");
-    ASSERT_TRUE(fs::exists(ls));
+    const fs::path ls = find_plain_ls();
+    if (ls.empty()) {
+        std::cerr << "skipped: no plain ls on this host (coreutils multiplexer)"
+                  << std::endl;
+        return true;
+    }
 
     Voix::FileUtils file_utils(0); // /bin/ls is root-owned
     auto info = file_utils.resolve_executable(ls.string(), "");
@@ -371,9 +391,19 @@ bool test_integration_allowlist_mode_runs_real_command() {
 }
 
 bool test_integration_blacklist_mode_runs_real_command() {
-    const fs::path ls = fs::exists("/bin/ls") ? fs::path("/bin/ls")
-                                              : fs::path("/usr/bin/ls");
-    ASSERT_TRUE(fs::exists(ls));
+    if (syscall_instrumentation_active()) {
+        // Blacklist mode still installs a seccomp filter, so an interposer would
+        // be killed by the default-deny rule just as in allowlist mode.
+        std::cerr << "skipped: LD_PRELOAD/LD_AUDIT instrumentation is active"
+                  << std::endl;
+        return true;
+    }
+    const fs::path ls = find_plain_ls();
+    if (ls.empty()) {
+        std::cerr << "skipped: no plain ls on this host (coreutils multiplexer)"
+                  << std::endl;
+        return true;
+    }
 
     Voix::FileUtils file_utils(0);
     auto info = file_utils.resolve_executable(ls.string(), "");
