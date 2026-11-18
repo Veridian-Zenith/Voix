@@ -84,7 +84,7 @@ jobs:
             ca-certificates curl wget git gnupg lsb-release xz-utils \
             software-properties-common \
             cmake pkg-config ninja-build binutils \
-            libpam0g-dev libcap-dev libseccomp-dev libyaml-cpp-dev \
+            libpam0g-dev libaudit-dev libcap-dev libseccomp-dev libyaml-cpp-dev \
             libstdc++-14-dev
 
           wget -q https://apt.llvm.org/llvm.sh
